@@ -610,8 +610,7 @@ void loop ( ) {
 
     // *** Déclenchement et gestion du relais secondaire de délestage     ***
     if ( ( relayMode == AUTOM ) && ( triacMode == AUTOM ) ) {
-      if ( ( Prouted_filtered >= float ( P_DIV2_ACTIVE ) ) && ( Div2_Off_cnt == 0 )
-           && ( digitalRead ( relayPin ) == OFF ) ) {
+      if ( ( Prouted_filtered >= float ( P_DIV2_ACTIVE ) ) && ( Div2_Off_cnt == 0 ) ) {
         digitalWrite ( relayPin, ON );    // Activation du relais de délestage
         Div2_On_cnt = 60 * T_DIV2_ON;     // Initialisation de la durée de fonctionnement minimale en sevondes
       }
