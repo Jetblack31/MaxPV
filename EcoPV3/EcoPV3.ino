@@ -52,6 +52,8 @@
 // *** La bibliothèque SSD1306Ascii doit être installée dans l'IDE Arduino.
 // *** Voir les définitions de configuration OLED_128X64
 // *** dans la suite des déclarations, en particulier l'adresse de l'écran
+// *** Note : ne pas oublier de placer un résistance de pull-up de 10 kohms 
+// *** sur les lignes SDA et SCK
 
 // ***********************************************************************************
 // ******************        FIN DES OPTIONS DE COMPILATION            ***************
@@ -159,15 +161,15 @@
 
 // ************* Calibrage du système
 float V_CALIB      =    0.800;        // Valeur de calibration de la tension du secteur lue (Volt par bit)
-// 0.800 = valeur par défaut pour Vcc = 5 V
+                                      // 0.800 = valeur par défaut pour Vcc = 5 V
 float P_CALIB      =    0.111;        // Valeur de calibration de la puissance (VA par bit)
-// Implicitement I_CALIB = P_CALIB / V _CALIB
+                                      // Implicitement I_CALIB = P_CALIB / V _CALIB
 int   PHASE_CALIB  =       13;        // Valeur de correction de la phase (retard) de l'acquisition de la tension
-// Entre 0 et 32 :
-// 16 = pas de correction
-// 0  = application d'un retard = temps de conversion ADC
-// 32 = application d'une avance = temps de conversion ADC
-int   P_OFFSET     =        0;        // Correction d'offset de la lecture de Pactive en Watt
+                                      // Entre 0 et 32 :
+                                      // 16 = pas de correction
+                                      // 0  = application d'un retard = temps de conversion ADC
+                                      // 32 = application d'une avance = temps de conversion ADC
+int   P_OFFSET     =      -15;        // Correction d'offset de la lecture de Pactive en Watt
 int   P_RESISTANCE =     2000;        // Valeur en Watt de la résistance contrôlée
 
 // ************* Paramètres de régulation du routeur de puissance (valeurs par défaut)
@@ -183,8 +185,8 @@ int   P_DIV2_IDLE   =     200;         // Puissance active importée en Watt qui
 byte  T_DIV2_ON     =       5;         // Durée minimale d'activation du délestage en minutes
 byte  T_DIV2_OFF    =       5;         // Durée minimale d'arrêt du délestage en minutes
 byte  T_DIV2_TC     =       1;         // Constante de temps de moyennage des puissance routées et active en minutes
-// NOTE : Il faut une condition d'hystérésis pour un bon fonctionnement :
-// P_DIV2_ACTIVE + P_DIV2_IDLE > à la puissance de la charge de délestage secondaire
+                                       // NOTE : Il faut une condition d'hystérésis pour un bon fonctionnement :
+                                       // P_DIV2_ACTIVE + P_DIV2_IDLE > à la puissance de la charge de délestage secondaire
 
 // ************* Calibration du compteur à impulsion | conversion nombre de Wh par impulsion (valeur par défaut)
 byte  CNT_CALIB     =       1;         // En Wh par impulsion externe
@@ -221,8 +223,9 @@ byte energyToDelay [ ] = {
   49,  48,  48,  47,  46,  45,  44,  44,  43,  43,  42,  42,  41,  41,  40,  39,
   39,  38,  37,  36,  35,  33,  32,  31,  27,  25,  20,  15,  12,  10,   9,   8
 };
+
 #define PULSE_END                148       // Instant d'arrêt du pulse triac après le passage à 0
-// par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
+                                           // par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
 
 
 // ***********************************************************************************
@@ -265,13 +268,13 @@ const paramInConfig pvrParamConfig [ ] = {
 // ************* entre les routines d'interruption                         ***********
 // ***********************************************************************************
 volatile int     biasOffset    = 511;       // pour réguler le point milieu des acquisitions ADC,
-// attendu autour de 511
+                                            // attendu autour de 511
 volatile long    periodP       =   0;       // Samples de puissance accumulés
-// sur un demi-cycle secteur (période de la puissance)
+                                            // sur un demi-cycle secteur (période de la puissance)
 #define          NCSTART           5
 volatile byte    coldStart     =   NCSTART; // Indicateur de passage à 0 après le démarrage
-// Atteint la valeur 0 une fois le warm-up terminé
-// Attente de NCSTART passage à 0 avant de démarrer la régulation
+                                            // Atteint la valeur 0 une fois le warm-up terminé
+                                            // Attente de NCSTART passage à 0 avant de démarrer la régulation
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les calcul              ***********
@@ -288,17 +291,17 @@ volatile unsigned long sumIsqr        = 0;
 volatile unsigned int  routed_power   = 0;
 volatile unsigned int  samples        = 0;
 volatile byte          error_status   = 0;
-// Signification des bits du byte error_status
-// bits 0..3 : informations
-// bit 0 (1)   : Routage en cours
-// bit 1 (2)   : Commande de routage à 100 %
-// bit 2 (4)   : Relais secondaire de délestage activé
-// bit 3 (8)   : Exportation d'énergie
-// bits 4..7 : erreurs
-// bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
-// bit 5 (32)  : Anomalie taux d'acquisition
-// bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
-// bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
+                                            // Signification des bits du byte error_status
+                                            // bits 0..3 : informations
+                                            // bit 0 (1)   : Routage en cours
+                                            // bit 1 (2)   : Commande de routage à 100 %
+                                            // bit 2 (4)   : Relais secondaire de délestage activé
+                                            // bit 3 (8)   : Exportation d'énergie
+                                            // bits 4..7 : erreurs
+                                            // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
+                                            // bit 5 (32)  : Anomalie taux d'acquisition
+                                            // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
+                                            // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
 
 // ***********************************************************************************
 // ************* Variables utilisées pour le transfert des statistiques  *************
@@ -316,9 +319,9 @@ volatile unsigned int  stats_samples      = 0;   // Nombre d'échantillons total
 volatile byte          stats_error_status = 0;
 volatile int           stats_biasOffset   = 0;   // Valeur de la correction d'offset de lecture ADC
 volatile byte          stats_ready_flag   = 0;
-// 0 = Données traitées par la loop (), en attente de nouvelles données
-// 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
-// 9 = Données statistiques en cours de transfert
+                                                 // 0 = Données traitées par la loop (), en attente de nouvelles données
+                                                 // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
+                                                 // 9 = Données statistiques en cours de transfert
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les statistiques      *************
@@ -348,14 +351,14 @@ byte                   hoursOnline      = 0;        // et mise à jour à chaque
 byte                   daysOnline       = 0;        // statistiques sont disponibles
 
 byte                   ledBlink         = 0;        // séquenceur de clignotement pour les LEDs, période T
-// bit 0 (1)   : T = 40 ms
-// bit 1 (2)   : T = 80 ms
-// bit 2 (4)   : T = 160 ms
-// bit 3 (8)   : T = 320 ms
-// bit 4 (16)  : T = 640 ms
-// bit 5 (32)  : T = 1280 ms
-// bit 6 (64)  : T = 2560 ms
-// bit 7 (128) : T = 5120 ms
+                                                    // bit 0 (1)   : T = 40 ms
+                                                    // bit 1 (2)   : T = 80 ms
+                                                    // bit 2 (4)   : T = 160 ms
+                                                    // bit 3 (8)   : T = 320 ms
+                                                    // bit 4 (16)  : T = 640 ms
+                                                    // bit 5 (32)  : T = 1280 ms
+                                                    // bit 6 (64)  : T = 2560 ms
+                                                    // bit 7 (128) : T = 5120 ms
 
 byte                   triacMode        = AUTOM;     // mode de fonctionnement du triac/SSR
 byte                   relayMode        = AUTOM;     // mode de fonctionnement du relais secondaire de délestage
@@ -386,11 +389,11 @@ struct dataEeprom {                         // Structure des données pour le st
   byte                  t_div2_on;
   byte                  t_div2_off;
   byte                  t_div2_tc;
-  // fin des données eeprom V1
+     // fin des données eeprom V1
   byte                  cnt_calib;
   int                   p_installpv;
-  // fin des données eeprom V2
-  // taille totale : 36 bytes (byte = 1 byte, int = 2 bytes, long = float = 4 bytes)
+     // fin des données eeprom V2
+     // taille totale : 36 bytes (byte = 1 byte, int = 2 bytes, long = float = 4 bytes)
 };
 
 struct indexEeprom {
@@ -398,7 +401,7 @@ struct indexEeprom {
   long                  imported;
   long                  exported;
   long                  impulsion;
-  // taille totale : 16 bytes
+     // taille totale : 16 bytes
 };
 
 // ***********************************************************************************
