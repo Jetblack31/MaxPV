@@ -5,9 +5,10 @@ Merci à tous pour vos messages et votre soutien au projet !
 MaxPV! est une nouvelle interface pour EcoPV, compatible avec les montages EcoPV possédant une liaison wifi via un Wemos ESP8266. Le coeur du routeur est inchangé. MaxPV! apporte une interface Web de configuration et de visualisation du fonctionnement, ainsi qu'une nouvelle API.
 
 ![MaxPV! main page](images/mainpage.png)  
-MaxPV! héritant du concept d'EcoPV, il sera utile de se référer au dépôt EcoPV : https://github.com/Jetblack31/EcoPV
+MaxPV! héritant d'EcoPV, il sera utile de se référer au dépôt EcoPV : https://github.com/Jetblack31/EcoPV
 
 La lecture de ces fils de discussion est plus que recommandée pour la mise en oeuvre :  
+Forum photovoltaïque, discussion sur MaxPV : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=55244
 Forum photovoltaïque, discussion sur EcoPV : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=42721  
 Forum photovoltaïque, réalisation d'un PCB : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=42874  
 Forum photovoltaïque, montage du PCB : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=43197  
@@ -20,14 +21,14 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 * Même qualité de routage du surplus photovoltaïque que la version précédente.
 * Abandon de l'option de communication MySensors.
 * Abandon de l'utilisation du shield ethernet. Toutefois, celui-ci peut rester en place sur le circuit mais il ne sera plus utilisé.
-* Interface web responsive avec visualisation graphique.
+* Interface web responsive avec visualisation graphique des données.
 * Installation et paramétrage réseau facilitée.
 * Mise à jour du Wemos en OTA.
 * Assistant de configuration des paramètres du routeur.
 * Amélioration des index de comptage de la puissance.
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut).
 * Nouvelle API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
-* En développement : compteurs journaliers, historique des données
+* En développement : compteurs journaliers, historique des données.
 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
@@ -35,7 +36,7 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 ## Installation
 ### Pré-requis
 L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
-Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi et avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
+Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
 ### Programmation de l'Arduino Nano
 * **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
@@ -45,8 +46,8 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 
 ### Programmation du Wemos
 * Configurez l'IDE Arduino sur la carte Wemos avec les paramètres suivants : 
-  * Flash size: 4 MB (FS: 1MB, OTA: 1019KB),
-  * Erase Flash: All Flash Contents.
+  * **Flash size: 4 MB (FS: 1MB, OTA: 1019KB)**,
+  * **Erase Flash: All Flash Contents**.
 * Installez la librairie **AsyncElegantOTA** à partir du gestionnaire de librairies.
 * Installez les 2 librairies disponibles dans le répertoire **"Librairies IDE"**.
 * Ouvrez le programme *amorceESP.ino* et téléchargez le dans le Wemos.
@@ -56,7 +57,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
 * Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
-* Un portail captif devrait s'ouvrir, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
+* Un portail captif s'ouvre, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
 
 ![MaxPV! captif portal](images/captif.png)
 * Réalisez votre configuration Wifi et votre configuration IP. Pour les adresses DNS, indiquez l'adresse de votre 'Box internet' comme DNS1, et l'adresse 8.8.8.8 comme DNS2.
@@ -70,17 +71,17 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Si vous voulez entrer manuellement les paramètres du routeur que vous utilisiez précédemment :
   * Rendez-vous sur la page **Paramètrage avancé**,
   * Entrez vos paramètres un par un, en validant chaque paramètre,
-  * **Nouveauté** : il y a 2 nouveaux paramètres :
+  * **Attention** : il y a 2 nouveaux paramètres :
     * **P_INSTALLPV** : puissance de votre installation photovoltaïque en Wc,
     * **CNT_CALIB** : poids des impulsions en Wh du compteur d'impulsion pour la mesure de la production PV.
   * **Enregistrez la configuration et redémarrez le routeur**.
 * Votre routeur MaxPV! est maintenant opérationnel !
 
 ## Mises à jour
-Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessite de reconfigurer la connexion Wifi du Wemos comme décrit précédemment.
+Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment.
 
 ## Installation avancée
-Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation avancée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
+Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation avancée et personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
 
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativemlent à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
