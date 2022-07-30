@@ -24,6 +24,7 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 * Assistant de configuration des paramètres du routeur
 * Amélioration des index de comptage de la puissance
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut)
-* Nouvelle API pour communiquer avec un serveur domotique. Documentation : 
+* Nouvelle API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf)
+
 
 
