@@ -39,7 +39,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 
 ### Programmation de l'Arduino Nano
 * **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fn de l'installation !
-* Ouvrez le programme **EcoPV3.ino** dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
+* Ouvrez le programme *EcoPV3.ino* dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
 * Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
 * Téléchargez le programme dans l'Arduino Nano.
 
@@ -47,11 +47,14 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Configurez l'IDE Arduino sur la carte Wemos avec les paramètres suivants : 
   * Flash size: 4 MB (FS: 1MB, OTA: 1019KB),
   * Erase Flash : All Flash Contents.
-* Installez la librairie **AsynsElegantOTA** à partir du gestionnaire de librairies.
+* Installez la librairie **AsyncElegantOTA** à partir du gestionnaire de librairies.
 * Installez les 2 librairies disponibles dans le répertoire **"Librairies IDE"**.
-* Ouvrez le programme amorceESP.ino et téléchargez le dans le Wemos.
+* Ouvrez le programme *amorceESP.ino* et téléchargez le dans le Wemos.
 * A l'aide d'un ordinateur portable ou d'un téléphone, connectez-vous au réseau Wifi MaxPV et allez à la page http://192.168.4.1
 * Une page intitulée elegantOTA s'ouvre à l'écran.
-* Téléchargez d'abord le **Filesystem** MaxPV3_filesystem.bin disponible dans le répertoire 'Binaires MaxPV'.
+* Téléchargez d'abord le **Filesystem** *MaxPV3_filesystem.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
-* Téléchargez ensuite le **Firmware** MaxPV3_firmware.bin disponible dans le répertoire 'Binaires MaxPV'.
+* Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
+* Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
+* Un portail captif devrait s'ouvrir, s'il ne s'ouvre pas, connectez-vous à l'adresse http://192.168.4.1
+
