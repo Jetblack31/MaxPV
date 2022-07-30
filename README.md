@@ -56,5 +56,9 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
 * Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
-* Un portail captif devrait s'ouvrir, s'il ne s'ouvre pas, connectez-vous à l'adresse http://192.168.4.1
+* Un portail captif devrait s'ouvrir, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
+![MaxPV! captif portal](images/captif.png)
+* Réalisez votre configuration Wifi et votre configuration IP. Pour les adresses DNS, indiquez l'adresse de votre 'Box internet' comme DNS1, et l'adresse 8.8.8.8 comme DNS2.
+* Vous pouvez maintenant ré-installer l'Arduino Nano et le Wemos sur la carte électronique de votre routeur.
+* 
 
