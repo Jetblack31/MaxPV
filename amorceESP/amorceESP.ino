@@ -8,7 +8,6 @@
 #include <AsyncElegantOTA.h>
 
 const char* ssid = "MaxPV";
-const char* password = "MaxPVMaxPV";
 
 IPAddress local_IP ( 192, 168, 4, 1 );
 IPAddress gateway ( 192, 168, 4, 1 );
@@ -20,13 +19,17 @@ void setup ( void ) {
   Serial.begin ( 115200 );
 
   WiFi.softAPConfig ( local_IP, gateway, subnet );
-  WiFi.softAP ( ssid, password );
+  WiFi.softAP ( ssid );
 
   server.on ( "/", HTTP_GET, []( AsyncWebServerRequest *request ) {
-    request->send ( 200, "text/plain", "Connect to http://192.168.4.1/update" );
+      request->redirect("/update");
   } );
 
-  AsyncElegantOTA.begin ( &server );    // Start AsyncElegantOTA
+  server.onNotFound ( []( AsyncWebServerRequest * request ) {
+      request->redirect("/update");
+  } );
+
+  AsyncElegantOTA.begin ( &server ); 
 
   server.begin ( );
   

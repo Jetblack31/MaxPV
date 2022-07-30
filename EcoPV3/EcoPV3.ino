@@ -6,6 +6,7 @@
   Copyright (C) 2022 - Bernard Legrand.
 
   https://github.com/Jetblack31/EcoPV
+  https://github.com/Jetblack31/MaxPV
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published
@@ -52,7 +53,7 @@
 // *** La bibliothèque SSD1306Ascii doit être installée dans l'IDE Arduino.
 // *** Voir les définitions de configuration OLED_128X64
 // *** dans la suite des déclarations, en particulier l'adresse de l'écran
-// *** Note : ne pas oublier de placer un résistance de pull-up de 10 kohms 
+// *** Note : ne pas oublier de placer un résistance de pull-up de 10 kohms
 // *** sur les lignes SDA et SCK
 
 // ***********************************************************************************
@@ -161,14 +162,14 @@
 
 // ************* Calibrage du système
 float V_CALIB      =    0.800;        // Valeur de calibration de la tension du secteur lue (Volt par bit)
-                                      // 0.800 = valeur par défaut pour Vcc = 5 V
+// 0.800 = valeur par défaut pour Vcc = 5 V
 float P_CALIB      =    0.111;        // Valeur de calibration de la puissance (VA par bit)
-                                      // Implicitement I_CALIB = P_CALIB / V _CALIB
+// Implicitement I_CALIB = P_CALIB / V _CALIB
 int   PHASE_CALIB  =       13;        // Valeur de correction de la phase (retard) de l'acquisition de la tension
-                                      // Entre 0 et 32 :
-                                      // 16 = pas de correction
-                                      // 0  = application d'un retard = temps de conversion ADC
-                                      // 32 = application d'une avance = temps de conversion ADC
+// Entre 0 et 32 :
+// 16 = pas de correction
+// 0  = application d'un retard = temps de conversion ADC
+// 32 = application d'une avance = temps de conversion ADC
 int   P_OFFSET     =      -15;        // Correction d'offset de la lecture de Pactive en Watt
 int   P_RESISTANCE =     2000;        // Valeur en Watt de la résistance contrôlée
 
@@ -185,11 +186,11 @@ int   P_DIV2_IDLE   =     200;         // Puissance active importée en Watt qui
 byte  T_DIV2_ON     =       5;         // Durée minimale d'activation du délestage en minutes
 byte  T_DIV2_OFF    =       5;         // Durée minimale d'arrêt du délestage en minutes
 byte  T_DIV2_TC     =       1;         // Constante de temps de moyennage des puissance routées et active en minutes
-                                       // NOTE : Il faut une condition d'hystérésis pour un bon fonctionnement :
-                                       // P_DIV2_ACTIVE + P_DIV2_IDLE > à la puissance de la charge de délestage secondaire
+// NOTE : Il faut une condition d'hystérésis pour un bon fonctionnement :
+// P_DIV2_ACTIVE + P_DIV2_IDLE > à la puissance de la charge de délestage secondaire
 
 // ************* Calibration du compteur à impulsion | conversion nombre de Wh par impulsion (valeur par défaut)
-byte  CNT_CALIB     =       1;         // En Wh par impulsion externe
+float CNT_CALIB     =       1.0;         // En Wh par impulsion externe
 
 // ************* Puissance de l'installation PV (valeurs par défaut)
 int   P_INSTALLPV   =     3000;        // Valeur en Wc de la puissance de l'installation PV | production max (valeur par défaut)
@@ -224,8 +225,8 @@ byte energyToDelay [ ] = {
   39,  38,  37,  36,  35,  33,  32,  31,  27,  25,  20,  15,  12,  10,   9,   8
 };
 
-#define PULSE_END                148       // Instant d'arrêt du pulse triac après le passage à 0
-                                           // par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
+#define PULSE_END          148          // Instant d'arrêt du pulse triac après le passage à 0
+// par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
 
 
 // ***********************************************************************************
@@ -235,29 +236,29 @@ byte energyToDelay [ ] = {
 
 struct paramInConfig {                  // Structure pour la manipulation des données de configuration
   byte dataType;                        // 0 : int, 1 : float, 4 : byte
-  int  minValue;                        // valeur minimale que peut prendre le paramètre (-16383)
-  int  maxValue;                        // valeur maximale que peut prendre le paramètre (16384)
+  int  minValue;                        // valeur minimale que peut prendre le paramètre (attention au type !)
+  int  maxValue;                        // valeur maximale que peut prendre le paramètre (attention au type !)
   void *adr;                            // pointeur vers le paramètre
 };
 
 const paramInConfig pvrParamConfig [ ] = {
   // Tableau utilisé pour la manipulation des données de configuration
   // dataType min      max     adr
-  { 1,        0,       5,   &V_CALIB        },       // V_CALIB
-  { 1,        0,      25,   &P_CALIB        },       // P_CALIB
+  { 1,        0,       2,   &V_CALIB        },       // V_CALIB
+  { 1,        0,       1,   &P_CALIB        },       // P_CALIB
   { 0,      -16,      48,   &PHASE_CALIB    },       // PHASE_CALIB
   { 0,     -100,     100,   &P_OFFSET       },       // P_OFFSET
   { 0,      100,   10000,   &P_RESISTANCE   },       // P_RESISTANCE
-  { 0,     -200,    2000,   &P_MARGIN       },       // P_MARGIN
+  { 0,    -2000,    2000,   &P_MARGIN       },       // P_MARGIN
   { 0,        0,    1000,   &GAIN_P         },       // GAIN_P
   { 0,        0,    1000,   &GAIN_I         },       // GAIN_I
-  { 4,        0,     100,   &E_RESERVE      },       // E_RESERVE
+  { 4,        0,     200,   &E_RESERVE      },       // E_RESERVE
   { 0,        0,    9999,   &P_DIV2_ACTIVE  },       // P_DIV2_ACTIVE
   { 0,        0,    9999,   &P_DIV2_IDLE    },       // P_DIV2_IDLE
   { 4,        0,     240,   &T_DIV2_ON      },       // T_DIV2_ON
   { 4,        0,     240,   &T_DIV2_OFF     },       // T_DIV2_OFF
   { 4,        0,      60,   &T_DIV2_TC      },       // T_DIV2_TC
-  { 4,        1,     100,   &CNT_CALIB      },       // CNT_CALIB
+  { 1,        0,    1000,   &CNT_CALIB      },       // CNT_CALIB
   { 0,      100,   30000,   &P_INSTALLPV    }        // P_INSTALLPV
 };
 
@@ -268,13 +269,13 @@ const paramInConfig pvrParamConfig [ ] = {
 // ************* entre les routines d'interruption                         ***********
 // ***********************************************************************************
 volatile int     biasOffset    = 511;       // pour réguler le point milieu des acquisitions ADC,
-                                            // attendu autour de 511
+// attendu autour de 511
 volatile long    periodP       =   0;       // Samples de puissance accumulés
-                                            // sur un demi-cycle secteur (période de la puissance)
+// sur un demi-cycle secteur (période de la puissance)
 #define          NCSTART           5
 volatile byte    coldStart     =   NCSTART; // Indicateur de passage à 0 après le démarrage
-                                            // Atteint la valeur 0 une fois le warm-up terminé
-                                            // Attente de NCSTART passage à 0 avant de démarrer la régulation
+// Atteint la valeur 0 une fois le warm-up terminé
+// Attente de NCSTART passage à 0 avant de démarrer la régulation
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les calcul              ***********
@@ -291,17 +292,17 @@ volatile unsigned long sumIsqr        = 0;
 volatile unsigned int  routed_power   = 0;
 volatile unsigned int  samples        = 0;
 volatile byte          error_status   = 0;
-                                            // Signification des bits du byte error_status
-                                            // bits 0..3 : informations
-                                            // bit 0 (1)   : Routage en cours
-                                            // bit 1 (2)   : Commande de routage à 100 %
-                                            // bit 2 (4)   : Relais secondaire de délestage activé
-                                            // bit 3 (8)   : Exportation d'énergie
-                                            // bits 4..7 : erreurs
-                                            // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
-                                            // bit 5 (32)  : Anomalie taux d'acquisition
-                                            // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
-                                            // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
+// Signification des bits du byte error_status
+// bits 0..3 : informations
+// bit 0 (1)   : Routage en cours
+// bit 1 (2)   : Commande de routage à 100 %
+// bit 2 (4)   : Relais secondaire de délestage activé
+// bit 3 (8)   : Exportation d'énergie
+// bits 4..7 : erreurs
+// bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
+// bit 5 (32)  : Anomalie taux d'acquisition
+// bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
+// bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
 
 // ***********************************************************************************
 // ************* Variables utilisées pour le transfert des statistiques  *************
@@ -319,9 +320,9 @@ volatile unsigned int  stats_samples      = 0;   // Nombre d'échantillons total
 volatile byte          stats_error_status = 0;
 volatile int           stats_biasOffset   = 0;   // Valeur de la correction d'offset de lecture ADC
 volatile byte          stats_ready_flag   = 0;
-                                                 // 0 = Données traitées par la loop (), en attente de nouvelles données
-                                                 // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
-                                                 // 9 = Données statistiques en cours de transfert
+// 0 = Données traitées par la loop (), en attente de nouvelles données
+// 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
+// 9 = Données statistiques en cours de transfert
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les statistiques      *************
@@ -351,26 +352,26 @@ byte                   hoursOnline      = 0;        // et mise à jour à chaque
 byte                   daysOnline       = 0;        // statistiques sont disponibles
 
 byte                   ledBlink         = 0;        // séquenceur de clignotement pour les LEDs, période T
-                                                    // bit 0 (1)   : T = 40 ms
-                                                    // bit 1 (2)   : T = 80 ms
-                                                    // bit 2 (4)   : T = 160 ms
-                                                    // bit 3 (8)   : T = 320 ms
-                                                    // bit 4 (16)  : T = 640 ms
-                                                    // bit 5 (32)  : T = 1280 ms
-                                                    // bit 6 (64)  : T = 2560 ms
-                                                    // bit 7 (128) : T = 5120 ms
+// bit 0 (1)   : T = 40 ms
+// bit 1 (2)   : T = 80 ms
+// bit 2 (4)   : T = 160 ms
+// bit 3 (8)   : T = 320 ms
+// bit 4 (16)  : T = 640 ms
+// bit 5 (32)  : T = 1280 ms
+// bit 6 (64)  : T = 2560 ms
+// bit 7 (128) : T = 5120 ms
 
-byte                   triacMode        = AUTOM;     // mode de fonctionnement du triac/SSR
-byte                   relayMode        = AUTOM;     // mode de fonctionnement du relais secondaire de délestage
+byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
+byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
 
 // ***********************************************************************************
 // ********  Définitions pour manipuler les données en EEPROM               **********
 // ***********************************************************************************
 #include <EEPROM.h>
-#define                   PVR_EEPROM_START             600   // Adresse de base des données PVR
-#define                   PVR_EEPROM_INDEX_ADR        1000   // Adresse de base des compteurs de kWh
-#define                   DATAEEPROM_MAGIC     374083670UL   // UID de signature de la configuration
-#define                   DATAEEPROM_VERSION             2   // Version du type de configuration
+#define          PVR_EEPROM_START             600   // Adresse de base des données PVR
+#define          PVR_EEPROM_INDEX_ADR        1000   // Adresse de base des compteurs de kWh
+#define          DATAEEPROM_MAGIC     384021670UL   // UID de signature de la configuration
+#define          DATAEEPROM_VERSION             2   // Version du type de configuration
 
 struct dataEeprom {                         // Structure des données pour le stockage en EEPROM
   unsigned long         magic;              // Magic Number
@@ -389,11 +390,11 @@ struct dataEeprom {                         // Structure des données pour le st
   byte                  t_div2_on;
   byte                  t_div2_off;
   byte                  t_div2_tc;
-     // fin des données eeprom V1
-  byte                  cnt_calib;
+  // fin des données eeprom V1
+  float                 cnt_calib;
   int                   p_installpv;
-     // fin des données eeprom V2
-     // taille totale : 36 bytes (byte = 1 byte, int = 2 bytes, long = float = 4 bytes)
+  // fin des données eeprom V2
+  // taille totale : 39 bytes (byte = 1 byte, int = 2 bytes, long = float = 4 bytes)
 };
 
 struct indexEeprom {
@@ -401,7 +402,7 @@ struct indexEeprom {
   long                  imported;
   long                  exported;
   long                  impulsion;
-     // taille totale : 16 bytes
+  // taille totale : 16 bytes
 };
 
 // ***********************************************************************************
@@ -440,13 +441,13 @@ SSD1306AsciiAvrI2c oled;
 void setup ( ) {
 
   // Initialisation des pins
-  pinMode      ( pulseExternalPin, INPUT_PULLUP );   // Entrée de comptage impulsion externe
-  pinMode      ( synchroACPin,  INPUT  );   // Entrée de synchronisation secteur
-  pinMode      ( pulseTriacPin, OUTPUT );   // Commande Triac
-  pinMode      ( synchroOutPin, OUTPUT );   // Détection passage par zéro émis par l'ADC
-  pinMode      ( ledPinStatus,  OUTPUT );   // LED Statut
-  pinMode      ( ledPinRouting, OUTPUT );   // LED Routage puissance
-  pinMode      ( relayPin,      OUTPUT );   // Commande relais de délestage tout ou rien
+  pinMode      ( pulseExternalPin, INPUT_PULLUP );  // Entrée de comptage impulsion externe
+  pinMode      ( synchroACPin,  INPUT  );           // Entrée de synchronisation secteur
+  pinMode      ( pulseTriacPin, OUTPUT );           // Commande Triac
+  pinMode      ( synchroOutPin, OUTPUT );           // Détection passage par zéro émis par l'ADC
+  pinMode      ( ledPinStatus,  OUTPUT );           // LED Statut
+  pinMode      ( ledPinRouting, OUTPUT );           // LED Routage puissance
+  pinMode      ( relayPin,      OUTPUT );           // Commande relais de délestage tout ou rien
 
   digitalWrite ( pulseTriacPin, OFF    );
   digitalWrite ( synchroOutPin, OFF    );
@@ -474,7 +475,7 @@ void setup ( ) {
   oled.setFont ( System5x7 );
   oled.clear ( );
   oled.set2X ( );
-  oled.print ( F("EcoPV V") );
+  oled.print ( F("MaxPV V") );
   oled.println ( F(VERSION) );
   oled.println ( );
   oled.println ( F("Starting...") );
@@ -498,7 +499,7 @@ void setup ( ) {
 #if defined (OLED_128X64)
   oled.clear ( );
   oled.set2X ( );
-  oled.print ( F("EcoPV V") );
+  oled.print ( F("MaxPV V") );
   oled.println ( F(VERSION) );
   oled.println ( );
   oled.println ( F("Running !") );
@@ -513,7 +514,7 @@ void setup ( ) {
 void loop ( ) {
 
 #define BIASOFFSET_TOL       20       // Tolérance en bits sur la valeur de biasOffset par rapport
-                                      // au point milieu 511 pour déclencher une remontée d'erreur
+  // au point milieu 511 pour déclencher une remontée d'erreur
   static unsigned long refTime        = millis ( );
   static float         routedEnergy   = ( -3600.0 * WH_PER_INC ); // initialisation à valeur négative
   static float         exportedEnergy = ( -3600.0 * WH_PER_INC ); // Ca permet ensuite de faire la comparaison
@@ -627,7 +628,7 @@ void loop ( ) {
       else if ( Div2_Off_cnt > 0 ) {
         Div2_Off_cnt --;                  // décrément d'une seconde
       }
-      else digitalWrite ( relayPin, OFF ); 
+      else digitalWrite ( relayPin, OFF );
     }
     else {
       Div2_On_cnt = 0;
@@ -682,6 +683,9 @@ void loop ( ) {
     interrupts ( );
 
     // *** Transmission des donnéees statistiques                         ***
+    // *** L'ordre de transmission est important !!!                      ***
+    // *** MaxPV! attend tous ces paramètres dans cet ordre               ***
+    // *** à chaque transmission.                                         ***
     Serial.print ( F("STATS,") );
     Serial.print ( Vrms, 1 );
     Serial.print ( F(",") );
@@ -697,7 +701,7 @@ void loop ( ) {
     Serial.print ( F(",") );
     Serial.print ( ( ( Pact <= 0 ) ? -Pact : 0 ), 0 );
     Serial.print ( F(",") );
-    Serial.print ( ( Pact / Papp ), 3 );
+    Serial.print ( ( Pact / Papp ), 4 );
     Serial.print ( F(",") );
     Serial.print ( indexRouted * WH_PER_INC );
     Serial.print ( F(",") );
@@ -768,7 +772,7 @@ void loop ( ) {
   }
 
   // *** Fin du Traitement des informations statistiques                  ***
-  // *** Et des actions cadencées à la seconde NB_CYCLES = 50 @ 50 Hz     ***                         ***
+  // *** Et des actions cadencées à la seconde NB_CYCLES = 50 @ 50 Hz     ***
 
   // *** La suite est exécutée à chaque passage dans loop                 ***
 
@@ -908,25 +912,25 @@ void serialRequest ( void ) {
         EEPROM.write ( i, 0 );
       }
       delay (50);
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:FORMAT,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("SAVECFG") ) ) {
       // Demande de sauvegarde de la configuration
       eeConfigWrite ( );
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:SAVECFG,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("LOADCFG") ) ) {
       // Demande de lecture de la configuration
       if ( eeConfigRead ( ) == false ) eeConfigWrite ( );
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:LOADCFG,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("SAVEINDX") ) ) {
       // Demande de sauvegarde des index
       indexWrite ( );
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:SAVEINDX,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("VERSION") ) ) {
@@ -947,7 +951,7 @@ void serialRequest ( void ) {
       indexImpulsion = 0;
       interrupts ( );
       indexWrite ( );
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:INDX0,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("RESET") ) ) {
@@ -959,9 +963,9 @@ void serialRequest ( void ) {
         stopPVR ( );
         delay ( 100 );
         startPVR ( );
-        Serial.print ( F("OK,") );
+        Serial.print ( F("DONE:RESET,OK,") );
       }
-      else Serial.print ( F("NOK,") );
+      else Serial.print ( F("NOK:RESET,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("SETPARAM") ) ) {
@@ -1010,9 +1014,9 @@ void serialRequest ( void ) {
               break;
             }
         }
-        Serial.print ( F("OK,") );
+        Serial.print ( F("DONE:SETPARAM,OK,") );
       }
-      else Serial.print ( F("PARAM NOK,") );
+      else Serial.print ( F("NOK:SETPARAM,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("SETRELAY") ) ) {
@@ -1023,7 +1027,7 @@ void serialRequest ( void ) {
       if ( incomingCommand == "STOP" )       relayMode = STOP;
       else if ( incomingCommand == "FORCE" ) relayMode = FORCE;
       else if ( incomingCommand == "AUTO" )  relayMode = AUTOM;
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:SETRELAY,OK,") );
     }
 
     else if ( incomingCommand.startsWith ( F("SETSSR") ) ) {
@@ -1034,7 +1038,7 @@ void serialRequest ( void ) {
       if ( incomingCommand == "STOP" )       triacMode = STOP;
       else if ( incomingCommand == "FORCE" ) triacMode = FORCE;
       else if ( incomingCommand == "AUTO" )  triacMode = AUTOM;
-      Serial.print ( F("OK,") );
+      Serial.print ( F("DONE:SETSSR,OK,") );
     }
 
     else Serial.print ( F("UNKNOWN COMMAND,") );
@@ -1059,8 +1063,8 @@ void fatalError ( void ) {
   oled.clear ( );
   oled.set2X ( );
   oled.println ( F("***********") );
-  oled.println ( F("*  MAJOR  *") );
-  oled.println ( F("* FAILURE *") );
+  oled.println ( F("* ANOMALIE*") );
+  oled.println ( F("* MAJEURE *") );
   oled.println ( F("***********") );
 #endif
 
@@ -1201,6 +1205,7 @@ void upTime ( void ) {
 ///////////////////////////////////////////////////////////////////////////////////////
 void PVRScheduler ( void ) {
   static unsigned long  lastDeltaTimeImpulsion = 0;
+  static unsigned long  lastMinuteDeltaTimeImpulsion = 0;
   static bool           impulsionFlag = false;
   unsigned long         deltaTimeImpulsion_tmp = 0;
 
@@ -1218,17 +1223,18 @@ void PVRScheduler ( void ) {
   }
 #endif
 
-  //*** Toutes les 5 secondes : Calcul de la puissance relative à la mesure d'impulsion  ***
+  //*** Toutes les 2 secondes : Calcul de la puissance relative à la mesure d'impulsion  ***
   //*** Calcul en 'impulsion par heure'                                                  ***
-  if ( ( secondsOnline % 5 ) == 3 ) {
+  if ( ( secondsOnline % 2 ) == 0 ) {
     noInterrupts ( );
     deltaTimeImpulsion_tmp = deltaTimeImpulsion;
     interrupts ( );
-    if ( secondsOnline == 8 ) {                     // une fois par minute
-      if ( deltaTimeImpulsion_tmp == lastDeltaTimeImpulsion ) {
+    if ( secondsOnline == 8 ) {                     // une fois par minute, on teste l'absence d'impulsions
+      if ( deltaTimeImpulsion_tmp == lastMinuteDeltaTimeImpulsion ) {
         Pimpulsion = 0;
         impulsionFlag = false;
       }
+      lastMinuteDeltaTimeImpulsion = deltaTimeImpulsion_tmp;
     }
     if ( deltaTimeImpulsion_tmp != lastDeltaTimeImpulsion ) {
       lastDeltaTimeImpulsion = deltaTimeImpulsion_tmp;

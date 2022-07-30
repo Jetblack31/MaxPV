@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
+    <meta name="description" content="">
+    <meta name="author" content="Bernard Legrand">
+    <title>MaxPv! Administration</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+
+    <link href="maxpv.css" rel="stylesheet">
+</head>
+
+<body onload="fillConfigMaxPV ( )">
+
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">MaxPV!</a>
+            <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Moniteur</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="graph.html">Graphiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="wizard.html">Assistant de configuration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="admin.html">Administration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="maj.html">Update</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="credits.html">Credits</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+
+    <main class="container-fluid">
+        <div class="bg-light p-5 rounded">
+            <h1>Administration du système</h1>
+            <p class="lead">
+            <h4></h4>
+            <span>Vous pouvez modifier les paramètres de l'application et réaliser des actions manuellement.</span>
+            </p>
+
+            <p class="lead">
+            <h4>Configuration du webserver MaxPV!</h4>
+            </p>
+
+
+            <form id="formIPConfig"
+                onsubmit="event.preventDefault(); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="ip" class="form-label">Adresse IP MaxPV!</label>
+                        <input type="text" class="form-control text-center" id="ip" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                    <div class="col-6">
+                        <label for="http_port" class="form-label text-decoration-line-through">Port HTTP</label>
+                        <input type="number" class="form-control text-decoration-line-through text-center"
+                            id="http_port" placeholder="xxxx" required min="1" max="65535">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="gateway" class="form-label">Passerelle</label>
+                        <input type="text" class="form-control text-center" id="gateway" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                    <div class="col-6">
+                        <label for="subnet" class="form-label">Sous-réseau</label>
+                        <input type="text" class="form-control text-center" id="subnet" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="dns1" class="form-label">Serveur DNS 1</label>
+                        <input type="text" class="form-control text-center" id="dns1" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                    <div class="col-6">
+                        <label for="dns2" class="form-label">Serveur DNS 2</label>
+                        <input type="text" class="form-control text-center" id="dns2" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-12 d-grid gap-2">
+                        <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Sauvegarder la
+                            configuration</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="fixed-bottom" id="liveAlertPlaceholderIPConfig"></div>
+
+            <br>
+            <p class="lead">
+            <h4>Actions avancées</h4>
+            <span>Cliquer pour réaliser les actions avancées suivantes :</span>
+            </p>
+            <div class="d-grid gap-2">
+                <button class="btn btn-warning" type="submit" onclick="sendAction ( 'rebootesp', this ); 
+                alert('Le système redémarre...', 'success', 'liveAlertPlaceholderAdvancesAction');">
+                    Redémarrer le Webserver</button>
+                <button class="btn btn-danger" type="submit"
+                    onclick="sendAction ( 'eraseconfigesp', this  ); sendAction ( 'rebootesp', this ); 
+                alert('Configurations Wifi et IP effacées.<br>Le système redémarre.<br>Se connecter au réseau temporaire de MaxPV avec l\'adresse 192.168.4.1', 'danger', 'liveAlertPlaceholderAdvancesAction');">
+                    Oublier le réseau Wifi</button>
+            </div>
+            <br>
+            <div class="fixed-bottom" id="liveAlertPlaceholderAdvancesAction"></div>
+        </div>
+
+    </main>
+
+    <script>
+
+        const alert = (message, type, eleId) => {
+            const wrapper = document.createElement('div')
+            wrapper.innerHTML = [
+                `<div class="alert alert-${type} alert-dismissible fade show" role="alert">`,
+                `   <div>${message}</div>`,
+                '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
+                '</div>'
+            ].join('')
+
+            document.getElementById(eleId).append(wrapper)
+        }
+
+        function fillConfigMaxPV() {
+            var xhttp1 = new XMLHttpRequest();
+            xhttp1.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var doc = JSON.parse(this.responseText);
+                    document.getElementById("ip").value = doc["ip"];
+                    document.getElementById("gateway").value = doc["gateway"];
+                    document.getElementById("subnet").value = doc["subnet"];
+                    document.getElementById("dns1").value = doc["dns1"];
+                    document.getElementById("dns2").value = doc["dns2"];
+                    document.getElementById("http_port").value = doc["http_port"];
+                }
+            }
+            xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
+        }
+
+        function saveConfigMaxPV(ele) {
+            var xhttp = new XMLHttpRequest();
+            var args = "api/set?configmaxpv";
+            args += "&value=";
+            var doc = {};
+            doc["ip"] = document.getElementById("ip").value;
+            doc["gateway"] = document.getElementById("gateway").value;
+            doc["subnet"] = document.getElementById("subnet").value;
+            doc["dns1"] = document.getElementById("dns1").value;
+            doc["dns2"] = document.getElementById("dns2").value;
+            doc["http_port"] = document.getElementById("http_port").value;
+            var value_param = JSON.stringify(doc);
+            args += value_param;
+            xhttp.open("GET", args, true);
+            xhttp.send();
+            document.getElementById('btnFormIPConfig').blur();
+        }
+
+        function sendAction(action, ele) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "api/action?" + action, true);
+            xhttp.send();
+            ele.blur();
+        }
+
+        setInterval(function () {
+            var xhttp5 = new XMLHttpRequest();
+
+            xhttp5.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var result = this.responseText;
+                    if (result == "running") {
+                        document.getElementById("ecopvstate").innerHTML = "Routeur running";
+                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
+                    }
+                    else {
+                        document.getElementById("ecopvstate").innerHTML = "Routeur offline";
+                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
+                    }
+                }
+            };
+            xhttp5.open("GET", "api/get?ping", true);
+            xhttp5.send();
+
+        }, 1000);
+
+    </script>
+
+    <script>
+        setTimeout(function () {
+            bootstrap.Alert.getOrCreateInstance(document.querySelector(".alert")).close();
+        }, 6000)
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.8">
+    <meta name="description" content="">
+    <meta name="author" content="Bernard Legrand">
+    <title>MaxPv! Welcome</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+
+    <link href="maxpv.css" rel="stylesheet">
+</head>
+
+<body onload="fillVersion ( )">
+
+    <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">MaxPV!</a>
+            <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+                aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <ul class="navbar-nav me-auto mb-2 mb-md-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Moniteur</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="graph.html">Graphiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="wizard.html">Assistant de configuration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html">Administration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="maj.html">Update</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="credits.html">Credits</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container-fluid">
+        <div class="bg-light p-5 rounded">
+            <h1>Bienvenue sur MaxPV!</h1>
+            <p class="lead">
+            <h4></h4>
+            MaxPv! est la nouvelle interface web de EcoPV. Découvrez les fonctionnalités en parcourant le menu !<br><br>
+            Si vous utiliser MaxPV! et EcoPV pour la première fois, utilisez <a href="wizard.html">l'assistant de
+                configuration</a>.
+            Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a>.
+            </p>
+            <br>
+            <div>
+                EcoPV <span id="ecopvver"></span><span> | </span>
+                MaxPV! <span id="maxpvver"></span><span> | </span>
+                Site web <span id="webver"></span>
+            </div>
+        </div>
+
+    </main>
+
+
+    <script>
+
+        function fillVersion() {
+
+            var xhttp1 = new XMLHttpRequest();
+            var xhttp2 = new XMLHttpRequest();
+            var xhttp3 = new XMLHttpRequest();
+
+            xhttp1.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var result = this.responseText;
+                    document.getElementById("ecopvver").innerHTML = result;
+                }
+            };
+            xhttp1.open("GET", "api/get?version", true);
+            xhttp1.send();
+
+            xhttp2.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var result = this.responseText;
+                    document.getElementById("maxpvver").innerHTML = result;
+                }
+            };
+            xhttp2.open("GET", "api/get?versionmaxpv", true);
+            xhttp2.send();
+
+            xhttp3.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var result = this.responseText;
+                    document.getElementById("webver").innerHTML = result;
+                }
+            };
+            xhttp3.open("GET", "api/get?versionweb", true);
+            xhttp3.send();
+        }
+
+        setInterval(function () {
+            var xhttp5 = new XMLHttpRequest();
+
+            xhttp5.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var result = this.responseText;
+                    if (result == "running") {
+                        document.getElementById("ecopvstate").innerHTML = "Routeur running";
+                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
+                    }
+                    else {
+                        document.getElementById("ecopvstate").innerHTML = "Routeur offline";
+                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
+                    }
+                }
+            };
+            xhttp5.open("GET", "api/get?ping", true);
+            xhttp5.send();
+
+        }, 1000);
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>
