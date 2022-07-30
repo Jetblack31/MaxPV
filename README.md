@@ -79,6 +79,13 @@ Les mises à jour se font par la page **Update** de l'interface. **Attention** :
 ## Installation avancée
 Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation avancée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
 
+## API
+L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativemlent à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
+## Accès au système de fichiers
+Vous pouvez accéder au système de fichier du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
+
+## Accès TELNET
+Un accès TELNET est possible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsage entre l'Arduino Nano et le Wemos.
 
 
