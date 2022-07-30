@@ -28,8 +28,18 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut).
 * Nouvelle API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
-##Synoptique
-![MaxPV! synoptique](images/synoptique.png)  
+## Synoptique
+![MaxPV! synoptique](images/synoptique.png)
 
+## Installation
+### Pré-requis
+L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
+Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi et avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
+
+### Programmation de l'Arduino Nano
+* **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduit à la fn de l'installation !
+* Ouvrez le programme **EcoPV3.ino** dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
+* Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
+* Télécharger le programme dans l'Arduino Nano
 
 
