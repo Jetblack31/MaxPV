@@ -38,7 +38,7 @@ L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de 
 Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi et avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
 ### Programmation de l'Arduino Nano
-* **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fn de l'installation !
+* **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
 * Ouvrez le programme *EcoPV3.ino* dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
 * Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
 * Téléchargez le programme dans l'Arduino Nano.
@@ -57,20 +57,23 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
 * Un portail captif devrait s'ouvrir, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
+
 ![MaxPV! captif portal](images/captif.png)
 * Réalisez votre configuration Wifi et votre configuration IP. Pour les adresses DNS, indiquez l'adresse de votre 'Box internet' comme DNS1, et l'adresse 8.8.8.8 comme DNS2.
 * Vous pouvez maintenant ré-installer l'Arduino Nano et le Wemos sur la carte électronique de votre routeur.
 
 ## Premier démarrage
+* Vérifiez que votre ordinateur / téléphone est bien connecté à votre réseau local.
 * Connectez-vous à l'adresse IP statique que vous avez attribuée au Wemos au cours de l'installation.
 * La page d'accueil de MaxPV! s'ouvre. Vous pouvez vérifiez que l'Arduino Nano fonctionne correctement par l'indication **Routeur running** en haut de la page.
 * Si vous êtes nouvel utilisateur de MaxPV!, rendez-vous sur la page **Assistant de configuration** et laissez-vous guider.
-* Si vous voulez entrer manuellement les paramètres du routeur que vous utilisez précédemment :
+* Si vous voulez entrer manuellement les paramètres du routeur que vous utilisiez précédemment :
   * Rendez-vous sur la page **Paramètrage avancé**,
   * Entrez vos paramètres un par un, en validant chaque paramètre,
   * **Nouveauté** : il y a 2 nouveaux paramètres :
     * **P_INSTALLPV** : puissance de votre installation photovoltaïque en Wc,
     * **CNT_CALIB** : poids des impulsions en Wh du compteur d'impulsion pour la mesure de la production PV.
+  * **Enregistrez la configuration et redémarrez le routeur**.
 * Votre routeur MaxPV! est maintenant opérationnel !
 
 ## Mises à jour
@@ -86,6 +89,6 @@ L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système d
 Vous pouvez accéder au système de fichier du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
 
 ## Accès TELNET
-Un accès TELNET est possible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsage entre l'Arduino Nano et le Wemos.
+Un accès TELNET est possible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsages entre l'Arduino Nano et le Wemos.
 
 
