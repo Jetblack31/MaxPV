@@ -60,5 +60,25 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 ![MaxPV! captif portal](images/captif.png)
 * Réalisez votre configuration Wifi et votre configuration IP. Pour les adresses DNS, indiquez l'adresse de votre 'Box internet' comme DNS1, et l'adresse 8.8.8.8 comme DNS2.
 * Vous pouvez maintenant ré-installer l'Arduino Nano et le Wemos sur la carte électronique de votre routeur.
-* 
+
+## Premier démarrage
+* Connectez-vous à l'adresse IP statique que vous avez attribuée au Wemos au cours de l'installation.
+* La page d'accueil de MaxPV! s'ouvre. Vous pouvez vérifiez que l'Arduino Nano fonctionne correctement par l'indication **Routeur running** en haut de la page.
+* Si vous êtes nouvel utilisateur de MaxPV!, rendez-vous sur la page **Assistant de configuration** et laissez-vous guider.
+* Si vous voulez entrer manuellement les paramètres du routeur que vous utilisez précédemment :
+  * Rendez-vous sur la page **Paramètrage avancé**,
+  * Entrez vos paramètres un par un, en validant chaque paramètre,
+  * **Nouveauté** : il y a 2 nouveaux paramètres :
+    * **P_INSTALLPV** : puissance de votre installation photovoltaïque en Wc,
+    * **CNT_CALIB** : poids des impulsions en Wh du compteur d'impulsion pour la mesure de la production PV.
+* Votre routeur MaxPV! est maintenant opérationnel !
+
+## Mises à jour
+Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessite de reconfigurer la connexion Wifi du Wemos comme décrit précédemment.
+
+## Installation avancée
+Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation avancée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
+
+
+
 
