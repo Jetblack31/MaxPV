@@ -33,18 +33,18 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
 
-## Installation
-### Pré-requis
+# Installation
+## Pré-requis
 L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
 Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
-### Programmation de l'Arduino Nano
+## Programmation de l'Arduino Nano
 * **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
 * Ouvrez le programme *EcoPV3.ino* dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
 * Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
 * Téléchargez le programme dans l'Arduino Nano.
 
-### Programmation du Wemos
+## Programmation du Wemos
 * Configurez l'IDE Arduino sur la carte "Wemos D1 mini clone" avec les paramètres suivants : 
   * **Flash size: 4 MB (FS: 1MB, OTA: 1019KB)**,
   * **Erase Flash: All Flash Contents**.
@@ -78,16 +78,17 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
   * **Enregistrez la configuration et redémarrez le routeur**.
 * Votre routeur MaxPV! est maintenant opérationnel !
 
-## Mode de fonctionnement des sorties SSR et relais secondaire
-Le mode de fonctionnement normal des sorties SSR et relais secondaire est le **mode AUTO**. Dans ce mode, le routeur s'occupe de diriger le surplus de production photovoltaïque vers la résistance du chauffe-eau et la charge secondaire de délestage éventuellement connectée au relais. 
-Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit de sélectionner le mode FORCE dans l'onglet Moniteur de MaxPV! ou via une requête API. De même, vous pouvez empêcher le fonctionnement du SSR et/ou du relais en sélectionnant le mode STOP.
-**ATTENTION** : il y a une limitation au fonctionnement. Le mode AUTO du relais ne peut fonctionner que si le SSR est en mode AUTO. Si le SSR n'est pas en mode AUTO et si le relais est en mode AUTO, alors le relais sera desactivé en permanence.
-
 ## Mises à jour
 Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment. Pour les mises à jour, l'ordre à suivre est : mise à jour du firmware puis du filesystem. En cas d'échec de la mise à jour, utilisez la procédure Programmation du Wemos ci-dessus.
 
 ## Installation avancée
 Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
+
+# Tech zone
+## Mode de fonctionnement des sorties SSR et relais secondaire
+Le mode de fonctionnement normal des sorties SSR et relais secondaire est le **mode AUTO**. Dans ce mode, le routeur s'occupe de diriger le surplus de production photovoltaïque vers la résistance du chauffe-eau et la charge secondaire de délestage éventuellement connectée au relais. 
+Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit de sélectionner le mode FORCE dans l'onglet Moniteur de MaxPV! ou via une requête API. De même, vous pouvez empêcher le fonctionnement du SSR et/ou du relais en sélectionnant le mode STOP.
+**ATTENTION** : il y a une limitation au fonctionnement. Le mode AUTO du relais ne peut fonctionner que si le SSR est en mode AUTO. Si le SSR n'est pas en mode AUTO et si le relais est en mode AUTO, alors le relais sera desactivé en permanence.
 
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
@@ -96,12 +97,15 @@ L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système d
 Vous pouvez accéder au système de fichier du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
 
 ## Accès TELNET
-Un accès TELNET est possible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsages entre l'Arduino Nano et le Wemos.
+Un accès TELNET est disponible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsages de l'Arduino Nano vers le Wemos.
 
 ## Allocation des pins de l'Arduino Nano
 Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoPV3 en fonction du développement de votre circuit électronique. Il y a toutefois certaines contraintes résumées dans le tableau ci-dessous.
 
 ![Pins EcoPV3](images/Pin_allocation.png)
+
+# Versions
+### **V 3.0** Première version (30/07/2022) 
 
 
 
