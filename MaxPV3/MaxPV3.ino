@@ -69,8 +69,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION       "3.0"
-#define MAXPV_VERSION_FULL  "MaxPv! 3.0"
+#define MAXPV_VERSION       "3.0.1"
+#define MAXPV_VERSION_FULL  "MaxPv! 3.0.1"
 #define GMT_OFFSET           0        // Heure solaire
 
 // SSID pour le Config Portal
@@ -639,7 +639,7 @@ void setup ( ) {
     watchDogContactEcoPV ( );
   }, nullptr, true );
   // Traitement des tâches FTP
-  ts.add ( 5,   307, [&](void *) {
+  ts.add ( 5,    97, [&](void *) {
     ftpSrv.handleFTP ( );
   }, nullptr, true );
   // Traitement des demandes de lecture des paramètres du routeur EcoPV

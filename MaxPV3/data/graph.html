@@ -168,7 +168,11 @@
             data-bs-parent="#accordionFlushExample" style="">
             <div class="accordion-body">
               <figure class="highcharts-figure">
-                <div id="container-tempsreel"></div>
+                <div id="container-puisstempsreel"></div><br><br>
+                <div id="container-vrmstempsreel"></div><br><br>
+                <div id="container-irmstempsreel"></div><br><br>
+                <div id="container-cosphitempsreel"></div><br><br>
+                <div id="container-trigstempsreel"></div><br>
                 <p class="highcharts-description"></p>
               </figure>
             </div>
@@ -205,25 +209,18 @@
 
   <script>
 
-    var ChartTempsReelPuiss = Highcharts.chart('container-tempsreel', {
+    var chartOptions = {
       chart: {
         type: 'spline',
         animation: Highcharts.svg, // don't animate in old IE
         marginRight: 10,
       },
-
       time: {
         useUTC: false
       },
-
-      title: {
-        text: ''
-      },
-
       credits: {
         enabled: false
       },
-
       accessibility: {
         announceNewData: {
           enabled: true,
@@ -236,12 +233,22 @@
           }
         }
       },
-
       xAxis: {
         type: 'datetime',
         tickPixelInterval: 150
       },
+      legend: {
+        enabled: true
+      },
+      exporting: {
+        enabled: true
+      }
+    };
 
+    var ChartTempsReelPuiss = Highcharts.chart('container-puisstempsreel', Highcharts.merge(chartOptions, {
+      title: {
+        text: 'Bilan des puissances'
+      },
       yAxis: {
         //min: 0,
         title: {
@@ -253,20 +260,10 @@
           color: '#808080'
         }]
       },
-
       tooltip: {
         headerFormat: '<b>{series.name}</b><br/>',
-        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y} W'
+        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.1f} W'
       },
-
-      legend: {
-        enabled: true
-      },
-
-      exporting: {
-        enabled: true
-      },
-
       series: [
         {
           name: 'Réseau',
@@ -323,7 +320,207 @@
           color: '#1E8449'
         }
       ]
-    });
+    }));
+
+    var ChartTempsReelVrms = Highcharts.chart('container-vrmstempsreel', Highcharts.merge(chartOptions, {
+      title: {
+        text: 'Tension réseau'
+      },
+      yAxis: {
+        //min: 0,
+        title: {
+          text: 'Volts'
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.1f} V'
+      },
+      series: [
+        {
+          name: 'Tension',
+          color: '#E74C3C',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }())
+        }
+      ]
+    }));
+
+    var ChartTempsReelIrms = Highcharts.chart('container-irmstempsreel', Highcharts.merge(chartOptions, {
+      title: {
+        text: 'Courant'
+      },
+      yAxis: {
+        //min: 0,
+        title: {
+          text: 'Ampères'
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.2f} A'
+      },
+      series: [
+        {
+          name: 'Courant',
+          color: '#E74C3C',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }())
+        }
+      ]
+    }));
+
+    var ChartTempsReelCosPhi = Highcharts.chart('container-cosphitempsreel', Highcharts.merge(chartOptions, {
+      title: {
+        text: 'Facteur de puissance'
+      },
+      yAxis: {
+        //min: 0,
+        title: {
+          text: 'FP'
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.3f}'
+      },
+      series: [
+        {
+          name: 'Facteur de puissance',
+          color: '#000000',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }())
+        }
+      ]
+    }));
+
+    var ChartTempsReelTrigs = Highcharts.chart('container-trigstempsreel', Highcharts.merge(chartOptions, {
+      title: {
+        text: 'Délai déclenchement SSR'
+      },
+      yAxis: {
+        //min: 0,
+        title: {
+          text: 'ms'
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S}<br/>{point.y:.2f} ms'
+      },
+      series: [
+        {
+          name: 'délai min',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }()),
+          color: '#0088FF'
+        },
+        {
+          name: 'délai moy',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }()),
+          color: '#1E8449' 
+        },
+        {
+          name: 'délai max',
+          data: (function () {
+            // initialize an array of data
+            var data = [],
+              time = (new Date()).getTime(),
+              i;
+
+            for (i = -119; i <= 0; i += 1) {
+              data.push({
+                x: time + i * 1000,
+                y: 0.0
+              });
+            }
+            return data;
+          }()),
+          color: '#E74C3C'
+        }
+      ]
+    }));
 
 
     var gaugeOptions = {
@@ -358,9 +555,9 @@
       // the value axis
       yAxis: {
         stops: [
-          [0.1, '#55BF3B'], // green
-          [0.5, '#DDDF0D'], // yellow
-          [0.9, '#DF5353'] // red
+          [0.35, '#55BF3B'], // green
+          [0.65, '#DDDF0D'], // yellow
+          [0.80, '#DF5353'] // red
         ],
         lineWidth: 0,
         tickWidth: 0,
@@ -404,7 +601,7 @@
         dataLabels: {
           format:
             '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y}</span><br/>' +
+            '<span style="font-size:25px">{y:.1f}</span><br/>' +
             '<span style="font-size:12px;opacity:0.4">Volts</span>' +
             '</div>'
         },
@@ -578,7 +775,7 @@
 
           if (chartVrms) {
             point = chartVrms.series[0].points[0];
-            point.update(parseInt(config[0]));
+            point.update(parseFloat(config[0]));
           }
 
           if (chartIrms) {
@@ -593,29 +790,63 @@
 
           if (chartPact) {
             point = chartPact.series[0].points[0];
-            point.update(parseInt(config[2]));
+            point.update(parseFloat(config[2]));
           }
 
           if (chartPimpulsion) {
             point = chartPimpulsion.series[0].points[0];
-            point.update(parseInt(config[12]));
+            point.update(parseFloat(config[12]));
           }
 
           if (chartProuted) {
             point = chartProuted.series[0].points[0];
-            point.update(parseInt(config[4]));
+            point.update(parseFloat(config[4]));
           }
 
           if (ChartTempsReelPuiss) {
             var series = ChartTempsReelPuiss.series[0];
             var x = (new Date()).getTime(),
-              y = parseInt(config[2]);
+              y = parseFloat(config[2]);
             series.addPoint([x, y], true, true);
             series = ChartTempsReelPuiss.series[2];
-            y = parseInt(config[4]);
+            y = parseFloat(config[4]);
             series.addPoint([x, y], true, true);
             series = ChartTempsReelPuiss.series[1];
-            y = parseInt(config[12]);
+            y = parseFloat(config[12]);
+            series.addPoint([x, y], true, true);
+          }
+
+          if (ChartTempsReelVrms) {
+            var series = ChartTempsReelVrms.series[0];
+            var x = (new Date()).getTime(),
+              y = parseFloat(config[0]);
+            series.addPoint([x, y], true, true);
+          }
+
+          if (ChartTempsReelIrms) {
+            var series = ChartTempsReelIrms.series[0];
+            var x = (new Date()).getTime(),
+              y = parseFloat(config[1]);
+            series.addPoint([x, y], true, true);
+          }
+
+          if (ChartTempsReelCosPhi) {
+            var series = ChartTempsReelCosPhi.series[0];
+            var x = (new Date()).getTime(),
+              y = parseFloat(config[7]);
+            series.addPoint([x, y], true, true);
+          }
+
+          if (ChartTempsReelTrigs) {
+            var series = ChartTempsReelTrigs.series[0];
+            var x = (new Date()).getTime(),
+              y = parseFloat(config[15]);
+            series.addPoint([x, y], true, true);
+            series = ChartTempsReelTrigs.series[1];
+            y = parseFloat(config[16]);
+            series.addPoint([x, y], true, true);
+            series = ChartTempsReelTrigs.series[2];
+            y = parseFloat(config[17]);
             series.addPoint([x, y], true, true);
           }
         }

@@ -69,14 +69,14 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION            "3.0"      // Version logicielle
+#define VERSION          "3.0.1"      // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
 #define V_SECTEUR           230.0     // Tension secteur nominale
 #define NB_CYCLES            50       // Nombre de cycles / s du secteur AC (50 ou 60 Hz) : 50 ou 60
 #define SAMP_PER_CYCLE      166       // Nombre d'échantillons I,V attendu par cycle : 166 sur ATMEGA 328P @ VCC = 5 V et clock 16 MHz
-// Dépend de la configuration de l'ADC dans le programme
+                                      // Dépend de la configuration de l'ADC dans le programme
 #define WH_PER_INC            5       // Nombre de Wh par incrément pour le stockage 3 compteurs d'énergie (Rout, Imp, Exp)
 
 
@@ -226,7 +226,7 @@ byte energyToDelay [ ] = {
 };
 
 #define PULSE_END          148          // Instant d'arrêt du pulse triac après le passage à 0
-// par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
+                                        // par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
 
 
 // ***********************************************************************************
@@ -269,13 +269,13 @@ const paramInConfig pvrParamConfig [ ] = {
 // ************* entre les routines d'interruption                         ***********
 // ***********************************************************************************
 volatile int     biasOffset    = 511;       // pour réguler le point milieu des acquisitions ADC,
-// attendu autour de 511
+                                            // attendu autour de 511
 volatile long    periodP       =   0;       // Samples de puissance accumulés
-// sur un demi-cycle secteur (période de la puissance)
+                                            // sur un demi-cycle secteur (période de la puissance)
 #define          NCSTART           5
 volatile byte    coldStart     =   NCSTART; // Indicateur de passage à 0 après le démarrage
-// Atteint la valeur 0 une fois le warm-up terminé
-// Attente de NCSTART passage à 0 avant de démarrer la régulation
+                                            // Atteint la valeur 0 une fois le warm-up terminé
+                                            // Attente de NCSTART passage à 0 avant de démarrer la régulation
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les calcul              ***********
@@ -292,17 +292,17 @@ volatile unsigned long sumIsqr        = 0;
 volatile unsigned int  routed_power   = 0;
 volatile unsigned int  samples        = 0;
 volatile byte          error_status   = 0;
-// Signification des bits du byte error_status
-// bits 0..3 : informations
-// bit 0 (1)   : Routage en cours
-// bit 1 (2)   : Commande de routage à 100 %
-// bit 2 (4)   : Relais secondaire de délestage activé
-// bit 3 (8)   : Exportation d'énergie
-// bits 4..7 : erreurs
-// bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
-// bit 5 (32)  : Anomalie taux d'acquisition
-// bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
-// bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
+                                          // Signification des bits du byte error_status
+                                          // bits 0..3 : informations
+                                          // bit 0 (1)   : Routage en cours
+                                          // bit 1 (2)   : Commande de routage à 100 %
+                                          // bit 2 (4)   : Relais secondaire de délestage activé
+                                          // bit 3 (8)   : Exportation d'énergie
+                                          // bits 4..7 : erreurs
+                                          // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
+                                          // bit 5 (32)  : Anomalie taux d'acquisition
+                                          // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
+                                          // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
 
 // ***********************************************************************************
 // ************* Variables utilisées pour le transfert des statistiques  *************
@@ -320,9 +320,9 @@ volatile unsigned int  stats_samples      = 0;   // Nombre d'échantillons total
 volatile byte          stats_error_status = 0;
 volatile int           stats_biasOffset   = 0;   // Valeur de la correction d'offset de lecture ADC
 volatile byte          stats_ready_flag   = 0;
-// 0 = Données traitées par la loop (), en attente de nouvelles données
-// 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
-// 9 = Données statistiques en cours de transfert
+                                                 // 0 = Données traitées par la loop (), en attente de nouvelles données
+                                                 // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
+                                                 // 9 = Données statistiques en cours de transfert
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les statistiques      *************
@@ -514,7 +514,7 @@ void setup ( ) {
 void loop ( ) {
 
 #define BIASOFFSET_TOL       20       // Tolérance en bits sur la valeur de biasOffset par rapport
-  // au point milieu 511 pour déclencher une remontée d'erreur
+                                      // au point milieu 511 pour déclencher une remontée d'erreur
   static unsigned long refTime        = millis ( );
   static float         routedEnergy   = ( -3600.0 * WH_PER_INC ); // initialisation à valeur négative
   static float         exportedEnergy = ( -3600.0 * WH_PER_INC ); // Ca permet ensuite de faire la comparaison
@@ -650,7 +650,7 @@ void loop ( ) {
     // *** Remarque 1, Ca ne couvre pas tous les cas de figure.           ***
     // *** Remarque 2, on ne fait pas la correction pour le pilotage du   ***
     // *** relais de délestage pour éviter l'exportation.                 ***
-    if ( ( stats_error_status & B00000010 )         // Routage maximum vers la résistance
+    if ( ( stats_error_status & B00000010 )            // Routage maximum vers la résistance
          && ( P_INSTALLPV + Pact <= P_RESISTANCE ) )   // Cas impossible : charge déconnectée
       Prouted = 0;
 
@@ -691,11 +691,11 @@ void loop ( ) {
     Serial.print ( F(",") );
     Serial.print ( Irms, 3 );
     Serial.print ( F(",") );
-    Serial.print ( Pact, 0 );
+    Serial.print ( Pact, 1 );
     Serial.print ( F(",") );
-    Serial.print ( Papp, 0 );
+    Serial.print ( Papp, 1 );
     Serial.print ( F(",") );
-    Serial.print ( Prouted, 0 );
+    Serial.print ( Prouted, 1 );
     Serial.print ( F(",") );
     Serial.print ( ( ( Pact >= 0 ) ? Pact : 0 ), 0 );
     Serial.print ( F(",") );
@@ -711,7 +711,7 @@ void loop ( ) {
     Serial.print ( F(",") );
     Serial.print ( indexImpulsionTemp * CNT_CALIB );
     Serial.print ( F(",") );
-    Serial.print ( Pimpulsion * CNT_CALIB );
+    Serial.print ( float ( Pimpulsion * CNT_CALIB ), 1 );
     Serial.print ( F(",") );
     Serial.print ( triacMode );
     Serial.print ( F(",") );
@@ -1528,28 +1528,31 @@ void zeroCrossingInterrupt ( void ) {
     // application du gain fixe de normalisation : réduction de COMMAND_BIT_SHIFT bits
     controlCommand = controlCommand >> COMMAND_BIT_SHIFT;
 
-    // si on n'est pas en mode automatique, on gèle la commande routage (==> arrêt Timer et pas d'accumulation de puissance routée)
-    // mais on a quand même fait auparavant les calculs de régulation
-    if ( triacMode != AUTOM ) controlCommand = 0;
-
-    if ( controlCommand <= 0 ) {  // équilibre ou importation, donc pas de routage de puissance
+    if ( controlCommand <= 0 ) {                                // équilibre ou importation, donc pas de routage de puissance
+      TCCR1B = 0;                                               // arrêt du Timer = inhibition du déclenchement du triac pour cette période
+      TCNT1  = 0;                                               // compteur à 0
       controlCommand = 0;
-      TCCR1B = 0;                 // arrêt du Timer = inhibition du déclenchement du triac pour cette période
-      TCNT1  = 0;                 // compteur à 0
-      if ( controlIntegral <= controlIntegralMinValue ) {   // fonction anti integral windup
+      if ( controlIntegral <= controlIntegralMinValue ) {       // fonction anti integral windup
         controlIntegral = controlIntegralMinValue;
       }
     }
 
-    else {  // controlCommand est strictement positif
-      if ( controlCommand > 255 ) {   // Saturation de la commande en pleine puissance
-        controlCommand = 255;         // Pleine puissance
-        controlIntegral -= controlError;     // gel de l'accumulation de l'intégrale, fonction anti integral windup
-
+    else {                                                      // controlCommand est strictement positif
+      if ( controlCommand > 255 ) {                             // Saturation de la commande en pleine puissance
+        controlCommand = 255;                                   // Pleine puissance
+        controlIntegral -= controlError;                        // gel de l'accumulation de l'intégrale, fonction anti integral windup
       }
       // *** Régime linéaire de régulation : initialisation du comparateur de CNT1
       // *** pour le déclenchement du SSR/TRIAC géré par interruptions Timer1
       OCR1A = energyToDelay [ byte ( controlCommand ) ];
+    }
+
+    // si on n'est pas en mode automatique, on gèle la commande routage (==> arrêt Timer et pas d'accumulation de puissance routée)
+    // mais on a quand même fait auparavant les calculs de régulation
+    if ( triacMode != AUTOM ) {
+      TCCR1B = 0;
+      TCNT1  = 0;
+      controlCommand = 0;
     }
 
     // Calcul pour les statistiques
