@@ -33,6 +33,7 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
 
+
 # Installation
 ## Pré-requis
 L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
@@ -84,6 +85,7 @@ Les mises à jour se font par la page **Update** de l'interface. **Attention** :
 ## Installation avancée
 Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
 
+
 # Tech zone
 ## Mode de fonctionnement des sorties SSR et relais secondaire
 Le mode de fonctionnement normal des sorties SSR et relais secondaire est le **mode AUTO**. Dans ce mode, le routeur s'occupe de diriger le surplus de production photovoltaïque vers la résistance du chauffe-eau et la charge secondaire de délestage éventuellement connectée au relais. 
@@ -103,6 +105,7 @@ Un accès TELNET est disponible sur le port 23. Vous aurez alors accès à des i
 Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoPV3 en fonction du développement de votre circuit électronique. Il y a toutefois certaines contraintes résumées dans le tableau ci-dessous.
 
 ![Pins EcoPV3](images/Pin_allocation.png)
+
 
 # Versions
 ### **V 3.0** Première version (30/07/2022) 
