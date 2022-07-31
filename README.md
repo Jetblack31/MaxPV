@@ -86,7 +86,9 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Votre routeur MaxPV! est maintenant opérationnel !
 
 ## Mises à jour
-Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment. Pour les mises à jour, l'ordre à suivre est : mise à jour du firmware puis du filesystem. En cas d'échec de la mise à jour, utilisez la procédure Programmation du Wemos ci-dessus.
+Les mises à jour de MaxPV! sur le Wemos se font par Wifi en OTA via la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment. Pour les mises à jour, l'ordre à suivre est : mise à jour du firmware puis du filesystem. En cas d'échec de la mise à jour, utilisez la procédure Programmation du Wemos ci-dessus.
+
+Les mises à jour de l'Arduino se font par USB comme décrit ci-dessous pour l'installation.
 
 ## Installation avancée
 Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
