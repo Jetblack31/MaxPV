@@ -45,13 +45,13 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Téléchargez le programme dans l'Arduino Nano.
 
 ### Programmation du Wemos
-* Configurez l'IDE Arduino sur la carte Wemos avec les paramètres suivants : 
+* Configurez l'IDE Arduino sur la carte "Wemos D1 mini clone" avec les paramètres suivants : 
   * **Flash size: 4 MB (FS: 1MB, OTA: 1019KB)**,
   * **Erase Flash: All Flash Contents**.
 * Installez la librairie **AsyncElegantOTA** à partir du gestionnaire de librairies.
 * Installez les 2 librairies disponibles dans le répertoire **"Librairies IDE"**.
 * Ouvrez le programme *amorceESP.ino* et téléchargez le dans le Wemos.
-* A l'aide d'un ordinateur connectez-vous au réseau Wifi MaxPV créé sur le Wemos et allez à la page http://192.168.4.1
+* A l'aide d'un ordinateur connectez-vous au réseau Wifi MaxPV créé par le Wemos et allez à la page http://192.168.4.1
 * Une page intitulée elegantOTA s'ouvre à l'écran.
 * Téléchargez d'abord le **Filesystem** *MaxPV3_filesystem.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
@@ -73,23 +73,30 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
   * Entrez vos paramètres un par un, en validant chaque paramètre,
   * **Attention** : il y a 2 nouveaux paramètres :
     * **P_INSTALLPV** : puissance de votre installation photovoltaïque en Wc,
-    * **CNT_CALIB** : poids des impulsions en Wh du compteur d'impulsion pour la mesure de la production PV.
+    * **CNT_CALIB** : poids des impulsions en Wh du compteur d'impulsion pour la mesure de la production PV,
+  * Mettez à 0 les index des compteurs.
   * **Enregistrez la configuration et redémarrez le routeur**.
 * Votre routeur MaxPV! est maintenant opérationnel !
 
 ## Mises à jour
-Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment.
+Les mises à jour se font par la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment. Pour les mises à jour, l'ordre à suivre est : mise à jour du firmware puis du filesystem. En cas d'échec de la mise à jour, utilisez la procédure Programmation du Wemos ci-dessus.
 
 ## Installation avancée
-Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation avancée et personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
+Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
 
 ## API
-L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativemlent à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
+L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
 ## Accès au système de fichiers
 Vous pouvez accéder au système de fichier du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
 
 ## Accès TELNET
 Un accès TELNET est possible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsages entre l'Arduino Nano et le Wemos.
+
+## Allocation des pins de l'Arduino Nano
+Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoPV3 en fonction du développement de votre circuit électronique. Il y a toutefois certaines contraintes résumées dans le tableau ci-dessous.
+
+![Pins EcoPV3](images/Pin_allocation.png)
+
 
 
