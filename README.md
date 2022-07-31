@@ -55,8 +55,10 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * A l'aide d'un ordinateur connectez-vous au réseau Wifi MaxPV créé par le Wemos et allez à la page http://192.168.4.1
 * Une page intitulée elegantOTA s'ouvre à l'écran.
 * Téléchargez d'abord le **Filesystem** *MaxPV3_filesystem.bin* disponible dans le répertoire **"Binaires MaxPV"**.
+![OTA Filesystem](images/OTAFS.png)
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
 * Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
+![OTA Firmware](images/OTAFW.png)
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
 * Un portail captif s'ouvre, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
 
@@ -96,7 +98,7 @@ Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit d
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
 ## Accès au système de fichiers par FTP
-Vous pouvez accéder au système de fichier du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
+Vous pouvez accéder au système de fichiers du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
 
 ## Accès TELNET
 Un accès TELNET est disponible sur le port 23. Vous aurez alors accès à des informations de debug, en particulier l'échange de messsages de l'Arduino Nano vers le Wemos.
@@ -108,7 +110,7 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
-### **V 3.0** Première version (30/07/2022) 
+### **V 3.0** : Première version (30/07/2022) 
 
 
 
