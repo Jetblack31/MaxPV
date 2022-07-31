@@ -48,7 +48,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 ## Programmation du Wemos
 * Configurez l'IDE Arduino sur la carte "Wemos D1 mini clone" avec les paramètres suivants : 
   * **Flash size: 4 MB (FS: 1MB, OTA: 1019KB)**,
-  * **Erase Flash: All Flash Contents**.
+  * **Erase Flash: All Flash Contents**
 ![IDE Config ESP](images/configIDEESP.png)
 * Installez la librairie **AsyncElegantOTA** à partir du gestionnaire de librairies.
 * Installez les 2 librairies disponibles dans le répertoire **"Librairies IDE"**.
