@@ -116,8 +116,8 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.0.1** : Correction d'un bug mineur mode STOP SSR et ajout de graphiques (31/07/2022)
 ### **V 3.0**   : Première version (30/07/2022)
-### **V 3.0.1** : Correction d'un bug mineur mode STOP SSR (31/07/2022) et ajout de graphiques
 
 
 
