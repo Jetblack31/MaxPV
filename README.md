@@ -1,11 +1,11 @@
-Vous aimez ce projet ? Vous pouvez faire une donation pour m'encourager grâce au bouton **Sponsor** dans la barre ci-dessus !
+Vous aimez ce projet ? Vous pouvez m'encourager grâce au bouton **Sponsor** dans la barre ci-dessus !
 Merci à tous pour vos messages et votre soutien au projet !
 
 # MaxPV!
-MaxPV! est une nouvelle interface pour EcoPV, compatible avec les montages EcoPV possédant une liaison wifi via un Wemos ESP8266. Le coeur du routeur est inchangé. MaxPV! apporte une interface Web de configuration et de visualisation du fonctionnement, ainsi qu'une nouvelle API.
+MaxPV! est une nouvelle interface pour EcoPV, compatible avec les montages EcoPV basés sur l'Arduino Nano et sur le Wemos ESP8266 pour la liaison Wifi. MaxPV! apporte une interface Web de configuration et de visualisation du fonctionnement, ainsi qu'une nouvelle API.
 
 ![MaxPV! main page](images/mainpage.png)  
-MaxPV! héritant d'EcoPV, il sera utile de se référer au dépôt EcoPV : https://github.com/Jetblack31/EcoPV
+MaxPV! hérite d'EcoPV et de son algorithme de routage. Il sera utile de se référer au dépôt EcoPV : https://github.com/Jetblack31/EcoPV
 
 La lecture de ces fils de discussion est plus que recommandée pour la mise en oeuvre :  
 * Forum photovoltaïque, discussion sur MaxPV : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=55244 
@@ -17,8 +17,8 @@ La lecture de ces fils de discussion est plus que recommandée pour la mise en o
 Les programmes et les schémas proposés ont une vocation informative et pédagogique. Ils ont été testés avec succès par les auteurs. Cependant les auteurs de ces programmes et de ces schémas déclinent toute responsabilité. Les auteurs ne pourraient être tenus pour responsables du fonctionnement et des conséquences de l'utilisation des programmes et des schémas mis à disposition.  
 Intervenir sur des circuits électriques est dangereux et nécessite le recours à une personne qualifiée et le respect strict des normes de sécurité et de protection en vigueur.
 
-## Changements par rapport à EcoPV et caractéristiques
-* Même qualité de routage du surplus photovoltaïque que la version précédente.
+## Caractérisitiques de MaxPV! et changements par rapport à EcoPV
+* Même qualité de routage du surplus photovoltaïque.
 * Abandon de l'option de communication MySensors.
 * Abandon de l'utilisation du shield ethernet. Toutefois, celui-ci peut rester en place sur le circuit mais il ne sera plus utilisé.
 * Interface web responsive avec visualisation graphique des données.
@@ -40,7 +40,7 @@ L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de 
 Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
 ## Programmation de l'Arduino Nano
-* **ATTENTION** : prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
+* **ATTENTION** : si vous migrez un système EcoPV existant, prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
 * Ouvrez le programme *EcoPV3.ino* dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
 * Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
 * Téléchargez le programme dans l'Arduino Nano.
@@ -84,6 +84,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
   * Mettez à 0 les index des compteurs.
   * **Enregistrez la configuration et redémarrez le routeur**.
 * Votre routeur MaxPV! est maintenant opérationnel !
+* A tout moment, vous pouvez modifier les paramètres du routeur en utilisant de nouveau l'assistant de configurationou en utilisant le paramétrage avancé.
 
 ## Mises à jour
 Les mises à jour de MaxPV! sur le Wemos se font par Wifi en OTA via la page **Update** de l'interface. **Attention** : la mise à jour du filesystem nécessitera de reconfigurer la connexion Wifi du Wemos comme décrit précédemment. Pour les mises à jour, **l'ordre à suivre est** : mise à jour du firmware puis du filesystem. En cas d'échec de la mise à jour, utilisez la procédure Programmation du Wemos ci-dessus.
