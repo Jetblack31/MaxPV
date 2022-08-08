@@ -121,6 +121,7 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 * Amélioration du traitement de la liaison série dans EcoPV
 * Ajout d'un bargraph dans l'assistant de calibrage
 * Optimisation du site Web
+* Ajout de la vérification d'une mise à jour disponible sur la page d'accueil
 ### **V 3.0.1** : Correction d'un bug mineur mode STOP SSR et ajout de graphiques (31/07/2022)
 ### **V 3.0**   : Première version (30/07/2022)
 
