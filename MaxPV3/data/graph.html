@@ -209,6 +209,22 @@
 
   <script>
 
+    var dataInitChartTempsReel = function () {
+      // Initialisation des graphes temps réel
+      // Le nombre de points fixe la durée des graphs en secondes
+      var data = [],
+        time = (new Date()).getTime(),
+        i;
+
+      for (i = -119; i <= 0; i += 1) {
+        data.push({
+          x: time + i * 1000,
+          //y: 0.0
+        });
+      }
+      return data;
+    }();
+
     var chartOptions = {
       chart: {
         type: 'spline',
@@ -245,7 +261,7 @@
       }
     };
 
-    var ChartTempsReelPuiss = Highcharts.chart('container-puisstempsreel', Highcharts.merge(chartOptions, {
+    var chartTempsReelPuiss = Highcharts.chart('container-puisstempsreel', Highcharts.merge(chartOptions, {
       title: {
         text: 'Bilan des puissances'
       },
@@ -267,62 +283,23 @@
       series: [
         {
           name: 'Réseau',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
+          data: dataInitChartTempsReel,
           color: '#E74C3C'
         },
         {
           name: 'Production PV',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
+          data: dataInitChartTempsReel,
           color: '#F7DC6F'
         },
         {
           name: 'Routage ECS',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
+          data: dataInitChartTempsReel,
           color: '#1E8449'
         }
       ]
     }));
 
-    var ChartTempsReelVrms = Highcharts.chart('container-vrmstempsreel', Highcharts.merge(chartOptions, {
+    var chartTempsReelVrms = Highcharts.chart('container-vrmstempsreel', Highcharts.merge(chartOptions, {
       title: {
         text: 'Tension réseau'
       },
@@ -345,25 +322,12 @@
         {
           name: 'Tension',
           color: '#E74C3C',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }())
+          data: dataInitChartTempsReel
         }
       ]
     }));
 
-    var ChartTempsReelIrms = Highcharts.chart('container-irmstempsreel', Highcharts.merge(chartOptions, {
+    var chartTempsReelIrms = Highcharts.chart('container-irmstempsreel', Highcharts.merge(chartOptions, {
       title: {
         text: 'Courant'
       },
@@ -386,25 +350,12 @@
         {
           name: 'Courant',
           color: '#E74C3C',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }())
+          data: dataInitChartTempsReel
         }
       ]
     }));
 
-    var ChartTempsReelCosPhi = Highcharts.chart('container-cosphitempsreel', Highcharts.merge(chartOptions, {
+    var chartTempsReelCosPhi = Highcharts.chart('container-cosphitempsreel', Highcharts.merge(chartOptions, {
       title: {
         text: 'Facteur de puissance'
       },
@@ -427,25 +378,12 @@
         {
           name: 'Facteur de puissance',
           color: '#000000',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }())
+          data: dataInitChartTempsReel
         }
       ]
     }));
 
-    var ChartTempsReelTrigs = Highcharts.chart('container-trigstempsreel', Highcharts.merge(chartOptions, {
+    var chartTempsReelTrigs = Highcharts.chart('container-trigstempsreel', Highcharts.merge(chartOptions, {
       title: {
         text: 'Délai déclenchement SSR'
       },
@@ -467,56 +405,17 @@
       series: [
         {
           name: 'délai min',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
+          data: dataInitChartTempsReel,
           color: '#0088FF'
         },
         {
           name: 'délai moy',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
-          color: '#1E8449' 
+          data: dataInitChartTempsReel,
+          color: '#1E8449'
         },
         {
           name: 'délai max',
-          data: (function () {
-            // initialize an array of data
-            var data = [],
-              time = (new Date()).getTime(),
-              i;
-
-            for (i = -119; i <= 0; i += 1) {
-              data.push({
-                x: time + i * 1000,
-                y: 0.0
-              });
-            }
-            return data;
-          }()),
+          data: dataInitChartTempsReel,
           color: '#E74C3C'
         }
       ]
@@ -803,49 +702,49 @@
             point.update(parseFloat(config[4]));
           }
 
-          if (ChartTempsReelPuiss) {
-            var series = ChartTempsReelPuiss.series[0];
+          if (chartTempsReelPuiss) {
+            var series = chartTempsReelPuiss.series[0];
             var x = (new Date()).getTime(),
               y = parseFloat(config[2]);
             series.addPoint([x, y], true, true);
-            series = ChartTempsReelPuiss.series[2];
+            series = chartTempsReelPuiss.series[2];
             y = parseFloat(config[4]);
             series.addPoint([x, y], true, true);
-            series = ChartTempsReelPuiss.series[1];
+            series = chartTempsReelPuiss.series[1];
             y = parseFloat(config[12]);
             series.addPoint([x, y], true, true);
           }
 
-          if (ChartTempsReelVrms) {
-            var series = ChartTempsReelVrms.series[0];
+          if (chartTempsReelVrms) {
+            var series = chartTempsReelVrms.series[0];
             var x = (new Date()).getTime(),
               y = parseFloat(config[0]);
             series.addPoint([x, y], true, true);
           }
 
-          if (ChartTempsReelIrms) {
-            var series = ChartTempsReelIrms.series[0];
+          if (chartTempsReelIrms) {
+            var series = chartTempsReelIrms.series[0];
             var x = (new Date()).getTime(),
               y = parseFloat(config[1]);
             series.addPoint([x, y], true, true);
           }
 
-          if (ChartTempsReelCosPhi) {
-            var series = ChartTempsReelCosPhi.series[0];
+          if (chartTempsReelCosPhi) {
+            var series = chartTempsReelCosPhi.series[0];
             var x = (new Date()).getTime(),
               y = parseFloat(config[7]);
             series.addPoint([x, y], true, true);
           }
 
-          if (ChartTempsReelTrigs) {
-            var series = ChartTempsReelTrigs.series[0];
+          if (chartTempsReelTrigs) {
+            var series = chartTempsReelTrigs.series[0];
             var x = (new Date()).getTime(),
               y = parseFloat(config[15]);
             series.addPoint([x, y], true, true);
-            series = ChartTempsReelTrigs.series[1];
+            series = chartTempsReelTrigs.series[1];
             y = parseFloat(config[16]);
             series.addPoint([x, y], true, true);
-            series = ChartTempsReelTrigs.series[2];
+            series = chartTempsReelTrigs.series[2];
             y = parseFloat(config[17]);
             series.addPoint([x, y], true, true);
           }

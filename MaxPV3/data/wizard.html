@@ -11,6 +11,61 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
 
+  <style>
+    #container-cosphi {
+      height: 85px;
+    }
+
+    .hc-cat-title {
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .highcharts-figure,
+    .highcharts-data-table table {
+      min-width: 320px;
+      max-width: 800px;
+      margin: 1em auto;
+    }
+
+    .highcharts-data-table table {
+      font-family: Verdana, sans-serif;
+      border-collapse: collapse;
+      border: 1px solid #ebebeb;
+      margin: 10px auto;
+      text-align: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .highcharts-data-table caption {
+      padding: 1em 0;
+      font-size: 1.2em;
+      color: #555;
+    }
+
+    .highcharts-data-table th {
+      font-weight: 600;
+      padding: 0.5em;
+    }
+
+    .highcharts-data-table td,
+    .highcharts-data-table th,
+    .highcharts-data-table caption {
+      padding: 0.5em;
+    }
+
+    .highcharts-data-table thead tr,
+    .highcharts-data-table tr:nth-child(even) {
+      background: #f8f8f8;
+    }
+
+    .highcharts-data-table tr:hover {
+      background: #f1f7ff;
+    }
+  </style>
+
+
   <link href="maxpv.css" rel="stylesheet">
 </head>
 
@@ -163,10 +218,18 @@
       A chaque changement, attendre 2 secondes pour obtenir une lecture stable. Lorsque le réglage est satisfaisant,
       eteindre l'appareil et passer à l'étape suivante.
       </p>
+      <div>
+        <figure class="highcharts-figure">
+          <div id="container-cosphi"></div>
+          <p class="highcharts-description"></p>
+        </figure>
+      </div>
       <div class="d-grid gap-2 text-center">
         <span class="text-primary" id="cosphi">
           <h5>-----</h5>
         </span>
+      </div>
+      <div>
         <input type="range" class="form-range" min="0" max="24" step="1" id="phase_calib"
           oninput="sendParam ( 'phase_calib', this )">
       </div>
@@ -229,6 +292,11 @@
     </div>
   </main>
 
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/bullet.js"></script>
+  <script src="https://code.highcharts.com/modules/exporting.js"></script>
+  <script src="https://code.highcharts.com/modules/export-data.js"></script>
+  <script src="https://code.highcharts.com/modules/accessibility.js"></script>
 
   <script>
 
@@ -237,9 +305,11 @@
       "p_resistance", "p_margin", "gain_p", "gain_i",
       "e_reserve", "p_div2_active", "p_div2_idle", "t_div2_on",
       "t_div2_off", "t_div2_tc", "cnt_calib", "p_installpv"];
+
     var EcoPV_p_calib = 0.1;
     var EcoPV_p_offset = 0.0;
 
+    var cosphiMax = 0.0;
 
     const alert = (message, type, eleId) => {
       const wrapper = document.createElement('div')
@@ -249,9 +319,72 @@
         '   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>',
         '</div>'
       ].join('')
-
       document.getElementById(eleId).append(wrapper)
     }
+
+    var bulletCosphi = Highcharts.chart('container-cosphi', {
+      chart: {
+        inverted: true,
+        marginLeft: 0,
+        type: 'bullet'
+      },
+      title: {
+        text: null
+      },
+      legend: {
+        enabled: false
+      },  
+      plotOptions: {
+        series: {
+          pointPadding: 0.25,
+          borderWidth: 0,
+          color: '#0000FF',
+          targetOptions: {
+            width: '200%'
+          }
+        }
+      },
+      xAxis: {
+        categories: ['']
+      },
+      yAxis: {
+        gridLineWidth: 0,
+        min: 0.8,
+        max: 1.1,
+        plotBands: [{
+          from: 0,
+          to: 0.95,
+          color: '#CBCBCB'
+        }, {
+          from: 0.95,
+          to: 0.98,
+          color: '#FCDD6D'
+        }, {
+          from: 0.98,
+          to: 9e9,
+          color: '#49FF3E'
+        }],
+        labels: {
+          format: '{value}'
+        },
+        title: null
+      },
+      series: [{
+        data: [{
+          y: 0.05,
+          target: 0.05
+        }]
+      }],
+      tooltip: {
+        pointFormat: '<b>{point.y:.4f}</b> (max à {point.target:.4f})'
+      },
+      credits: {
+        enabled: false
+      },
+      exporting: {
+        enabled: false
+      }
+    });
 
 
     function configRelay2(ele) {
@@ -277,7 +410,6 @@
       sendParamByValue('p_div2_idle', value_pidle);
       ele.blur();
     }
-
 
     function correctionOffset(ele) {
       var xhttp1 = new XMLHttpRequest();
@@ -319,7 +451,6 @@
       sendParamByValue('e_reserve', '5')
       sendParamByValue('p_margin', '10')
     }
-
 
     function sendAction(action, ele) {
       var xhttp = new XMLHttpRequest();
@@ -369,7 +500,6 @@
       xhttp1.send();
     }
 
-
     setInterval(function () {
       var xhttp1 = new XMLHttpRequest();
       var xhttp5 = new XMLHttpRequest();
@@ -377,8 +507,14 @@
       xhttp1.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var config = this.responseText.split(",");
+          var cosphiValue = Math.abs(config[7]);
           document.getElementById("vrms").innerHTML = config[0];
-          document.getElementById("cosphi").innerHTML = Math.abs(config[7]);
+          document.getElementById("cosphi").innerHTML = cosphiValue;
+          if ( cosphiMax < cosphiValue ) cosphiMax = cosphiValue;
+          if ( bulletCosphi ) {
+            bulletCosphi.series[0].addPoint ( [0,cosphiValue,cosphiMax], true, true);
+            //bulletCosphi.series[0].target = cosphiMax;            
+          }
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);

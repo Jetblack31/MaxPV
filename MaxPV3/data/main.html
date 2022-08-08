@@ -60,7 +60,8 @@
             MaxPv! est la nouvelle interface web de EcoPV. Découvrez les fonctionnalités en parcourant le menu !<br><br>
             Si vous utiliser MaxPV! et EcoPV pour la première fois, utilisez <a href="wizard.html">l'assistant de
                 configuration</a>.
-            Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a>.
+            Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a>.<br><br>
+            <span class="text-danger" id="livemsg"></span>
             </p>
             <br>
             <div>
@@ -77,36 +78,56 @@
 
         function fillVersion() {
 
+            const urlVersion = "https://raw.githubusercontent.com/Jetblack31/MaxPV/main/MaxPV3/data/versionweb.txt";
+            const messageVersion = "Une mise à jour est disponible !<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a>";
             var xhttp1 = new XMLHttpRequest();
             var xhttp2 = new XMLHttpRequest();
             var xhttp3 = new XMLHttpRequest();
+            var xhttp4 = new XMLHttpRequest();
+            var result1 = "";
+            var result2 = "";
+            var result3 = "";
+            var result4 = "";
+
+            xhttp1.open("GET", "api/get?version", true);
+            xhttp1.send();
+            xhttp2.open("GET", "api/get?versionmaxpv", true);
+            xhttp2.send();
+            xhttp3.open("GET", "api/get?versionweb", true);
+            xhttp3.send();
 
             xhttp1.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var result = this.responseText;
-                    document.getElementById("ecopvver").innerHTML = result;
+                    result1 = this.responseText.trim();
+                    document.getElementById("ecopvver").innerHTML = result1;
                 }
             };
-            xhttp1.open("GET", "api/get?version", true);
-            xhttp1.send();
 
             xhttp2.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var result = this.responseText;
-                    document.getElementById("maxpvver").innerHTML = result;
+                    result2 = this.responseText.trim();
+                    document.getElementById("maxpvver").innerHTML = result2;
                 }
             };
-            xhttp2.open("GET", "api/get?versionmaxpv", true);
-            xhttp2.send();
 
             xhttp3.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var result = this.responseText;
-                    document.getElementById("webver").innerHTML = result;
+                    result3 = this.responseText.trim();
+                    document.getElementById("webver").innerHTML = result3;
+                    xhttp4.open("GET", urlVersion, true);
+                    xhttp4.send();
                 }
             };
-            xhttp3.open("GET", "api/get?versionweb", true);
-            xhttp3.send();
+
+            xhttp4.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    result4 = this.responseText.trim();
+                    if ( ( result4.localeCompare ( result3 ) != 0 ) || ( result4.localeCompare ( result2 ) != 0 ) || ( result4.localeCompare ( result1 ) != 0 ) ) {
+                        document.getElementById("livemsg").innerHTML = messageVersion;
+                    }
+                    else document.getElementById("livemsg").innerHTML = "";
+                }
+            };
         }
 
         setInterval(function () {

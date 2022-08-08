@@ -69,7 +69,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.0.1"      // Version logicielle
+#define VERSION          "3.0.2"      // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -166,10 +166,10 @@ float V_CALIB      =    0.800;        // Valeur de calibration de la tension du 
 float P_CALIB      =    0.111;        // Valeur de calibration de la puissance (VA par bit)
 // Implicitement I_CALIB = P_CALIB / V _CALIB
 int   PHASE_CALIB  =       13;        // Valeur de correction de la phase (retard) de l'acquisition de la tension
-// Entre 0 et 32 :
-// 16 = pas de correction
-// 0  = application d'un retard = temps de conversion ADC
-// 32 = application d'une avance = temps de conversion ADC
+                                      // Entre 0 et 32 :
+                                      // 16 = pas de correction
+                                      // 0  = application d'un retard = temps de conversion ADC
+                                      // 32 = application d'une avance = temps de conversion ADC
 int   P_OFFSET     =      -15;        // Correction d'offset de la lecture de Pactive en Watt
 int   P_RESISTANCE =     2000;        // Valeur en Watt de la résistance contrôlée
 
@@ -193,7 +193,7 @@ byte  T_DIV2_TC     =       1;         // Constante de temps de moyennage des pu
 float CNT_CALIB     =       1.0;         // En Wh par impulsion externe
 
 // ************* Puissance de l'installation PV (valeurs par défaut)
-int   P_INSTALLPV   =     3000;        // Valeur en Wc de la puissance de l'installation PV | production max (valeur par défaut)
+int   P_INSTALLPV   =     3000;          // Valeur en Wc de la puissance de l'installation PV | production max (valeur par défaut)
 
 // ***********************************************************************************************************************
 // energyToDelay [ ] = Tableau du retard de déclenchement du SSR/TRIAC en fonction du routage de puissance désiré.
@@ -292,17 +292,17 @@ volatile unsigned long sumIsqr        = 0;
 volatile unsigned int  routed_power   = 0;
 volatile unsigned int  samples        = 0;
 volatile byte          error_status   = 0;
-                                          // Signification des bits du byte error_status
-                                          // bits 0..3 : informations
-                                          // bit 0 (1)   : Routage en cours
-                                          // bit 1 (2)   : Commande de routage à 100 %
-                                          // bit 2 (4)   : Relais secondaire de délestage activé
-                                          // bit 3 (8)   : Exportation d'énergie
-                                          // bits 4..7 : erreurs
-                                          // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
-                                          // bit 5 (32)  : Anomalie taux d'acquisition
-                                          // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
-                                          // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
+                      // Signification des bits du byte error_status
+                      // bits 0..3 : informations
+                      // bit 0 (1)   : Routage en cours
+                      // bit 1 (2)   : Commande de routage à 100 %
+                      // bit 2 (4)   : Relais secondaire de délestage activé
+                      // bit 3 (8)   : Exportation d'énergie
+                      // bits 4..7 : erreurs
+                      // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
+                      // bit 5 (32)  : Anomalie taux d'acquisition
+                      // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
+                      // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
 
 // ***********************************************************************************
 // ************* Variables utilisées pour le transfert des statistiques  *************
@@ -320,9 +320,9 @@ volatile unsigned int  stats_samples      = 0;   // Nombre d'échantillons total
 volatile byte          stats_error_status = 0;
 volatile int           stats_biasOffset   = 0;   // Valeur de la correction d'offset de lecture ADC
 volatile byte          stats_ready_flag   = 0;
-                                                 // 0 = Données traitées par la loop (), en attente de nouvelles données
-                                                 // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
-                                                 // 9 = Données statistiques en cours de transfert
+                                                  // 0 = Données traitées par la loop (), en attente de nouvelles données
+                                                  // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
+                                                  // 9 = Données statistiques en cours de transfert
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les statistiques      *************
@@ -352,14 +352,14 @@ byte                   hoursOnline      = 0;        // et mise à jour à chaque
 byte                   daysOnline       = 0;        // statistiques sont disponibles
 
 byte                   ledBlink         = 0;        // séquenceur de clignotement pour les LEDs, période T
-// bit 0 (1)   : T = 40 ms
-// bit 1 (2)   : T = 80 ms
-// bit 2 (4)   : T = 160 ms
-// bit 3 (8)   : T = 320 ms
-// bit 4 (16)  : T = 640 ms
-// bit 5 (32)  : T = 1280 ms
-// bit 6 (64)  : T = 2560 ms
-// bit 7 (128) : T = 5120 ms
+                                                    // bit 0 (1)   : T = 40 ms
+                                                    // bit 1 (2)   : T = 80 ms
+                                                    // bit 2 (4)   : T = 160 ms
+                                                    // bit 3 (8)   : T = 320 ms
+                                                    // bit 4 (16)  : T = 640 ms
+                                                    // bit 5 (32)  : T = 1280 ms
+                                                    // bit 6 (64)  : T = 2560 ms
+                                                    // bit 7 (128) : T = 5120 ms
 
 byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
 byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
@@ -489,7 +489,7 @@ void setup ( ) {
   indexRead ( );
 
   // Activation de la liaison série
-  Serial.begin (SERIAL_BAUD);
+  Serial.begin ( SERIAL_BAUD );
   while ( !Serial ) { };
   Serial.setTimeout ( SERIALTIMEOUT );
 
@@ -514,7 +514,7 @@ void setup ( ) {
 void loop ( ) {
 
 #define BIASOFFSET_TOL       20       // Tolérance en bits sur la valeur de biasOffset par rapport
-                                      // au point milieu 511 pour déclencher une remontée d'erreur
+  // au point milieu 511 pour déclencher une remontée d'erreur
   static unsigned long refTime        = millis ( );
   static float         routedEnergy   = ( -3600.0 * WH_PER_INC ); // initialisation à valeur négative
   static float         exportedEnergy = ( -3600.0 * WH_PER_INC ); // Ca permet ensuite de faire la comparaison
@@ -539,6 +539,7 @@ void loop ( ) {
   static unsigned long OCR1A_cnt = 0;
 
   long                 indexImpulsionTemp = 0;
+  byte                 i = 0;
 
   // *** Vérification perte longue de synchronisation secteur
   if ( ( millis ( ) - refTime ) > 2010 ) {
@@ -780,9 +781,11 @@ void loop ( ) {
   PVRLed ( );
 
   // *** Traitement des requêtes par liaison série                        ***
-  if ( Serial.available ( ) > 0 ) {
-    serialRequest ( );
-    refTime = millis ( );
+  // *** On fait 5 traitements de suite au cas où il y a une salve        ***
+  // *** de données communiquées                                          ***
+  while ( i < 5 ) {
+    if ( Serial.available ( ) > 0 ) serialRequest ( );
+    i++;
   }
 
   // *** Traitement de la perte longue de synchronisation, erreur majeure ***
@@ -791,6 +794,7 @@ void loop ( ) {
     clearSerialInputCache ( );    // à voir si nécessaire
     refTime = millis ( );
   };
+
 }
 
 
@@ -936,7 +940,7 @@ void serialRequest ( void ) {
     else if ( incomingCommand.startsWith ( F("VERSION") ) ) {
       // Demande des versions
       Serial.print ( F("VERSION,") );
-      Serial.print ( VERSION );
+      Serial.print ( F(VERSION) );
       Serial.print ( F(",") );
       Serial.print ( DATAEEPROM_VERSION );
       Serial.print ( F(",") );
@@ -1024,9 +1028,9 @@ void serialRequest ( void ) {
       incomingCommand.replace ( F("SETRELAY,"), "" );
       incomingCommand.replace ( F(",END"), "" );
 
-      if ( incomingCommand == "STOP" )       relayMode = STOP;
-      else if ( incomingCommand == "FORCE" ) relayMode = FORCE;
-      else if ( incomingCommand == "AUTO" )  relayMode = AUTOM;
+      if ( incomingCommand == F("STOP") )       relayMode = STOP;
+      else if ( incomingCommand == F("FORCE") ) relayMode = FORCE;
+      else if ( incomingCommand == F("AUTO") )  relayMode = AUTOM;
       Serial.print ( F("DONE:SETRELAY,OK,") );
     }
 
@@ -1035,9 +1039,9 @@ void serialRequest ( void ) {
       incomingCommand.replace ( F("SETSSR,"), "" );
       incomingCommand.replace ( F(",END"), "" );
 
-      if ( incomingCommand == "STOP" )       triacMode = STOP;
-      else if ( incomingCommand == "FORCE" ) triacMode = FORCE;
-      else if ( incomingCommand == "AUTO" )  triacMode = AUTOM;
+      if ( incomingCommand == F("STOP") )       triacMode = STOP;
+      else if ( incomingCommand == F("FORCE") ) triacMode = FORCE;
+      else if ( incomingCommand == F("AUTO") )  triacMode = AUTOM;
       Serial.print ( F("DONE:SETSSR,OK,") );
     }
 

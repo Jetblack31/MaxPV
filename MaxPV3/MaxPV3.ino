@@ -69,8 +69,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION       "3.0.1"
-#define MAXPV_VERSION_FULL  "MaxPv! 3.0.1"
+#define MAXPV_VERSION       "3.0.2"
+#define MAXPV_VERSION_FULL  "MaxPv! 3.0.2"
 #define GMT_OFFSET           0        // Heure solaire
 
 // SSID pour le Config Portal
