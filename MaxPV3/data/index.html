@@ -173,30 +173,30 @@
 
         <thead>
           <tr class="table-primary">
-            <th scope="col" class="text-decoration-line-through">Index journaliers</th>
+            <th scope="col">Index journaliers</th>
             <th scope="col" class="text-center"></th>
             <th scope="col" class="text-center"></th>
           </tr>
         </thead>
-        <tbody class="text-decoration-line-through">
+        <tbody>
           <tr>
             <th scope="row">Energie importée</th>
-            <td class="text-center">0</td>
+            <td class="text-center"><span id="indeximportJ">-----</span></td>
             <td class="text-center">kWh</td>
           </tr>
           <tr>
             <th scope="row">Energie exportée</th>
-            <td class="text-center">0</td>
+            <td class="text-center"><span id="indexexportJ">-----</span></td>
             <td class="text-center">kWh</td>
           </tr>
           <tr>
             <th scope="row">Energie routée</th>
-            <td class="text-center">0</td>
+            <td class="text-center"><span id="indexroutedJ">-----</span></td>
             <td class="text-center">kWh</td>
           </tr>
           <tr>
             <th scope="row">Energie produite</th>
-            <td class="text-center">0</td>
+            <td class="text-center"><span id="indeximpulsionJ">-----</span></td>
             <td class="text-center">kWh</td>
           </tr>
         </tbody>
@@ -317,6 +317,10 @@
           document.getElementById("status").innerHTML = config[19];
           document.getElementById("ontime").innerHTML = config[20];
           document.getElementById("sample").innerHTML = config[21];
+          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[22]) ).toFixed(3).toString();
+          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[23]) ).toFixed(3).toString();
+          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[24]) ).toFixed(3).toString();
+          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[25]) ).toFixed(3).toString();
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);

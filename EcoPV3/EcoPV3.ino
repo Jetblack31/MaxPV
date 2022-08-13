@@ -69,7 +69,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.0.2"      // Version logicielle
+#define VERSION            "3.1"      // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -698,19 +698,19 @@ void loop ( ) {
     Serial.print ( F(",") );
     Serial.print ( Prouted, 1 );
     Serial.print ( F(",") );
-    Serial.print ( ( ( Pact >= 0 ) ? Pact : 0 ), 0 );
+    Serial.print ( ( ( Pact >= 0 ) ? Pact : 0 ), 1 );
     Serial.print ( F(",") );
-    Serial.print ( ( ( Pact <= 0 ) ? -Pact : 0 ), 0 );
+    Serial.print ( ( ( Pact <= 0 ) ? -Pact : 0 ), 1 );
     Serial.print ( F(",") );
     Serial.print ( ( Pact / Papp ), 4 );
     Serial.print ( F(",") );
-    Serial.print ( indexRouted * WH_PER_INC );
+    Serial.print ( indexRouted * WH_PER_INC );    // entier
     Serial.print ( F(",") );
-    Serial.print ( indexImported * WH_PER_INC );
+    Serial.print ( indexImported * WH_PER_INC );  // entier
     Serial.print ( F(",") );
-    Serial.print ( indexExported * WH_PER_INC );
+    Serial.print ( indexExported * WH_PER_INC );  // entier
     Serial.print ( F(",") );
-    Serial.print ( indexImpulsionTemp * CNT_CALIB );
+    Serial.print ( float ( indexImpulsionTemp * CNT_CALIB ), 0 );  // float car CNT_CALIB est float
     Serial.print ( F(",") );
     Serial.print ( float ( Pimpulsion * CNT_CALIB ), 1 );
     Serial.print ( F(",") );

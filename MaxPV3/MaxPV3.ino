@@ -31,23 +31,21 @@
 // ******************            OPTIONS DE COMPILATION                ***************
 // ***********************************************************************************
 
-
 // ***********************************************************************************
 // ******************        FIN DES OPTIONS DE COMPILATION            ***************
 // ***********************************************************************************
-
 
 // ***********************************************************************************
 // ******************                   LIBRAIRIES                     ***************
 // ***********************************************************************************
 
 #include <LittleFS.h>
-#include <ArduinoJson.h>            
+#include <ArduinoJson.h>
 #include <TickerScheduler.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <ESPAsyncWebServer.h>
-#include <ESPAsyncWiFiManager.h>    
+#include <ESPAsyncWiFiManager.h>
 #include <AsyncElegantOTA.h>
 #include <DNSServer.h>
 #include <NTPClient.h>
@@ -59,8 +57,6 @@
 // ******************               FIN DES LIBRAIRIES                 ***************
 // ***********************************************************************************
 
-
-
 // ***********************************************************************************
 // ************************    DEFINITIONS ET DECLARATIONS     ***********************
 // ***********************************************************************************
@@ -69,107 +65,117 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION       "3.0.2"
-#define MAXPV_VERSION_FULL  "MaxPv! 3.0.2"
-#define GMT_OFFSET           0        // Heure solaire
+#define MAXPV_VERSION "3.1"
+#define MAXPV_VERSION_FULL "MaxPv! 3.1"
+#define GMT_OFFSET 0 // Heure solaire
 
 // SSID pour le Config Portal
-#define SSID_CP             "MaxPV"
+#define SSID_CP "MaxPV"
 
-// login et password pour le service FTP
-#define LOGIN_FTP           "maxpv"
-#define PWD_FTP             "maxpv"
+// Login et password pour le service FTP
+#define LOGIN_FTP "maxpv"
+#define PWD_FTP "maxpv"
 
-#define TELNET_PORT         23
-#define SERIAL_BAUD         500000    // Vitesse de la liaison port série pour la connexion avec l'arduino
-#define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
-#define SERIAL_BUFFER       256       // Taille du buffer RX pour la connexion avec l'arduino (256 max)
+// Communications
+#define TELNET_PORT 23
+#define SERIAL_BAUD 500000 // Vitesse de la liaison port série pour la connexion avec l'arduino
+#define SERIALTIMEOUT 100  // Timeout pour les interrogations sur liaison série en ms
+#define SERIAL_BUFFER 256  // Taille du buffer RX pour la connexion avec l'arduino (256 max)
 
-#define OFF                 0
-#define ON                  1
-#define STOP                0
-#define FORCE               1
-#define AUTOM               9
+// Historisation des index
+#define HISTORY_INTERVAL 30  // Périodicité en minutes de l'enregistrement des index d'énergie pour l'historisation
+// Valeurs permises : 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60, 120, 180, 240, 480
+#define HISTORY_RECORD  193  // Nombre de points dans l'historique
+// Attention à la taille totale de l'historique en mémoire
+// Et la capacité d'export en CSV
+
+#define OFF 0
+#define ON 1
+#define STOP 0
+#define FORCE 1
+#define AUTOM 9
 
 // définition de l'ordre des paramètres de configuration de EcoPV tels que transmis
 // et de l'index de rangement dans le tableau de stockage (début à la position 1)
 // on utilise la position 0 pour stocker la version
-#define NB_PARAM       17             // Nombre de paramètres transmis par EcoPV (17 = 16 + VERSION)
-#define ECOPV_VERSION   0
-#define V_CALIB         1
-#define P_CALIB         2
-#define PHASE_CALIB     3
-#define P_OFFSET        4
-#define P_RESISTANCE    5
-#define P_MARGIN        6
-#define GAIN_P          7
-#define GAIN_I          8
-#define E_RESERVE       9
-#define P_DIV2_ACTIVE  10
-#define P_DIV2_IDLE    11
-#define T_DIV2_ON      12
-#define T_DIV2_OFF     13
-#define T_DIV2_TC      14
-#define CNT_CALIB      15
-#define P_INSTALLPV    16
+#define NB_PARAM 17 // Nombre de paramètres transmis par EcoPV (17 = 16 + VERSION)
+#define ECOPV_VERSION 0
+#define V_CALIB 1
+#define P_CALIB 2
+#define PHASE_CALIB 3
+#define P_OFFSET 4
+#define P_RESISTANCE 5
+#define P_MARGIN 6
+#define GAIN_P 7
+#define GAIN_I 8
+#define E_RESERVE 9
+#define P_DIV2_ACTIVE 10
+#define P_DIV2_IDLE 11
+#define T_DIV2_ON 12
+#define T_DIV2_OFF 13
+#define T_DIV2_TC 14
+#define CNT_CALIB 15
+#define P_INSTALLPV 16
 
 // définition de l'ordre des informations statistiques transmises par EcoPV
 // et de l'index de rangement dans le tableau de stockage (début à la position 1)
 // on utilise la position 0 pour stocker la version
-#define NB_STATS      23     // Nombre d'informations statistiques transmis par EcoPV
+// ATTENTION : dans le reste du programme les 4 index de début de journée sont ajoutés à la suite
+// pour les informations disponibles par l'API
+// ils doivent toujours être situés en toute fin de tableu
+#define NB_STATS 23     // Nombre d'informations statistiques transmis par EcoPV (23 = 22 + VERSION)
+#define NB_STATS_SUPP 4 // Nombre d'informations statistiques supplémentaires
 //#define ECOPV_VERSION 0
-#define V_RMS         1
-#define I_RMS         2
-#define P_ACT         3
-#define P_APP         4
-#define P_ROUTED      5
-#define P_IMP         6
-#define P_EXP         7
-#define COS_PHI       8
-#define INDEX_ROUTED       9
-#define INDEX_IMPORT       10
-#define INDEX_EXPORT       11
-#define INDEX_IMPULSION    12
-#define P_IMPULSION        13
-#define TRIAC_MODE         14
-#define RELAY_MODE         15
-#define DELAY_MIN          16
-#define DELAY_AVG          17
-#define DELAY_MAX          18
-#define BIAS_OFFSET        19
-#define STATUS_BYTE        20
-#define ONTIME             21
-#define SAMPLES            22
-
+#define V_RMS 1
+#define I_RMS 2
+#define P_ACT 3
+#define P_APP 4
+#define P_ROUTED 5
+#define P_IMP 6
+#define P_EXP 7
+#define COS_PHI 8
+#define INDEX_ROUTED 9
+#define INDEX_IMPORT 10
+#define INDEX_EXPORT 11
+#define INDEX_IMPULSION 12
+#define P_IMPULSION 13
+#define TRIAC_MODE 14
+#define RELAY_MODE 15
+#define DELAY_MIN 16
+#define DELAY_AVG 17
+#define DELAY_MAX 18
+#define BIAS_OFFSET 19
+#define STATUS_BYTE 20
+#define ONTIME 21
+#define SAMPLES 22
+#define INDEX_ROUTED_J 23
+#define INDEX_IMPORT_J 24
+#define INDEX_EXPORT_J 25
+#define INDEX_IMPULSION_J 26
 
 // ***********************************************************************************
 // ************************ Déclaration des variables globales ***********************
 // ***********************************************************************************
 
-// Stockage des informations de EcoPV
-
-String ecoPVConfig [ NB_PARAM ];
-String ecoPVStats  [ NB_STATS ];
+// Stockage des informations en provenance de EcoPV - Arduino Nano
+String ecoPVConfig[NB_PARAM];
+String ecoPVStats[NB_STATS + NB_STATS_SUPP];
 String ecoPVConfigAll;
 String ecoPVStatsAll;
 
-TickerScheduler ts ( 8 );     // Définition du nombre de tâches de Ticker
-
-
+// Définition du nombre de tâches de Ticker
+TickerScheduler ts(10);
 
 // Variables de configuration de MaxPV!
 // Configuration IP statique
-char static_ip[16]   = "192.168.1.250";
-char static_gw[16]   = "192.168.1.1";
-char static_sn[16]   = "255.255.255.0";
+char static_ip[16] = "192.168.1.250";
+char static_gw[16] = "192.168.1.1";
+char static_sn[16] = "255.255.255.0";
 char static_dns1[16] = "192.168.1.1";
 char static_dns2[16] = "8.8.8.8";
-
 // Port HTTP                  // Attention, le choix du port est inopérant dans cette version
 uint16_t httpPort = 80;
-
 // Fin des variables de la configuration MaxPV!
-
 
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
 bool shouldSaveConfig = false;
@@ -178,34 +184,43 @@ bool shouldSaveConfig = false;
 bool shouldReadParams = false;
 
 // Variables pour surveiller que l'on garde le contact avec EcoPV dans l'Arduino Nano
-unsigned long refTimeContactEcoPV = millis ( );
+unsigned long refTimeContactEcoPV = millis();
 bool contactEcoPV = false;
 
+// Variables pour l'historisation
+struct historicData
+{ // Structure pour le stockage des données historiques
+  unsigned long time; // epoch Time
+  float eRouted;      // index de l'énergie routée en kWh stocké en float
+  float eImport;      // index de l'énergie importée en kWh stocké en float
+  float eExport;      // index de l'énergie exportée en kWh stocké en float
+  float eImpulsion;   // index de l'énergie produite (compteur impulsion) en kWh stocké en float
+};
+historicData energyIndexHistoric[HISTORY_RECORD];
+int historyCounter = 0; // position courante dans le tableau de l'historique
+// = position du plus ancien enregistrement
+// = position du prochain enregistrement à réaliser
+
 // buffer pour manipuler le fichier de configuration de MaxPV! (ajuster la taille en fonction des besoins)
-StaticJsonDocument <1024> jsonConfig;
+StaticJsonDocument<1024> jsonConfig;
 
 IPAddress _ip, _gw, _sn, _dns1, _dns2;
-
-
 
 // ***********************************************************************************
 // ************************ DECLARATION DES SERVEUR ET CLIENTS ***********************
 // ***********************************************************************************
 
-AsyncWebServer webServer ( 80 );
+AsyncWebServer webServer(80);
 DNSServer dnsServer;
-WiFiServer telnetServer ( TELNET_PORT );
+WiFiServer telnetServer(TELNET_PORT);
 WiFiClient tcpClient;
 WiFiUDP ntpUDP;
-NTPClient timeClient ( ntpUDP, "europe.pool.ntp.org", 3600 * GMT_OFFSET, 600000 );
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600 * GMT_OFFSET, 600000);
 FtpServer ftpSrv;
 
 // ***********************************************************************************
 // **********************  FIN DES DEFINITIONS ET DECLARATIONS  **********************
 // ***********************************************************************************
-
-
-
 
 // ***********************************************************************************
 // ***************************   FONCTIONS ET PROCEDURES   ***************************
@@ -215,143 +230,154 @@ FtpServer ftpSrv;
 // setup                                               //
 // Routine d'initialisation générale                   //
 /////////////////////////////////////////////////////////
-void setup ( ) {
-  unsigned long refTime = millis ( );
-  boolean       APmode  = true;
+void setup()
+{
+  unsigned long refTime = millis();
+  boolean APmode = true;
 
   // Début du debug sur liaison série
-  Serial.begin ( 115200 );
-  Serial.println ( F("\nMaxPV! par Bernard Legrand (2022).") );
-  Serial.print ( F("Version : ") );
-  Serial.println ( MAXPV_VERSION );
-  Serial.println ( );
+  Serial.begin(115200);
+  Serial.println(F("\nMaxPV! par Bernard Legrand (2022)."));
+  Serial.print(F("Version : "));
+  Serial.println(MAXPV_VERSION);
+  Serial.println();
 
   // On teste l'existence du système de fichier
   // et sinon on formatte le système de fichier
-  if ( !LittleFS.begin ( ) ) {
-    Serial.println ( F("Système de fichier absent, formatage...") );
-    LittleFS.format ( );
-    if ( LittleFS.begin ( ) )
-      Serial.println ( F("Système de fichier prêt et monté !") );
-    else {
-      Serial.println ( F("Erreur de préparation du système de fichier, redémarrage...") );
-      delay ( 1000 );
-      ESP.restart ( );
+  if (!LittleFS.begin())
+  {
+    Serial.println(F("Système de fichier absent, formatage..."));
+    LittleFS.format();
+    if (LittleFS.begin())
+      Serial.println(F("Système de fichier prêt et monté !"));
+    else
+    {
+      Serial.println(F("Erreur de préparation du système de fichier, redémarrage..."));
+      delay(1000);
+      ESP.restart();
     }
   }
-  else Serial.println ( F("Système de fichier prêt et monté !") );
+  else
+    Serial.println(F("Système de fichier prêt et monté !"));
 
-  Serial.println ( );
+  Serial.println();
 
   // On teste l'existence du fichier de configuration de MaxPV!
-  if ( LittleFS.exists ( F("/config.json") ) ) {
-    Serial.println ( F("Fichier de configuration présent, lecture de la configuration...") );
-    if ( configRead ( ) ) {
-      Serial.println ( F("Configuration lue et appliquée !") );
+  if (LittleFS.exists(F("/config.json")))
+  {
+    Serial.println(F("Fichier de configuration présent, lecture de la configuration..."));
+    if (configRead())
+    {
+      Serial.println(F("Configuration lue et appliquée !"));
       APmode = false;
     }
-    else {
-      Serial.println ( F("Fichier de configuration incorrect, effacement du fichier et redémarrage...") );
-      LittleFS.remove ( F("/config.json") );
-      delay ( 1000 );
-      ESP.restart ( );
+    else
+    {
+      Serial.println(F("Fichier de configuration incorrect, effacement du fichier et redémarrage..."));
+      LittleFS.remove(F("/config.json"));
+      delay(1000);
+      ESP.restart();
     }
   }
-  else Serial.println ( F("Fichier de configuration absent, démarrage en mode point d'accès pour la configuration réseau...") );
+  else
+    Serial.println(F("Fichier de configuration absent, démarrage en mode point d'accès pour la configuration réseau..."));
 
-  Serial.println ( );
+  Serial.println();
 
-  _ip.fromString ( static_ip );
-  _gw.fromString ( static_gw );
-  _sn.fromString ( static_sn );
-  _dns1.fromString ( static_dns1 );
-  _dns2.fromString ( static_dns2 );
+  _ip.fromString(static_ip);
+  _gw.fromString(static_gw);
+  _sn.fromString(static_sn);
+  _dns1.fromString(static_dns1);
+  _dns2.fromString(static_dns2);
 
-  AsyncWiFiManager wifiManager ( &webServer, &dnsServer );
+  AsyncWiFiManager wifiManager(&webServer, &dnsServer);
 
-  wifiManager.setAPCallback ( configModeCallback );
-  wifiManager.setSaveConfigCallback ( saveConfigCallback );
-  wifiManager.setDebugOutput ( true );
-  wifiManager.setSTAStaticIPConfig ( _ip, _gw, _sn, _dns1, _dns2 );
-  //wifiManager.setAPStaticIPConfig ( IPAddress ( 192, 168, 4, 1 ), IPAddress ( 192, 168, 4, 1 ), IPAddress ( 255, 255, 255, 0 ) );
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+  wifiManager.setDebugOutput(true);
+  wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn, _dns1, _dns2);
+  // wifiManager.setAPStaticIPConfig ( IPAddress ( 192, 168, 4, 1 ), IPAddress ( 192, 168, 4, 1 ), IPAddress ( 255, 255, 255, 0 ) );
 
-  if ( APmode ) {    // Si on démarre en mode point d'accès / on efface le dernier réseau wifi connu pour forcer le mode AP
+  if (APmode)
+  { // Si on démarre en mode point d'accès / on efface le dernier réseau wifi connu pour forcer le mode AP
     wifiManager.resetSettings();
   }
 
-  else {            // on devrait se connecter au réseau local avec les paramètres connus
-    Serial.print   ( F("Tentative de connexion au dernier réseau connu...") );
-    Serial.println ( F("Configuration IP, GW, SN, DNS1, DNS2 :") );
-    Serial.println ( _ip.toString() );
-    Serial.println ( _gw.toString() );
-    Serial.println ( _sn.toString() );
-    Serial.println ( _dns1.toString() );
-    Serial.println ( _dns2.toString() );
+  else
+  { // on devrait se connecter au réseau local avec les paramètres connus
+    Serial.print(F("Tentative de connexion au dernier réseau connu..."));
+    Serial.println(F("Configuration IP, GW, SN, DNS1, DNS2 :"));
+    Serial.println(_ip.toString());
+    Serial.println(_gw.toString());
+    Serial.println(_sn.toString());
+    Serial.println(_dns1.toString());
+    Serial.println(_dns2.toString());
   }
 
-  wifiManager.autoConnect ( SSID_CP );
+  wifiManager.autoConnect(SSID_CP);
 
-  Serial.println (  );
-  Serial.println ( F("Connecté au réseau local en utilisant les paramètres IP, GW, SN, DNS1, DNS2 :") );
-  Serial.println ( WiFi.localIP() );
-  Serial.println ( WiFi.gatewayIP() );
-  Serial.println ( WiFi.subnetMask() );
-  Serial.println ( WiFi.dnsIP(0) );
-  Serial.println ( WiFi.dnsIP(1) );
+  Serial.println();
+  Serial.println(F("Connecté au réseau local en utilisant les paramètres IP, GW, SN, DNS1, DNS2 :"));
+  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.gatewayIP());
+  Serial.println(WiFi.subnetMask());
+  Serial.println(WiFi.dnsIP(0));
+  Serial.println(WiFi.dnsIP(1));
 
   // Mise à jour des variables globales de configuration IP (systématique même si pas de changement)
-  WiFi.localIP ( ).toString ( ).toCharArray ( static_ip, 16 );
-  WiFi.gatewayIP ( ).toString ( ).toCharArray ( static_gw, 16 );
-  WiFi.subnetMask ( ).toString ( ).toCharArray ( static_sn, 16 );
-  WiFi.dnsIP ( 0 ).toString ( ).toCharArray ( static_dns1, 16 );
-  WiFi.dnsIP ( 1 ).toString ( ).toCharArray ( static_dns2, 16 );
+  WiFi.localIP().toString().toCharArray(static_ip, 16);
+  WiFi.gatewayIP().toString().toCharArray(static_gw, 16);
+  WiFi.subnetMask().toString().toCharArray(static_sn, 16);
+  WiFi.dnsIP(0).toString().toCharArray(static_dns1, 16);
+  WiFi.dnsIP(1).toString().toCharArray(static_dns2, 16);
 
   // Sauvegarde de la configuration si nécessaire
-  if ( shouldSaveConfig ) {
-    configWrite ( );
-    Serial.println ( F("\nConfiguration sauvegardée !") );
+  if (shouldSaveConfig)
+  {
+    configWrite();
+    Serial.println(F("\nConfiguration sauvegardée !"));
   }
 
-  Serial.println ( F("\n\n***** Le debug se poursuit en connexion telnet *****") );
-  Serial.print ( F("Dans un terminal : nc ") );
-  Serial.print ( static_ip );
-  Serial.print ( F(" ") );
-  Serial.println ( TELNET_PORT );
+  Serial.println(F("\n\n***** Le debug se poursuit en connexion telnet *****"));
+  Serial.print(F("Dans un terminal : nc "));
+  Serial.print(static_ip);
+  Serial.print(F(" "));
+  Serial.println(TELNET_PORT);
 
   // Démarrage du service TELNET
-  telnetServer.begin ( );
-  telnetServer.setNoDelay ( true );
+  telnetServer.begin();
+  telnetServer.setNoDelay(true);
 
   // Attente de 5 secondes pour permettre la connexion TELNET
-  refTime = millis ( );
-  while ( ( !telnetDiscoverClient ( ) ) && ( ( millis ( ) - refTime ) < 5000 ) ) {
-    delay ( 200 );
-    Serial.print ( F(".") );
+  refTime = millis();
+  while ((!telnetDiscoverClient()) && ((millis() - refTime) < 5000))
+  {
+    delay(200);
+    Serial.print(F("."));
   }
 
   // Fermeture du debug serial et fermeture de la liaison série
-  wifiManager.setDebugOutput ( false );
-  Serial.println ( F("\nFermeture de la connexion série de debug et poursuite du démarrage...") );
-  Serial.println ( F("Bye bye !\n") );
-  delay ( 100 );
-  Serial.end ( );
+  wifiManager.setDebugOutput(false);
+  Serial.println(F("\nFermeture de la connexion série de debug et poursuite du démarrage..."));
+  Serial.println(F("Bye bye !\n"));
+  delay(100);
+  Serial.end();
 
-  tcpClient.println ( F("\n***** Reprise de la transmission du debug *****\n") );
-  tcpClient.println ( F("Connexion au réseau wifi réussie !") );
-  tcpClient.println( F("\nConfiguration des services web...") );
+  tcpClient.println(F("\n***** Reprise de la transmission du debug *****\n"));
+  tcpClient.println(F("Connexion au réseau wifi réussie !"));
+  tcpClient.println(F("\nConfiguration des services web..."));
 
+  // ***********************************************************************
+  // ********      DECLARATIONS DES HANDLERS DU SERVEUR WEB         ********
+  // ***********************************************************************
 
+  webServer.onNotFound([](AsyncWebServerRequest * request)
+  {
+    request->redirect("/");
+  });
 
-      // ***********************************************************************
-      // ********      DECLARATIONS DES HANDLERS DU SERVEUR WEB         ********
-      // ***********************************************************************
-
-  webServer.onNotFound ( []( AsyncWebServerRequest * request ) {
-      request->redirect("/");
-  } );
-
-
-  webServer.on( "/", HTTP_ANY, []( AsyncWebServerRequest * request ) {
+  webServer.on("/", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
     String response = "";
     if ( LittleFS.exists ( F("/main.html") ) ) {
       request->send ( LittleFS, F("/main.html") );
@@ -364,8 +390,8 @@ void setup ( ) {
     }
   });
 
-
-  webServer.on( "/index.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
+  webServer.on("/index.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
     String response = "";
     if ( LittleFS.exists ( F("/index.html") ) ) {
       request->send ( LittleFS, F("/index.html") );
@@ -378,58 +404,58 @@ void setup ( ) {
     }
   });
 
-
-  webServer.on( "/configuration.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/configuration.html") );
+  webServer.on("/configuration.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/configuration.html"));
   });
 
-
-  webServer.on( "/main.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/main.html") );
+  webServer.on("/main.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/main.html"));
   });
 
-
-  webServer.on( "/admin.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/admin.html") );
+  webServer.on("/admin.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/admin.html"));
   });
 
-
-  webServer.on( "/credits.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/credits.html") );
+  webServer.on("/credits.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/credits.html"));
   });
 
-
-  webServer.on( "/wizard.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/wizard.html") );
+  webServer.on("/wizard.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/wizard.html"));
   });
 
-
-  webServer.on( "/maj.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
+  webServer.on("/maj.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
     //request->send ( LittleFS, F("/maj") );
     request->redirect("/update");
   });
 
-
-  webServer.on( "/graph.html", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/graph.html") );
+  webServer.on("/graph.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/graph.html"));
   });
 
-
-  webServer.on( "/maxpv.css", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/maxpv.css"), "text/css" );
+  webServer.on("/maxpv.css", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/maxpv.css"), "text/css");
   });
 
-
-  webServer.on( "/favicon.ico", HTTP_ANY, []( AsyncWebServerRequest * request ) {
-    request->send ( LittleFS, F("/favicon.ico"), "image/png" );
+  webServer.on("/favicon.ico", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/favicon.ico"), "image/png");
   });
 
+  // ***********************************************************************
+  // ********                  HANDLERS DE L'API                    ********
+  // ***********************************************************************
 
-      // ***********************************************************************
-      // ********                  HANDLERS DE L'API                    ********
-      // ***********************************************************************
-
-  webServer.on( "/api/action", HTTP_GET, []( AsyncWebServerRequest * request ) {
+  webServer.on("/api/action", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
     String response = F("Request successfully processed");
     if ( request->hasParam ( "restart" ) )
       restartEcoPV ( );
@@ -449,10 +475,10 @@ void setup ( ) {
       rebootESP ( );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
-  } );
+  });
 
-
-  webServer.on ( "/api/get", HTTP_GET, []( AsyncWebServerRequest * request ) {
+  webServer.on("/api/get", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
     String response = "";
     if ( request->hasParam ( "configmaxpv" ) )
       request->send ( LittleFS, F("/config.json"), "text/plain" );
@@ -461,7 +487,7 @@ void setup ( ) {
     else {
       if ( ( request->hasParam ( "param" ) ) && ( request->getParam("param")->value().toInt() > 0 ) && ( request->getParam("param")->value().toInt() <= ( NB_PARAM - 1 ) ) )
         response = ecoPVConfig [ request->getParam("param")->value().toInt() ];
-      else if ( ( request->hasParam ( "data" ) ) && ( request->getParam("data")->value().toInt() > 0 ) && ( request->getParam("data")->value().toInt() <= ( NB_STATS - 1 ) ) )
+      else if ( ( request->hasParam ( "data" ) ) && ( request->getParam("data")->value().toInt() > 0 ) && ( request->getParam("data")->value().toInt() <= ( NB_STATS + NB_STATS_SUPP - 1 ) ) )
         response = ecoPVStats [ request->getParam("data")->value().toInt() ];
       else if ( request->hasParam ( "allparam" ) )
         response = ecoPVConfigAll;
@@ -494,10 +520,10 @@ void setup ( ) {
       else response = F("Unknown request");
       request->send ( 200, "text/plain", response );
     }
-  } );
+  });
 
-
-  webServer.on ( "/api/set", HTTP_GET, []( AsyncWebServerRequest * request ) {
+  webServer.on("/api/set", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
     String response = F("Request successfully processed");
     String mystring = "";
     if ( ( request->hasParam ( "param" ) ) && ( request->hasParam ( "value" ) )
@@ -548,440 +574,577 @@ void setup ( ) {
     }
     else response = F("Bad request or request unknown");
     request->send ( 200, "text/plain", response );
-  } );
+  });
 
 
-      // ***********************************************************************
-      // ********                   FIN DES HANDLERS                    ********
-      // ***********************************************************************
+  // ***********************************************************************
+  // ********             HANDLERS DES DATAS HISTORIQUES            ********
+  // ***********************************************************************
+
+  webServer.on("/api/history", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    AsyncResponseStream *response = request->beginResponseStream("text/csv");
+    String timeStamp;
+    float pRouted;
+    float pImport;
+    float pExport;
+    float pImpuls;
+    int localCounter;
+    int lastLocalCounter;
+    unsigned long timePowerFactor = 60000UL / HISTORY_INTERVAL;   // attention : HISTORY_INTERVAL sous-multiple de 60000
+    // 60000 = 60 minutes par heure * 1000 Wh par kWh
+
+    if ( request->hasParam ( "power" ) )
+    {
+      response->print(F("Time,Import réseau,Export réseau,Production PV,Routage ECS\r\n"));
+      for (int i = 1; i < HISTORY_RECORD; i++) {
+        localCounter = (historyCounter + i) % HISTORY_RECORD;
+        lastLocalCounter = ((localCounter + HISTORY_RECORD - 1) % HISTORY_RECORD);
+        if ( ( energyIndexHistoric[localCounter].time != 0 ) && ( (energyIndexHistoric[lastLocalCounter].time) != 0 ) ) {
+          timeStamp = String (energyIndexHistoric[localCounter].time) + "000";
+          pRouted = (energyIndexHistoric[localCounter].eRouted - energyIndexHistoric[lastLocalCounter].eRouted) * timePowerFactor;
+          pImport = (energyIndexHistoric[localCounter].eImport - energyIndexHistoric[lastLocalCounter].eImport) * timePowerFactor;
+          pExport = -(energyIndexHistoric[localCounter].eExport - energyIndexHistoric[lastLocalCounter].eExport) * timePowerFactor;
+          pImpuls = (energyIndexHistoric[localCounter].eImpulsion - energyIndexHistoric[lastLocalCounter].eImpulsion) * timePowerFactor;
+          response->printf("%s,%.0f,%.0f,%.0f,%.0f\r\n", timeStamp.c_str(), pImport, pExport, pImpuls, pRouted);
+        }
+      }
+      request->send(response);
+    }
+    else
+    {
+      request->send ( 200, "text/plain", F("Unknown request") );
+    }
+  });
 
 
+
+  // ***********************************************************************
+  // ********                   FIN DES HANDLERS                    ********
+  // ***********************************************************************
 
   // Démarrage du service update OTA et des services réseaux
-  AsyncElegantOTA.setID ( MAXPV_VERSION_FULL );
-  AsyncElegantOTA.begin ( &webServer );
-  webServer.begin ( );
-  timeClient.begin ( );
+  AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
+  AsyncElegantOTA.begin(&webServer);
+  webServer.begin();
+  timeClient.begin();
 
-  tcpClient.println ( F("Services web configurés et démarrés !") );
-  tcpClient.print ( F("Port web : ") );
-  tcpClient.println ( httpPort );
+  tcpClient.println(F("Services web configurés et démarrés !"));
+  tcpClient.print(F("Port web : "));
+  tcpClient.println(httpPort);
 
   // Démarrage du service FTP
-  ftpSrv.begin ( LOGIN_FTP, PWD_FTP );
+  ftpSrv.begin(LOGIN_FTP, PWD_FTP);
 
-  tcpClient.println ( F("Service FTP configuré et démarré !") );
-  tcpClient.println ( F("Port FTP : 21") );
-  tcpClient.print ( F("Login FTP : ") );
-  tcpClient.print ( LOGIN_FTP );
-  tcpClient.print ( F("  password FTP : ") );
-  tcpClient.println ( PWD_FTP );
+  tcpClient.println(F("Service FTP configuré et démarré !"));
+  tcpClient.println(F("Port FTP : 21"));
+  tcpClient.print(F("Login FTP : "));
+  tcpClient.print(LOGIN_FTP);
+  tcpClient.print(F("  password FTP : "));
+  tcpClient.println(PWD_FTP);
 
-  tcpClient.println( F("\nDémarrage de la connexion à l'Arduino...") );
+  tcpClient.println(F("\nDémarrage de la connexion à l'Arduino..."));
 
-  Serial.setRxBufferSize ( SERIAL_BUFFER );
-  Serial.begin ( SERIAL_BAUD );
-  Serial.setTimeout ( SERIALTIMEOUT );
-  clearSerialInputCache;
+  Serial.setRxBufferSize(SERIAL_BUFFER);
+  Serial.begin(SERIAL_BAUD);
+  Serial.setTimeout(SERIALTIMEOUT);
+  clearSerialInputCache();
 
-  tcpClient.println ( F("Liaison série configurée pour la communication avec l'Arduino, en attente d'un contact...") );
+  tcpClient.println(F("Liaison série configurée pour la communication avec l'Arduino, en attente d'un contact..."));
 
-  while ( !serialProcess ( ) ) {
-    tcpClient.print ( F(".") );
+  while (!serialProcess())
+  {
+    tcpClient.print(F("."));
   }
-  tcpClient.println ( F("\nContact établi !\n") );
+  tcpClient.println(F("\nContact établi !\n"));
   contactEcoPV = true;
 
   // Premier peuplement des informations de configuration de EcoPV
-  clearSerialInputCache ( );
-  getAllParamEcoPV ( );
-  delay ( 100 );
-  serialProcess ( );
-  clearSerialInputCache ( );
-  getVersionEcoPV ( );
-  delay ( 100 );
-  serialProcess ( );
+  clearSerialInputCache();
+  getAllParamEcoPV();
+  delay(100);
+  serialProcess();
+  clearSerialInputCache();
+  getVersionEcoPV();
+  delay(100);
+  serialProcess();
 
-  tcpClient.println ( );
-  tcpClient.println ( MAXPV_VERSION_FULL );
-  tcpClient.print ( F("EcoPV version ") );
-  tcpClient.println ( ecoPVConfig[ECOPV_VERSION] );
-  if ( String ( MAXPV_VERSION ) != ecoPVConfig[ECOPV_VERSION] ) {
-    tcpClient.println ( F("\n*****                !! ATTENTION !!                  *****") );
-    tcpClient.println ( F("\n***** Version ECOPV et version MaxPV! différentes !!! *****") );
+  // Récupération des informations de fonctionnement
+  // En moins d'une seconde EcoPV devrait envoyer les informations
+  while (!serialProcess()) { }
+
+  tcpClient.println(F("\nDonnées récupérées de l'Arduino !\n"));
+
+  // Peuplement des références des index journaliers
+  setRefIndexJour();
+  // Initialisation de l'historique
+  initHistoric();
+
+  tcpClient.println(F("Historiques initialisés.\n\n"));
+
+  tcpClient.println(MAXPV_VERSION_FULL);
+  tcpClient.print(F("EcoPV version "));
+  tcpClient.println(ecoPVConfig[ECOPV_VERSION]);
+  if (String(MAXPV_VERSION) != ecoPVConfig[ECOPV_VERSION])
+  {
+    tcpClient.println(F("\n*****                !! ATTENTION !!                  *****"));
+    tcpClient.println(F("\n***** Version ECOPV et version MaxPV! différentes !!! *****"));
   };
-  tcpClient.println ( F("\n*** Fin du Setup ***\n") );
+  tcpClient.println(F("\n*** Fin du Setup ***\n"));
 
-
-
-      // ***********************************************************************
-      // ********      DEFINITION DES TACHES RECURRENTES DE TICKER      ********
-      // ***********************************************************************
+  // ***********************************************************************
+  // ********      DEFINITION DES TACHES RECURRENTES DE TICKER      ********
+  // ***********************************************************************
 
   // Découverte d'une connexion TELNET
-  ts.add ( 0,   533, [&](void *) {
-    telnetDiscoverClient ( );
-  }, nullptr, true );
+  ts.add(
+    0, 533, [&](void *)
+  {
+    telnetDiscoverClient();
+  },
+  nullptr, true);
+
   // Lecture et traitement des messages de l'Arduino sur port série
-  ts.add ( 1,    70, [&](void *) {
+  ts.add(
+    1, 70, [&](void *)
+  {
     if ( Serial.available ( ) ) serialProcess ( );
-  }, nullptr, true );
+  },
+  nullptr, true);
+
   // Forcage de l'envoi des paramètres du routeur EcoPV
-  ts.add ( 2, 89234, [&](void *) {
+  ts.add(
+    2, 89234, [&](void *)
+  {
     shouldReadParams = true;
-  }, nullptr, true );
+  },
+  nullptr, true);
+
   // Mise à jour de l'horloge par NTP
-  ts.add ( 3, 20003, [&](void *) {
-    timeClient.update ( );
-  }, nullptr, true );
+  ts.add(
+    3, 20003, [&](void *)
+  {
+    timeClient.update();
+  },
+  nullptr, true);
+
   // Surveillance du fonctionnement du routeur et de l'Arduino
-  ts.add ( 4,   617, [&](void *) {
-    watchDogContactEcoPV ( );
-  }, nullptr, true );
+  ts.add(
+    4, 617, [&](void *)
+  {
+    watchDogContactEcoPV();
+  },
+  nullptr, true);
+
   // Traitement des tâches FTP
-  ts.add ( 5,    97, [&](void *) {
-    ftpSrv.handleFTP ( );
-  }, nullptr, true );
+  ts.add(
+    5, 97, [&](void *)
+  {
+    ftpSrv.handleFTP();
+  },
+  nullptr, true);
+
   // Traitement des demandes de lecture des paramètres du routeur EcoPV
-  ts.add ( 6,  2679, [&](void *) {
+  ts.add(
+    6, 2679, [&](void *)
+  {
     if ( shouldReadParams ) getAllParamEcoPV ( );
-  }, nullptr, true );
+  },
+  nullptr, true);
+
   // Affichage périodique d'informations de debug sur TELNET
-  ts.add ( 7, 31234, [&](void *) {
+  ts.add(
+    7, 31234, [&](void *)
+  {
     tcpClient.print ( F("Heap disponible : ") );
     tcpClient.print ( ESP.getFreeHeap ( ) );
     tcpClient.println ( F(" bytes") );
     tcpClient.print ( F("Heap fragmentation : ") );
     tcpClient.print ( ESP.getHeapFragmentation ( ) );
     tcpClient.println ( F(" %") );
-  }, nullptr, true );
+  },
+  nullptr, true);
 
-  delay ( 1000 );
+  // Réinitialisation des références des index journaliers à minuit
+  ts.add(
+    8, 59654, [&](void *)
+  {
+    if ( ( timeClient.getHours ( ) == 0 ) && ( timeClient.getMinutes ( ) == 0 ) ) setRefIndexJour ( );
+  },
+  nullptr, true);
+
+  // Enregistrement de l'hitorique
+  ts.add(
+    9, HISTORY_INTERVAL * 60000UL, [&](void *)
+  {
+    recordHistoricData();
+  },
+  nullptr, true);
+
+  delay(1000);
 }
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////
 // loop                                                          //
 // Loop routine exécutée en boucle                               //
 ///////////////////////////////////////////////////////////////////
-void loop ( ) {
+void loop()
+{
 
   // Exécution des tâches récurrentes Ticker
-  ts.update ( );
+  ts.update();
 
   dnsServer.processNextRequest();
-  
 }
-
 
 ///////////////////////////////////////////////////////////////////
 // Fonctions                                                     //
 // et Procédures                                                 //
 ///////////////////////////////////////////////////////////////////
 
-
-bool configRead ( void ) {
+bool configRead(void)
+{
   // Note ici on utilise un debug sur liaison série car la fonction n'est appelé qu'au début du SETUP
-  Serial.println ( F("Lecture du fichier de configuration...") );
-  File configFile = LittleFS.open ( F("/config.json"), "r" );
-  if ( configFile ) {
-    Serial.println ( F("Configuration lue !") );
-    Serial.println ( F("Analyse...") );
-    DeserializationError error = deserializeJson ( jsonConfig, configFile );
-    if ( !error ) {
-      Serial.println ( F("\nparsed json:") );
-      serializeJsonPretty ( jsonConfig, Serial );
-      if ( jsonConfig ["ip"] ) {
-        Serial.println ( F("\n\nRestauration de la configuration IP...") );
-        strlcpy ( static_ip,
-                  jsonConfig ["ip"] | "192.168.1.250",
-                  16);
-        strlcpy ( static_gw,
-                  jsonConfig ["gateway"] | "192.168.1.1",
-                  16);
-        strlcpy ( static_sn,
-                  jsonConfig ["subnet"] | "255.255.255.0",
-                  16);
-        strlcpy ( static_dns1,
-                  jsonConfig ["dns1"] | "192.168.1.1",
-                  16);
-        strlcpy ( static_dns2,
-                  jsonConfig ["dns2"] | "8.8.8.8",
-                  16);
-        httpPort  = jsonConfig ["http_port"] | 80;
+  Serial.println(F("Lecture du fichier de configuration..."));
+  File configFile = LittleFS.open(F("/config.json"), "r");
+  if (configFile)
+  {
+    Serial.println(F("Configuration lue !"));
+    Serial.println(F("Analyse..."));
+    DeserializationError error = deserializeJson(jsonConfig, configFile);
+    if (!error)
+    {
+      Serial.println(F("\nparsed json:"));
+      serializeJsonPretty(jsonConfig, Serial);
+      if (jsonConfig["ip"])
+      {
+        Serial.println(F("\n\nRestauration de la configuration IP..."));
+        strlcpy(static_ip,
+                jsonConfig["ip"] | "192.168.1.250",
+                16);
+        strlcpy(static_gw,
+                jsonConfig["gateway"] | "192.168.1.1",
+                16);
+        strlcpy(static_sn,
+                jsonConfig["subnet"] | "255.255.255.0",
+                16);
+        strlcpy(static_dns1,
+                jsonConfig["dns1"] | "192.168.1.1",
+                16);
+        strlcpy(static_dns2,
+                jsonConfig["dns2"] | "8.8.8.8",
+                16);
+        httpPort = jsonConfig["http_port"] | 80;
       }
-      else {
-        Serial.println( F("\n\nPas d'adresse IP dans le fichier de configuration !") );
+      else
+      {
+        Serial.println(F("\n\nPas d'adresse IP dans le fichier de configuration !"));
         return false;
       }
     }
-    else {
-      Serial.println( F("Erreur durant l'analyse du fichier !") );
+    else
+    {
+      Serial.println(F("Erreur durant l'analyse du fichier !"));
       return false;
     }
   }
-  else {
-    Serial.println ( F("Erreur de lecture du fichier !") );
+  else
+  {
+    Serial.println(F("Erreur de lecture du fichier !"));
     return false;
   }
   return true;
 }
 
-
-
-void configWrite ( void ) {
-  jsonConfig["ip"]      = static_ip;
+void configWrite(void)
+{
+  jsonConfig["ip"] = static_ip;
   jsonConfig["gateway"] = static_gw;
-  jsonConfig["subnet"]  = static_sn;
-  jsonConfig["dns1"]    = static_dns1;
-  jsonConfig["dns2"]    = static_dns2;
+  jsonConfig["subnet"] = static_sn;
+  jsonConfig["dns1"] = static_dns1;
+  jsonConfig["dns2"] = static_dns2;
   jsonConfig["http_port"] = httpPort;
 
-  File configFile = LittleFS.open ( F("/config.json"), "w" );
-  serializeJson ( jsonConfig, configFile );
-  configFile.close ( );
+  File configFile = LittleFS.open(F("/config.json"), "w");
+  serializeJson(jsonConfig, configFile);
+  configFile.close();
 }
 
-
-
-void rebootESP ( void ) {
-  delay ( 100 );
-  ESP.reset ( );
-  delay ( 1000 );
+void rebootESP(void)
+{
+  delay(100);
+  ESP.reset();
+  delay(1000);
 }
 
-
-
-bool telnetDiscoverClient ( void ) {
-  if ( telnetServer.hasClient ( ) ) {
-    tcpClient = telnetServer.available ( );
-    clearScreen ( );
-    tcpClient.println ( F("\nMaxPV! par Bernard Legrand (2022).") );
-    tcpClient.print ( F("Version : ") );
-    tcpClient.println ( MAXPV_VERSION );
-    tcpClient.println ( );
-    tcpClient.println ( F("Configuration IP : ") );
-    tcpClient.print ( F("Adresse IP : ") );
-    tcpClient.println ( WiFi.localIP ( ) );
-    tcpClient.print ( F("Passerelle : ") );
-    tcpClient.println ( WiFi.gatewayIP ( ) );
-    tcpClient.print ( F("Masque SR  : ") );
-    tcpClient.println ( WiFi.subnetMask ( ) );
-    tcpClient.print ( F("IP DNS 1   : ") );
-    tcpClient.println ( WiFi.dnsIP ( 0 ) );
-    tcpClient.print ( F("IP DNS 2   : ") );
-    tcpClient.println ( WiFi.dnsIP ( 1 ) );
-    tcpClient.print ( F("Port HTTP : ") );
-    tcpClient.println ( httpPort );
-    tcpClient.println ( F("Port FTP : 21") );
+bool telnetDiscoverClient(void)
+{
+  if (telnetServer.hasClient())
+  {
+    tcpClient = telnetServer.available();
+    clearScreen();
+    tcpClient.println(F("\nMaxPV! par Bernard Legrand (2022)."));
+    tcpClient.print(F("Version : "));
+    tcpClient.println(MAXPV_VERSION);
+    tcpClient.println();
+    tcpClient.println(F("Configuration IP : "));
+    tcpClient.print(F("Adresse IP : "));
+    tcpClient.println(WiFi.localIP());
+    tcpClient.print(F("Passerelle : "));
+    tcpClient.println(WiFi.gatewayIP());
+    tcpClient.print(F("Masque SR  : "));
+    tcpClient.println(WiFi.subnetMask());
+    tcpClient.print(F("IP DNS 1   : "));
+    tcpClient.println(WiFi.dnsIP(0));
+    tcpClient.print(F("IP DNS 2   : "));
+    tcpClient.println(WiFi.dnsIP(1));
+    tcpClient.print(F("Port HTTP : "));
+    tcpClient.println(httpPort);
+    tcpClient.println(F("Port FTP : 21"));
     return true;
   }
   return false;
 }
 
-
-
-void saveConfigCallback ( ) {
-  Serial.println ( F("La configuration sera sauvegardée !") );
+void saveConfigCallback()
+{
+  Serial.println(F("La configuration sera sauvegardée !"));
   shouldSaveConfig = true;
 }
 
-
-
-void configModeCallback ( AsyncWiFiManager *myWiFiManager )  {
-  Serial.print ( F("Démarrage du mode point d'accès : ") );
-  Serial.println ( myWiFiManager->getConfigPortalSSID ( ) );
-  Serial.println ( F("Adresse du portail : ") );
-  Serial.println ( WiFi.softAPIP ( ) );
+void configModeCallback(AsyncWiFiManager *myWiFiManager)
+{
+  Serial.print(F("Démarrage du mode point d'accès : "));
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+  Serial.println(F("Adresse du portail : "));
+  Serial.println(WiFi.softAPIP());
 }
 
-
-
-void clearScreen ( void ) {
-  tcpClient.write ( 27 );          // ESC
-  tcpClient.print ( F("[2J") );    // clear screen
-  tcpClient.write ( 27 );          // ESC
-  tcpClient.print ( F("[H") );     // cursor to home
+void clearScreen(void)
+{
+  tcpClient.write(27);       // ESC
+  tcpClient.print(F("[2J")); // clear screen
+  tcpClient.write(27);       // ESC
+  tcpClient.print(F("[H"));  // cursor to home
 }
 
-
-
-void clearSerialInputCache ( void ) {
-  while ( Serial.available ( ) > 0 ) {
-    Serial.read ( );
+void clearSerialInputCache(void)
+{
+  while (Serial.available() > 0)
+  {
+    Serial.read();
   }
 }
 
-
-
-bool serialProcess ( void ) {
-#define END_OF_TRANSMIT   '#'
+bool serialProcess(void)
+{
+#define END_OF_TRANSMIT '#'
   int stringCounter = 0;
   int index = 0;
-  
-  // Les chaînes valides envoyées par l'arduino se terminent toujours par #
-  String incomingData = Serial.readStringUntil ( END_OF_TRANSMIT );
-  
-  // On teste la validité de la chaîne qui doit contenir 'END' à la fin
-  if ( incomingData.endsWith ( F("END") ) ) {
-    tcpClient.print ( F("Réception de : ") );
-    tcpClient.println ( incomingData );
-    incomingData.replace ( F(",END"), "" );
-    contactEcoPV = true;
-    refTimeContactEcoPV = millis ( );
 
-    if ( incomingData.startsWith ( F("STATS") ) ) {
-      incomingData.replace ( F("STATS,"), "" );
-      stringCounter++;        // on incrémente pour placer la première valeur à l'index 1
-      while ( ( incomingData.length ( ) > 0 ) && ( stringCounter < NB_STATS ) ) {
-        index = incomingData.indexOf ( ',' );
-        if ( index == -1 ) {
+  // Les chaînes valides envoyées par l'arduino se terminent toujours par #
+  String incomingData = Serial.readStringUntil(END_OF_TRANSMIT);
+
+  // On teste la validité de la chaîne qui doit contenir 'END' à la fin
+  if (incomingData.endsWith(F("END")))
+  {
+    tcpClient.print(F("Réception de : "));
+    tcpClient.println(incomingData);
+    incomingData.replace(F(",END"), "");
+    contactEcoPV = true;
+    refTimeContactEcoPV = millis();
+
+    if (incomingData.startsWith(F("STATS")))
+    {
+      incomingData.replace(F("STATS,"), "");
+      stringCounter++; // on incrémente pour placer la première valeur à l'index 1
+      while ((incomingData.length() > 0) && (stringCounter < NB_STATS))
+      {
+        index = incomingData.indexOf(',');
+        if (index == -1)
+        {
           ecoPVStats[stringCounter++] = incomingData;
           break;
         }
-        else {
-          ecoPVStats[stringCounter++] = incomingData.substring ( 0, index );
-          incomingData = incomingData.substring ( index + 1 );
+        else
+        {
+          ecoPVStats[stringCounter++] = incomingData.substring(0, index);
+          incomingData = incomingData.substring(index + 1);
         }
       }
       // Conversion des index en kWh
-      ecoPVStats[INDEX_ROUTED] = String ( ( ecoPVStats[INDEX_ROUTED].toFloat ( ) / 1000.0 ), 3 );
-      ecoPVStats[INDEX_IMPORT] = String ( ( ecoPVStats[INDEX_IMPORT].toFloat ( ) / 1000.0 ), 3 );
-      ecoPVStats[INDEX_EXPORT] = String ( ( ecoPVStats[INDEX_EXPORT].toFloat ( ) / 1000.0 ), 3 );
-      ecoPVStats[INDEX_IMPULSION] = String ( ( ecoPVStats[INDEX_IMPULSION].toFloat ( ) / 1000.0 ), 3 );
+      ecoPVStats[INDEX_ROUTED] = String((ecoPVStats[INDEX_ROUTED].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_IMPORT] = String((ecoPVStats[INDEX_IMPORT].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_EXPORT] = String((ecoPVStats[INDEX_EXPORT].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_IMPULSION] = String((ecoPVStats[INDEX_IMPULSION].toFloat() / 1000.0), 3);
 
       ecoPVStatsAll = "";
-      for (int i = 1; i < NB_STATS; i++) {
+      // on génère la chaîne complète des STATS pour l'API en y incluant les index de début de journée
+      for (int i = 1; i < (NB_STATS + NB_STATS_SUPP); i++)
+      {
         ecoPVStatsAll += ecoPVStats[i];
-        if ( i < ( NB_STATS - 1 ) ) ecoPVStatsAll += F(",");
+        if (i < (NB_STATS + NB_STATS_SUPP - 1))
+          ecoPVStatsAll += F(",");
       }
     }
 
-    else if ( incomingData.startsWith ( F("PARAM") ) ) {
-      incomingData.replace ( F("PARAM,"), "" );
+    else if (incomingData.startsWith(F("PARAM")))
+    {
+      incomingData.replace(F("PARAM,"), "");
       ecoPVConfigAll = incomingData;
-      stringCounter++;        // on incrémente pour placer la première valeur Vrms à l'index 1
-      while ( ( incomingData.length ( ) > 0 )  && ( stringCounter < NB_PARAM ) ) {
-        index = incomingData.indexOf ( ',' );
-        if ( index == -1 ) {
+      stringCounter++; // on incrémente pour placer la première valeur Vrms à l'index 1
+      while ((incomingData.length() > 0) && (stringCounter < NB_PARAM))
+      {
+        index = incomingData.indexOf(',');
+        if (index == -1)
+        {
           ecoPVConfig[stringCounter++] = incomingData;
           break;
         }
-        else {
-          ecoPVConfig[stringCounter++] = incomingData.substring ( 0, index );
-          incomingData = incomingData.substring ( index + 1 );
+        else
+        {
+          ecoPVConfig[stringCounter++] = incomingData.substring(0, index);
+          incomingData = incomingData.substring(index + 1);
         }
       }
     }
 
-    else if ( incomingData.startsWith ( F("VERSION") ) ) {
-      incomingData.replace ( F("VERSION,"), "" );
-      index = incomingData.indexOf ( ',' );
-      if ( index != -1 ) {
-        ecoPVConfig[ECOPV_VERSION] = incomingData.substring ( 0, index );
+    else if (incomingData.startsWith(F("VERSION")))
+    {
+      incomingData.replace(F("VERSION,"), "");
+      index = incomingData.indexOf(',');
+      if (index != -1)
+      {
+        ecoPVConfig[ECOPV_VERSION] = incomingData.substring(0, index);
         ecoPVStats[ECOPV_VERSION] = ecoPVConfig[ECOPV_VERSION];
       }
     }
     return true;
   }
-  else {
+  else
+  {
     return false;
   }
 }
 
-
-
-void formatEepromEcoPV ( void ) {
-  Serial.print ( F("FORMAT,END#") );
+void formatEepromEcoPV(void)
+{
+  Serial.print(F("FORMAT,END#"));
 }
 
-
-
-void getAllParamEcoPV ( void ) {
-  Serial.print ( F("PARAM,END#") );
+void getAllParamEcoPV(void)
+{
+  Serial.print(F("PARAM,END#"));
   shouldReadParams = false;
 }
 
-
-
-void setParamEcoPV ( String param, String value ) {
+void setParamEcoPV(String param, String value)
+{
   String command = "";
-  if ( ( param.toInt() < 10 ) && ( !param.startsWith ("0") ) ) param = "0" + param;
-  command = F("SETPARAM,") + param + F(",") + value + F(",END#") ;
-  Serial.print ( command );
-  shouldReadParams = true;    // on demande la lecture des paramètres contenus dans EcoPV
-                              // pour mettre à jour dans MaxPV
-                              // ce qui permet de vérifier la prise en compte de la commande
-                              // C'est par ce seul moyen de MaxPV met à jour sa base interne des paramètres
+  if ((param.toInt() < 10) && (!param.startsWith("0")))
+    param = "0" + param;
+  command = F("SETPARAM,") + param + F(",") + value + F(",END#");
+  Serial.print(command);
+  shouldReadParams = true; // on demande la lecture des paramètres contenus dans EcoPV
+  // pour mettre à jour dans MaxPV
+  // ce qui permet de vérifier la prise en compte de la commande
+  // C'est par ce seul moyen de MaxPV met à jour sa base interne des paramètres
 }
 
-
-
-void getVersionEcoPV ( void ) {
-  Serial.print ( F("VERSION,END#") );
+void getVersionEcoPV(void)
+{
+  Serial.print(F("VERSION,END#"));
 }
 
-
-
-void saveConfigEcoPV ( void ) {
-  Serial.print ( F("SAVECFG,END#") );
+void saveConfigEcoPV(void)
+{
+  Serial.print(F("SAVECFG,END#"));
 }
 
-
-
-void loadConfigEcoPV ( void ) {
-  Serial.print ( F("LOADCFG,END#") );
-  shouldReadParams = true;    // on demande la lecture des paramètres contenus dans EcoPV
-                              // pour mettre à jour dans MaxPV
-                              // ce qui permet de vérifier la prise en compte de la commande
-                              // C'est par ce seul moyen de MaxPV met à jour sa base interne des paramètres
+void loadConfigEcoPV(void)
+{
+  Serial.print(F("LOADCFG,END#"));
+  shouldReadParams = true; // on demande la lecture des paramètres contenus dans EcoPV
+  // pour mettre à jour dans MaxPV
+  // ce qui permet de vérifier la prise en compte de la commande
+  // C'est par ce seul moyen de MaxPV met à jour sa base interne des paramètres
 }
 
-
-
-void saveIndexEcoPV ( void ) {
-  Serial.print ( F("SAVEINDX,END#") );
+void saveIndexEcoPV(void)
+{
+  Serial.print(F("SAVEINDX,END#"));
 }
 
-
-
-void resetIndexEcoPV ( void ) {
-  Serial.print ( F("INDX0,END#") );
+void resetIndexEcoPV(void)
+{
+  Serial.print(F("INDX0,END#"));
 }
 
-
-
-void restartEcoPV ( void ) {
-  Serial.print ( F("RESET,END#") );
+void restartEcoPV(void)
+{
+  Serial.print(F("RESET,END#"));
 }
 
-
-
-void relayModeEcoPV ( byte opMode ) {
+void relayModeEcoPV(byte opMode)
+{
   String command = F("SETRELAY,");
-  if ( opMode == STOP ) command += F("STOP");
-  if ( opMode == FORCE ) command += F("FORCE");
-  if ( opMode == AUTOM ) command += F("AUTO");
+  if (opMode == STOP)
+    command += F("STOP");
+  if (opMode == FORCE)
+    command += F("FORCE");
+  if (opMode == AUTOM)
+    command += F("AUTO");
   command += F(",END#");
-  Serial.print ( command );
+  Serial.print(command);
 }
 
-
-
-void SSRModeEcoPV ( byte opMode ) {
+void SSRModeEcoPV(byte opMode)
+{
   String command = F("SETSSR,");
-  if ( opMode == STOP ) command += F("STOP");
-  if ( opMode == FORCE ) command += F("FORCE");
-  if ( opMode == AUTOM ) command += F("AUTO");
+  if (opMode == STOP)
+    command += F("STOP");
+  if (opMode == FORCE)
+    command += F("FORCE");
+  if (opMode == AUTOM)
+    command += F("AUTO");
   command += F(",END#");
-  Serial.print ( command );
+  Serial.print(command);
 }
 
+void watchDogContactEcoPV(void)
+{
+  if ((millis() - refTimeContactEcoPV) > 1500)
+    contactEcoPV = false;
+}
 
+void setRefIndexJour(void)
+{
+  ecoPVStats[INDEX_ROUTED_J] = ecoPVStats[INDEX_ROUTED];
+  ecoPVStats[INDEX_IMPORT_J] = ecoPVStats[INDEX_IMPORT];
+  ecoPVStats[INDEX_EXPORT_J] = ecoPVStats[INDEX_EXPORT];
+  ecoPVStats[INDEX_IMPULSION_J] = ecoPVStats[INDEX_IMPULSION];
+}
 
-void watchDogContactEcoPV (void) {
-  if ( ( millis ( ) - refTimeContactEcoPV ) > 1500  ) contactEcoPV = false;
+void initHistoric(void)
+{
+  for (int i = 0; i < HISTORY_RECORD; i++)
+  {
+    energyIndexHistoric[i].time = 0;
+    energyIndexHistoric[i].eRouted = 0;
+    energyIndexHistoric[i].eImport = 0;
+    energyIndexHistoric[i].eExport = 0;
+    energyIndexHistoric[i].eImpulsion = 0;
+  }
+  historyCounter = 0;
+}
+
+void recordHistoricData(void)
+{
+  energyIndexHistoric[historyCounter].time = timeClient.getEpochTime();
+  energyIndexHistoric[historyCounter].eRouted = ecoPVStats[INDEX_ROUTED].toFloat();
+  energyIndexHistoric[historyCounter].eImport = ecoPVStats[INDEX_IMPORT].toFloat();
+  energyIndexHistoric[historyCounter].eExport = ecoPVStats[INDEX_EXPORT].toFloat();
+  energyIndexHistoric[historyCounter].eImpulsion = ecoPVStats[INDEX_IMPULSION].toFloat();
+  historyCounter++;
+  historyCounter %= HISTORY_RECORD;   // Création d'un tableau circulaire
 }

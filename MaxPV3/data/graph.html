@@ -182,13 +182,16 @@
           <h2 class="accordion-header" id="flush-headingThree">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
               data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
-              <h6 class="text-decoration-line-through">Historique</h6>
+              <h6>Historique</h6>
             </button>
           </h2>
           <div id="flush-collapseThree" class="accordion-collapse collapse text-center"
             aria-labelledby="flush-headingThree" data-bs-parent="#accordionFlushExample">
             <div class="accordion-body">
-              En construction !
+              <figure class="highcharts-figure">
+                <div id="container-puisshistorique"></div><br><br>
+                <p class="highcharts-description"></p>
+              </figure>
             </div>
           </div>
         </div>
@@ -201,6 +204,7 @@
   <script src="https://code.highcharts.com/highcharts.js"></script>
   <script src="https://code.highcharts.com/highcharts-more.js"></script>
   <script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
+  <script src="https://code.highcharts.com/modules/data.js"></script>
 
   <script src="https://code.highcharts.com/modules/exporting.js"></script>
   <script src="https://code.highcharts.com/modules/export-data.js"></script>
@@ -209,6 +213,91 @@
 
   <script>
 
+    var urlPuissHistory = window.location.origin + '/api/history?power';
+
+    Highcharts.chart('container-puisshistorique', {
+      chart: {
+        type: 'areaspline',
+        marginRight: 10
+      },
+      title: {
+        text: 'Historique des puissances'
+      },
+      accessibility: {
+        announceNewData: {
+          enabled: true,
+          minAnnounceInterval: 15000,
+          announcementFormatter: function (allSeries, newSeries, newPoint) {
+            if (newPoint) {
+              return 'New point added. Value: ' + newPoint.y;
+            }
+            return false;
+          }
+        }
+      },
+      xAxis: {
+        type: 'datetime',
+        tickPixelInterval: 150
+      },
+      legend: {
+        enabled: true
+      },
+      yAxis: {
+        title: {
+          text: 'Watts'
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      data: {
+        csvURL: urlPuissHistory,
+        enablePolling: true,
+        dataRefreshRate: 60
+      },
+      series: [
+        {
+          name: 'Import réseau',
+          color: '#E74C3C',
+          fillOpacity: 0
+        },
+        {
+          name: 'Export réseau',
+          color: '#800080',
+          fillOpacity: 0
+        },
+        {
+          name: 'Production PV',
+          color: '#F7DC6F',
+          fillOpacity: 0.1
+        },
+        {
+          name: 'Routage ECS',
+          color: '#1E8449',
+          fillOpacity: 0
+        }
+      ],
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S %d/%m/%Y}<br/>{point.y:.1f} W'
+      },
+      exporting: {
+        enabled: true
+      },
+      time: {
+        useUTC: false
+      },
+      caption: {
+        text: 'Les valeurs tracées sont moyennées par intervalle de 30 minutes.<br>Le graphique est mis à zéro au (re)démarrage de MaxPV!.'
+      },
+      credits: {
+        enabled: false
+      }
+    });
+
+    
     var dataInitChartTempsReel = function () {
       // Initialisation des graphes temps réel
       // Le nombre de points fixe la durée des graphs en secondes
@@ -590,7 +679,7 @@
         dataLabels: {
           format:
             '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y}</span><br/>' +
+            '<span style="font-size:25px">{y:.1f}</span><br/>' +
             '<span style="font-size:12px;opacity:0.4">Watts</span>' +
             '</div>'
         },
@@ -620,7 +709,7 @@
         dataLabels: {
           format:
             '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y}</span><br/>' +
+            '<span style="font-size:25px">{y:.1f}</span><br/>' +
             '<span style="font-size:12px;opacity:0.4">Watts</span>' +
             '</div>'
         },
@@ -650,7 +739,7 @@
         dataLabels: {
           format:
             '<div style="text-align:center">' +
-            '<span style="font-size:25px">{y}</span><br/>' +
+            '<span style="font-size:25px">{y:.1f}</span><br/>' +
             '<span style="font-size:12px;opacity:0.4">' +
             'Watts' +
             '</span>' +
@@ -755,7 +844,6 @@
       xhttp1.send();
 
     }, 1000);
-
 
     setInterval(function () {
       var xhttp2 = new XMLHttpRequest();
