@@ -118,7 +118,7 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
-### **V 3.0.2** : (13/08/2022)
+### **V 3.1** : (13/08/2022)
 * Petites corrections dans EcoPV
 * Ajout du graphique historique par pas de 30 minutes sur 4 jours (96h)
 ### **V 3.0.2** : (08/08/2022)
