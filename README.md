@@ -118,17 +118,20 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
-### **V 3.1** : (13/08/2022)
+### **V 3.1** - 13/08/2022
 * Petites corrections dans EcoPV
 * Ajout du graphique historique par pas de 30 minutes sur 4 jours (96h) dans MaxPV!
 * Ajout de fonctionnalités à l'API
-### **V 3.0.2** : (08/08/2022)
+### **V 3.0.2** - 08/08/2022
 * Amélioration du traitement de la liaison série dans EcoPV
 * Ajout d'un bargraph dans l'assistant de calibrage
 * Optimisation du site Web
 * Ajout de la vérification d'une mise à jour disponible sur la page d'accueil
-### **V 3.0.1** : Correction d'un bug mineur mode STOP SSR et ajout de graphiques (31/07/2022)
-### **V 3.0**   : Première version (30/07/2022)
+### **V 3.0.1** - 31/07/2022
+* Correction d'un bug mineur mode STOP SSR
+* Ajout de graphiques
+### **V 3.0**   - 30/07/2022
+* Version intiale
 
 
 
