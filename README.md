@@ -67,9 +67,9 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Un portail captif s'ouvre, s'il ne s'ouvre pas automatiquement, connectez-vous à l'adresse http://192.168.4.1
 
 ![MaxPV! captif portal](images/captif.png)
-* Réalisez votre configuration Wifi et votre configuration IP. Pour les adresses DNS, indiquez l'adresse de votre 'Box internet' comme DNS1, et l'adresse 8.8.8.8 comme DNS2.
+* Réalisez votre configuration Wifi et votre configuration IP. Pour la passerelle, indiquez l'adresse de votre 'Box internet'. Pour les serveurs DNS, indiquez l'adresse de votre 'Box internet' comme adresse DNS1, et indiquez l'adresse 8.8.8.8 pour DNS2 (8.8.8.8 correspond au service DNS de Google). Cela doit convenir à la plupart des installations domestiques. Note : Certaines 'Box internet' ont l'adresse 192.168.1.1, d'autres 192.168.1.254, 192.168.0.254 ou encore 192.168.0.1.
 * Vous pouvez maintenant ré-installer l'Arduino Nano et le Wemos sur la carte électronique de votre routeur.
-
+.
 ## Premier démarrage
 * Vérifiez que votre ordinateur / téléphone est bien connecté à votre réseau local.
 * Connectez-vous à l'adresse IP statique que vous avez attribuée au Wemos au cours de l'installation.
