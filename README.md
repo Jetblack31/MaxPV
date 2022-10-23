@@ -118,6 +118,9 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.11** - 23/10/2022
+* Amélioration du comptage des impulsions externes (mesure puissance PV)
+* Petites corrections dans MaxPV3
 ### **V 3.1** - 13/08/2022
 * Petites corrections dans EcoPV
 * Ajout du graphique historique par pas de 30 minutes sur 4 jours (96h) dans MaxPV!

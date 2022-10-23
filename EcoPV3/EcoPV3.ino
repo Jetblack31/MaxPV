@@ -21,7 +21,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  Version 3: management interface removed from Arduino and integrated to ESP
+  Version 3.x: management interface removed from Arduino and integrated to ESP
   via a Serial Protocol to exchange data
 
 */
@@ -69,14 +69,14 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION            "3.1"      // Version logicielle
+#define VERSION           "3.11"      // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
 #define V_SECTEUR           230.0     // Tension secteur nominale
 #define NB_CYCLES            50       // Nombre de cycles / s du secteur AC (50 ou 60 Hz) : 50 ou 60
 #define SAMP_PER_CYCLE      166       // Nombre d'échantillons I,V attendu par cycle : 166 sur ATMEGA 328P @ VCC = 5 V et clock 16 MHz
-                                      // Dépend de la configuration de l'ADC dans le programme
+// Dépend de la configuration de l'ADC dans le programme
 #define WH_PER_INC            5       // Nombre de Wh par incrément pour le stockage 3 compteurs d'énergie (Rout, Imp, Exp)
 
 
@@ -166,10 +166,10 @@ float V_CALIB      =    0.800;        // Valeur de calibration de la tension du 
 float P_CALIB      =    0.111;        // Valeur de calibration de la puissance (VA par bit)
 // Implicitement I_CALIB = P_CALIB / V _CALIB
 int   PHASE_CALIB  =       13;        // Valeur de correction de la phase (retard) de l'acquisition de la tension
-                                      // Entre 0 et 32 :
-                                      // 16 = pas de correction
-                                      // 0  = application d'un retard = temps de conversion ADC
-                                      // 32 = application d'une avance = temps de conversion ADC
+// Entre 0 et 32 :
+// 16 = pas de correction
+// 0  = application d'un retard = temps de conversion ADC
+// 32 = application d'une avance = temps de conversion ADC
 int   P_OFFSET     =      -15;        // Correction d'offset de la lecture de Pactive en Watt
 int   P_RESISTANCE =     2000;        // Valeur en Watt de la résistance contrôlée
 
@@ -226,7 +226,7 @@ byte energyToDelay [ ] = {
 };
 
 #define PULSE_END          148          // Instant d'arrêt du pulse triac après le passage à 0
-                                        // par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
+// par pas de 64 us (9.5 ms = 148). Valeur pour secteur 50 Hz
 
 
 // ***********************************************************************************
@@ -269,13 +269,13 @@ const paramInConfig pvrParamConfig [ ] = {
 // ************* entre les routines d'interruption                         ***********
 // ***********************************************************************************
 volatile int     biasOffset    = 511;       // pour réguler le point milieu des acquisitions ADC,
-                                            // attendu autour de 511
+// attendu autour de 511
 volatile long    periodP       =   0;       // Samples de puissance accumulés
-                                            // sur un demi-cycle secteur (période de la puissance)
+// sur un demi-cycle secteur (période de la puissance)
 #define          NCSTART           5
 volatile byte    coldStart     =   NCSTART; // Indicateur de passage à 0 après le démarrage
-                                            // Atteint la valeur 0 une fois le warm-up terminé
-                                            // Attente de NCSTART passage à 0 avant de démarrer la régulation
+// Atteint la valeur 0 une fois le warm-up terminé
+// Attente de NCSTART passage à 0 avant de démarrer la régulation
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les calcul              ***********
@@ -292,17 +292,17 @@ volatile unsigned long sumIsqr        = 0;
 volatile unsigned int  routed_power   = 0;
 volatile unsigned int  samples        = 0;
 volatile byte          error_status   = 0;
-                      // Signification des bits du byte error_status
-                      // bits 0..3 : informations
-                      // bit 0 (1)   : Routage en cours
-                      // bit 1 (2)   : Commande de routage à 100 %
-                      // bit 2 (4)   : Relais secondaire de délestage activé
-                      // bit 3 (8)   : Exportation d'énergie
-                      // bits 4..7 : erreurs
-                      // bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
-                      // bit 5 (32)  : Anomalie taux d'acquisition
-                      // bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
-                      // bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
+// Signification des bits du byte error_status
+// bits 0..3 : informations
+// bit 0 (1)   : Routage en cours
+// bit 1 (2)   : Commande de routage à 100 %
+// bit 2 (4)   : Relais secondaire de délestage activé
+// bit 3 (8)   : Exportation d'énergie
+// bits 4..7 : erreurs
+// bit 4 (16)  : Anomalie signaux analogiques : ADC I/V overflow, biasOffset
+// bit 5 (32)  : Anomalie taux d'acquisition
+// bit 6 (64)  : Anomalie furtive Détection passage à 0 (bruit sur le signal)
+// bit 7 (128) : Anomalie majeure Détection passage à 0 (sur 2 secondes de comptage)
 
 // ***********************************************************************************
 // ************* Variables utilisées pour le transfert des statistiques  *************
@@ -320,9 +320,9 @@ volatile unsigned int  stats_samples      = 0;   // Nombre d'échantillons total
 volatile byte          stats_error_status = 0;
 volatile int           stats_biasOffset   = 0;   // Valeur de la correction d'offset de lecture ADC
 volatile byte          stats_ready_flag   = 0;
-                                                  // 0 = Données traitées par la loop (), en attente de nouvelles données
-                                                  // 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
-                                                  // 9 = Données statistiques en cours de transfert
+// 0 = Données traitées par la loop (), en attente de nouvelles données
+// 1 = Nouvelles données disponibles ou en cours de traitement par la loop ()
+// 9 = Données statistiques en cours de transfert
 
 // ***********************************************************************************
 // ************* Variables globales utilisées pour les statistiques      *************
@@ -352,14 +352,14 @@ byte                   hoursOnline      = 0;        // et mise à jour à chaque
 byte                   daysOnline       = 0;        // statistiques sont disponibles
 
 byte                   ledBlink         = 0;        // séquenceur de clignotement pour les LEDs, période T
-                                                    // bit 0 (1)   : T = 40 ms
-                                                    // bit 1 (2)   : T = 80 ms
-                                                    // bit 2 (4)   : T = 160 ms
-                                                    // bit 3 (8)   : T = 320 ms
-                                                    // bit 4 (16)  : T = 640 ms
-                                                    // bit 5 (32)  : T = 1280 ms
-                                                    // bit 6 (64)  : T = 2560 ms
-                                                    // bit 7 (128) : T = 5120 ms
+// bit 0 (1)   : T = 40 ms
+// bit 1 (2)   : T = 80 ms
+// bit 2 (4)   : T = 160 ms
+// bit 3 (8)   : T = 320 ms
+// bit 4 (16)  : T = 640 ms
+// bit 5 (32)  : T = 1280 ms
+// bit 6 (64)  : T = 2560 ms
+// bit 7 (128) : T = 5120 ms
 
 byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
 byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
@@ -825,8 +825,9 @@ void startPVR ( void ) {
 
   // Configuration du convertisseur ADC pour travailler sur interruptions
   configADC ( );
-  // Configuration du Timer1
+  // Configuration des Timer1 et Rimer2
   configTimer1 ( );
+  configTimer2 ( );
   // Configuration de l'entrée d'interruption synchroACPin
   attachInterrupt ( digitalPinToInterrupt ( synchroACPin ), zeroCrossingInterrupt, CHANGE );
   // Configuration de l'entrée d'interruption pulseExternalPin
@@ -1409,12 +1410,12 @@ void configADC ( void ) {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// configTimer1                                                                      //
+// configTimer1 (16 bits)                                                                     //
 // Fonction de configuration du Timer 1, gestion du pulse SSR/TRIAC                  //
 ///////////////////////////////////////////////////////////////////////////////////////
 void configTimer1 ( void ) {
 
-  TIMSK1 = 0x03;     // activation des interruptions sur comparateur et overflow
+  TIMSK1 = 0x03;     // activation des interruptions sur comparateur A et overflow
   TCCR1A = 0x00;     // fonctionnement normal,
   TCCR1B = 0x00;     // timer arrêté
   OCR1A  = 30000;    // comparateur initialisé à 30000
@@ -1423,6 +1424,25 @@ void configTimer1 ( void ) {
   /*******************  Pour information : *****************************
     //TCCR1B=0x05; // démarrage du compteur par pas de 64 us
     //TCCR1B=0x00; // arrêt du compteur
+  *********************************************************************/
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// configTimer2 (8 bits)                                                                     //
+// Fonction de configuration du Timer 2, gestion de l'antirebond des pulses externes //
+///////////////////////////////////////////////////////////////////////////////////////
+void configTimer2 ( void ) {
+
+  TIMSK2 = 0x03;     // activation des interruptions sur comparateur A et overflow
+  TCCR2A = 0x00;     // fonctionnement normal,
+  TCCR2B = 0x00;     // timer arrêté
+  OCR2A  = 127;      // comparateur initialisé à 63 (soit 4 ms à 64 us par pas)
+  TCNT2  = 0;        // compteur initialisé à 0
+
+  /*******************  Pour information : *****************************
+    //TCCR2B=0x07; // démarrage du compteur par pas de 64 us
+    //TCCR2B=0x00; // arrêt du compteur
   *********************************************************************/
 }
 
@@ -1784,20 +1804,44 @@ ISR ( TIMER1_OVF_vect ) {     // TCNT1 overflow, instant PULSE_END
 }
 
 
+//////////////////////////////////////////////////////////////////////////////////////
+// ISR ( TIMER2_COMPA_vect )  et  ISR ( TIMER2_OVF_vect )                           //
+// Interrupt service routine Timer2 pour l'antirebond de la détection des pulses    //
+//////////////////////////////////////////////////////////////////////////////////////
+ISR ( TIMER2_COMPA_vect ) {   // TCNT2 = OCR2A : 4 ms après le front descendant du pulse externe
+
+  if ( digitalRead ( pulseExternalPin ) == ON ) { // le pulse n'est pas maintenu à l'état bas, fausse détection
+    // on arrête le timer
+    TCCR2B = 0x00;              // arrêt du Timer
+    TCNT2 = 0;                  // on remet le compteur à 0
+  }
+}
+
+
+ISR ( TIMER2_OVF_vect ) {     // TCNT2 overflow, 16 ms après le front descendant du pulse externe
+
+  static unsigned long  refTime = 0;
+  TCCR2B = 0x00;              // arrêt du Timer
+  TCNT2 = 0;                  // on remet le compteur à 0
+  if ( digitalRead ( pulseExternalPin ) == OFF ) {  // le pulse est toujours à l'état bas, c'est un vrai pulse
+    indexImpulsion ++;                              // on incrémente le compteur de pulse
+    deltaTimeImpulsion = millis ( ) - refTime;      // calcul du temps depuis la dernière impulsion
+    refTime = millis ( );
+  }
+}
+
+
 ///////////////////////////////////////////////////////////////////////
 // pulseExternalInterrupt                                            //
 // Interrupt service routine de comptage de pulse externe INT0       //
 ///////////////////////////////////////////////////////////////////////
 void pulseExternalInterrupt ( void ) {
 
-#define  PULSE_MIN_INTERVAL  80
-  // Intervalle en ms à respecte entre 2 impulsions valides
-  // Traitement de l'antirebond
-  static unsigned long  refTime = 0;
-
-  if ( ( millis ( ) - refTime ) > PULSE_MIN_INTERVAL ) {
-    deltaTimeImpulsion = millis ( ) - refTime;
-    refTime = millis ( );
-    indexImpulsion ++;
+  if ( ( TCNT2 == 0 ) && ( TCCR2B == 0 ) ) TCCR2B = 0x07;        // si Timer2 est arrêté on lance le Timer2 pour la vérification de la validité du pulse
+  else {                                                         // on stoppe la vérification en cours car de manière évidente le précédent pulse n'était pas valide
+                                                                 // et on redémarre la vérification pour la nouvelle détection
+    TCCR2B = 0x00;              // arrêt du Timer
+    TCNT2 = 0;                  // on remet le compteur à 0
+    TCCR2B = 0x07;              // on redémarre le Timer
   }
 }

@@ -65,8 +65,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION "3.1"
-#define MAXPV_VERSION_FULL "MaxPv! 3.1"
+#define MAXPV_VERSION "3.11"
+#define MAXPV_VERSION_FULL "MaxPV! 3.11"
 #define GMT_OFFSET 0 // Heure solaire
 
 // SSID pour le Config Portal
@@ -765,11 +765,13 @@ void setup()
   },
   nullptr, true);
 
-  // Réinitialisation des références des index journaliers à minuit
+  // Appel chaque minute le scheduler pour les tâches planifiées
+  // La périodicité est légèrement inférieure à la minute pour être sûr de ne pas rater
+  // de minute. C'est à la fonction à gérer les fait qu'il puisse y avoir 2 appels à la même minute.
   ts.add(
     8, 59654, [&](void *)
   {
-    if ( ( timeClient.getHours ( ) == 0 ) && ( timeClient.getMinutes ( ) == 0 ) ) setRefIndexJour ( );
+    timeScheduler();
   },
   nullptr, true);
 
@@ -1147,4 +1149,15 @@ void recordHistoricData(void)
   energyIndexHistoric[historyCounter].eImpulsion = ecoPVStats[INDEX_IMPULSION].toFloat();
   historyCounter++;
   historyCounter %= HISTORY_RECORD;   // Création d'un tableau circulaire
+}
+
+void timeScheduler(void)
+{
+  int day=timeClient.getDay();
+  int hour=timeClient.getHours();
+  int minute=timeClient.getMinutes();
+
+  // Mise à jour des index de début de journée en début de journée solaire à 00H00
+  if ( ( hour == 0 ) && ( minute == 0 ) ) setRefIndexJour ( );
+
 }
