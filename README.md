@@ -102,6 +102,9 @@ Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit d
 
 **ATTENTION** : il y a une limitation au fonctionnement. Le mode AUTO du relais ne peut fonctionner que si le SSR est en mode AUTO. Si le SSR n'est pas en mode AUTO et si le relais est en mode AUTO, alors le relais sera desactivé en permanence.
 
+## Mode BOOST
+Le mode BOOST permet de déclencher le fonctionnement du SSR (résistance du chauffe-eau) pour une durée déterminée et avec une puissance déterminée par configuration dans le menu Administration. Le mode BOOST se déclenche dans le menu Moniteur. Si une nouvelle demande BOOST est effectuée pendant que le mode BOOST est déjà actif, la durée de fonctionnement est ré-initialisée à la valeur de configuration. Le mode BOOST peut être interrompu en cliquant sur le bouton correspondant. A l'arrêt du mode BOOT, la gestion du SSR passe en mode AUTO. Le pilotage de la résistance du chauffe-eau en mode BOOST est de type 'burst PWM' ou modulation de largeur d'impulsion, sur une période de 5 minutes. Ce n'est pas un pilotage proportionnel de type gradateur piloté en phase afin de limiter l'échauffement du SSR.
+
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
@@ -118,6 +121,8 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.2** - 28/10/2022
+* Ajout du mode BOOST programmable en durée et en puissance
 ### **V 3.11** - 23/10/2022
 * Amélioration du comptage des impulsions externes (mesure puissance PV)
 * Petites corrections dans MaxPV3

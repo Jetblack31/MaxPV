@@ -65,8 +65,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION "3.11"
-#define MAXPV_VERSION_FULL "MaxPV! 3.11"
+#define MAXPV_VERSION "3.2"
+#define MAXPV_VERSION_FULL "MaxPV! 3.2"
 #define GMT_OFFSET 0 // Heure solaire
 
 // SSID pour le Config Portal
@@ -164,7 +164,7 @@ String ecoPVConfigAll;
 String ecoPVStatsAll;
 
 // Définition du nombre de tâches de Ticker
-TickerScheduler ts(10);
+TickerScheduler ts(11);
 
 // Variables de configuration de MaxPV!
 // Configuration IP statique
@@ -175,6 +175,11 @@ char static_dns1[16] = "192.168.1.1";
 char static_dns2[16] = "8.8.8.8";
 // Port HTTP                  // Attention, le choix du port est inopérant dans cette version
 uint16_t httpPort = 80;
+
+// Définition des paramètres du mode BOOST
+byte boostRatio = 100;        // En % de la puissance max
+int boostDuration = 120;      // En minutes
+
 // Fin des variables de la configuration MaxPV!
 
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
@@ -200,6 +205,11 @@ historicData energyIndexHistoric[HISTORY_RECORD];
 int historyCounter = 0; // position courante dans le tableau de l'historique
 // = position du plus ancien enregistrement
 // = position du prochain enregistrement à réaliser
+
+// Variables pour la gestion du mode BOOST
+#define BURST_PERIOD 300    // Période des bursts SSR pour le mode BOOST en secondes
+int boostTime = -1;         // Temps restant pour le mode BOOST, en secondes (-1 = arrêt)
+int burstCnt = 0;           // Compteur de la PWM software pour la gestion du mode BOOST entre 0 et BURST_PERIOD
 
 // buffer pour manipuler le fichier de configuration de MaxPV! (ajuster la taille en fonction des besoins)
 StaticJsonDocument<1024> jsonConfig;
@@ -473,6 +483,13 @@ void setup()
       LittleFS.remove ( "/config.json" );
     else if ( request->hasParam ( "rebootesp" ) )
       rebootESP ( );
+    else if ( request->hasParam ( "booston" ) ) {
+      boostTime = ( 60 * boostDuration );   // conversion en secondes
+      burstCnt = 0;
+    }
+    else if ( request->hasParam ( "boostoff" ) )  {
+      boostTime = 0; 
+    }
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });
@@ -570,6 +587,8 @@ void setup()
                 jsonConfig ["dns2"],
                 16);
       httpPort = jsonConfig["http_port"];
+      boostDuration = jsonConfig["boost_duration"];
+      boostRatio = jsonConfig["boost_ratio"];
       configWrite ( );
     }
     else response = F("Bad request or request unknown");
@@ -765,7 +784,7 @@ void setup()
   },
   nullptr, true);
 
-  // Appel chaque minute le scheduler pour les tâches planifiées
+  // Appel chaque minute le scheduler pour les tâches planifiées à la minute près
   // La périodicité est légèrement inférieure à la minute pour être sûr de ne pas rater
   // de minute. C'est à la fonction à gérer les fait qu'il puisse y avoir 2 appels à la même minute.
   ts.add(
@@ -775,13 +794,32 @@ void setup()
   },
   nullptr, true);
 
-  // Enregistrement de l'hitorique
+  // Enregistrement de l'historique
   ts.add(
     9, HISTORY_INTERVAL * 60000UL, [&](void *)
   {
     recordHistoricData();
   },
   nullptr, true);
+
+  // Traitement du mode BOOST
+  ts.add(
+    10, 1000, [&](void *)
+  {
+    if (boostTime > 0) {
+      if ( burstCnt <= ( ( BURST_PERIOD * int ( boostRatio ) ) / 100 ) ) SSRModeEcoPV(FORCE);
+      else SSRModeEcoPV(STOP);
+      boostTime--;
+      burstCnt++;
+      if ( burstCnt >= BURST_PERIOD ) burstCnt = 0;
+    }
+    else if (boostTime == 0) {
+      SSRModeEcoPV(AUTOM);
+      boostTime--;
+    }
+  },
+  nullptr, true);
+
 
   delay(1000);
 }
@@ -837,6 +875,9 @@ bool configRead(void)
                 jsonConfig["dns2"] | "8.8.8.8",
                 16);
         httpPort = jsonConfig["http_port"] | 80;
+        Serial.println(F("\nRestauration des paramètres du mde boost..."));
+        boostDuration = jsonConfig["boost_duration"] | 120;
+        boostRatio = jsonConfig["boost_ratio"] | 100;
       }
       else
       {
@@ -866,6 +907,8 @@ void configWrite(void)
   jsonConfig["dns1"] = static_dns1;
   jsonConfig["dns2"] = static_dns2;
   jsonConfig["http_port"] = httpPort;
+  jsonConfig["boost_duration"] = boostDuration;
+  jsonConfig["boost_ratio"] = boostRatio;
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -903,6 +946,14 @@ bool telnetDiscoverClient(void)
     tcpClient.print(F("Port HTTP : "));
     tcpClient.println(httpPort);
     tcpClient.println(F("Port FTP : 21"));
+    tcpClient.println();
+    tcpClient.println(F("Configuration du mode BOOST : "));
+    tcpClient.print(F("Durée du mode BOOST : "));
+    tcpClient.print(boostDuration);
+    tcpClient.println(F(" minutes"));
+    tcpClient.print(F("Puissance pour le mode BOOST : "));
+    tcpClient.print(boostRatio);
+    tcpClient.println(F(" %"));
     return true;
   }
   return false;
@@ -1153,11 +1204,11 @@ void recordHistoricData(void)
 
 void timeScheduler(void)
 {
+  // Le scheduler est exécuté toutes les minutes
   int day=timeClient.getDay();
   int hour=timeClient.getHours();
   int minute=timeClient.getMinutes();
 
   // Mise à jour des index de début de journée en début de journée solaire à 00H00
   if ( ( hour == 0 ) && ( minute == 0 ) ) setRefIndexJour ( );
-
 }

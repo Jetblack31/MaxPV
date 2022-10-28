@@ -58,15 +58,12 @@
             <p class="lead">
             <h4></h4>
             <span>Vous pouvez modifier les paramètres de l'application et réaliser des actions manuellement.</span>
+            <br>
             </p>
-
-            <p class="lead">
-            <h4>Configuration du webserver MaxPV!</h4>
-            </p>
-
 
             <form id="formIPConfig"
                 onsubmit="event.preventDefault(); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
+                <h4>Configuration du webserver MaxPV!</h4>
                 <div class="row mb-3">
                     <div class="col-6">
                         <label for="ip" class="form-label">Adresse IP MaxPV!</label>
@@ -75,9 +72,9 @@
                             pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
                     </div>
                     <div class="col-6">
-                        <label for="http_port" class="form-label text-decoration-line-through">Port HTTP</label>
-                        <input type="number" class="form-control text-decoration-line-through text-center"
-                            id="http_port" placeholder="xxxx" required min="1" max="65535">
+                        <label for="http_port" class="form-label">Port HTTP</label>
+                        <input type="number" class="form-control text-center"
+                            id="http_port" placeholder="xxxx" required min="1" max="65535" disabled>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -94,7 +91,6 @@
                             pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
                     </div>
                 </div>
-
                 <div class="row mb-3">
                     <div class="col-6">
                         <label for="dns1" class="form-label">Serveur DNS 1</label>
@@ -110,12 +106,25 @@
                     </div>
                 </div>
 
+                <h4>Mode boost</h4>
                 <div class="row mb-3">
-                    <div class="col-12 d-grid gap-2">
-                        <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Sauvegarder la
-                            configuration</button>
+                    <div class="col-6">
+                        <label for="boost_duration" class="form-label">Durée en minutes</label>
+                        <input type="number" class="form-control text-center" id="boost_duration" placeholder="xxx"
+                            required min="10" max="600" step ="5">
+                    </div>
+                    <div class="col-6">
+                        <label for="boost_ratio" class="form-label">Puissance (%)</label>
+                        <input type="number" class="form-control text-center"
+                            id="boost_ratio" placeholder="xxx (%)" required min="10" max="100" step="10">
                     </div>
                 </div>
+                    <div class="row mb-3">
+                        <div class="col-12 d-grid gap-2">
+                            <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Sauvegarder la
+                                configuration</button>
+                        </div>
+                    </div>
             </form>
 
             <div class="fixed-bottom" id="liveAlertPlaceholderIPConfig"></div>
@@ -165,6 +174,8 @@
                     document.getElementById("dns1").value = doc["dns1"];
                     document.getElementById("dns2").value = doc["dns2"];
                     document.getElementById("http_port").value = doc["http_port"];
+                    document.getElementById("boost_duration").value = doc["boost_duration"];
+                    document.getElementById("boost_ratio").value = doc["boost_ratio"];
                 }
             }
             xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
@@ -181,6 +192,8 @@
             doc["dns1"] = document.getElementById("dns1").value;
             doc["dns2"] = document.getElementById("dns2").value;
             doc["http_port"] = document.getElementById("http_port").value;
+            doc["boost_duration"] = document.getElementById("boost_duration").value;
+            doc["boost_ratio"] = document.getElementById("boost_ratio").value;
             var value_param = JSON.stringify(doc);
             args += value_param;
             xhttp.open("GET", args, true);

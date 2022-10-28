@@ -121,6 +121,10 @@
           </tr>
         </tbody>
       </table>
+      <div class="d-grid gap-2">
+        <button class="btn btn-primary" type="submit" onclick="sendAction ( 'booston', this )">Marche SSR en mode BOOST</button>
+        <button class="btn btn-primary" type="submit" onclick="sendAction ( 'boostoff', this  )">Arrêt du mode BOOST</button>
+      </div>
       <p class="lead">
       <h4>Valeurs courantes</h4>
       </p>
@@ -411,6 +415,13 @@
       xhttp2.open("GET", "api/get?relaystate", true);
       xhttp2.send();
     }
+
+    function sendAction(action, ele) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "api/action?" + action, true);
+            xhttp.send();
+            ele.blur();
+        }
 
   </script>
 
