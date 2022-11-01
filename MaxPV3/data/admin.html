@@ -55,15 +55,12 @@
     <main class="container-fluid">
         <div class="bg-light p-5 rounded">
             <h1>Administration du système</h1>
-            <p class="lead">
-            <h4></h4>
-            <span>Vous pouvez modifier les paramètres de l'application et réaliser des actions manuellement.</span>
-            <br>
-            </p>
+            <p class="lead"></p>
 
             <form id="formIPConfig"
                 onsubmit="event.preventDefault(); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
                 <h4>Configuration du webserver MaxPV!</h4>
+                <br>
                 <div class="row mb-3">
                     <div class="col-6">
                         <label for="ip" class="form-label">Adresse IP MaxPV!</label>
@@ -105,8 +102,42 @@
                             pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
                     </div>
                 </div>
+                <br>
 
-                <h4>Mode boost</h4>
+                <h4>Configuration MQTT</h4>
+                <br>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="mqtt_active">
+                            <label class="form-check-label" for="mqtt_active">Activation MQTT</label>
+                        </div>
+                    </div>
+                </div>    
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="mqtt_ip" class="form-label">IP serveur MQTT</label>
+                        <input type="text" class="form-control text-center" id="mqtt_ip" placeholder="xxx.xxx.xxx.xxx"
+                            required
+                            pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
+                    </div>
+                    <div class="col-6">
+                        <label for="mqtt_port" class="form-label">Port MQTT</label>
+                        <input type="number" class="form-control text-center"
+                            id="mqtt_port" placeholder="xxxx" required min="1" max="65535" disabled>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="mqtt_period" class="form-label">Intervalle en secondes</label>
+                        <input type="number" class="form-control text-center" id="mqtt_period" placeholder="xxx"
+                            required min="1" max="3600" step ="1">
+                    </div>
+                </div>    
+                <br>
+
+                <h4>Configuration du mode boost</h4>
+                <br>
                 <div class="row mb-3">
                     <div class="col-6">
                         <label for="boost_duration" class="form-label">Durée en minutes</label>
@@ -116,35 +147,53 @@
                     <div class="col-6">
                         <label for="boost_ratio" class="form-label">Puissance (%)</label>
                         <input type="number" class="form-control text-center"
-                            id="boost_ratio" placeholder="xxx (%)" required min="10" max="100" step="10">
+                            id="boost_ratio" placeholder="xxx" required min="10" max="100" step="10">
                     </div>
                 </div>
-                    <div class="row mb-3">
-                        <div class="col-12 d-grid gap-2">
-                            <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Sauvegarder la
-                                configuration</button>
-                        </div>
+
+                <div class="row mb-3">
+                    <div class="col-12 d-grid gap-2">
+                        <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Enregistrer la
+                            configuration</button>
                     </div>
+                </div>
             </form>
 
             <div class="fixed-bottom" id="liveAlertPlaceholderIPConfig"></div>
 
             <br>
             <p class="lead">
-            <h4>Actions avancées</h4>
-            <span>Cliquer pour réaliser les actions avancées suivantes :</span>
+            <h4>Sauvegarde et restauration de la configuration</h4>
             </p>
             <div class="d-grid gap-2">
-                <button class="btn btn-warning" type="submit" onclick="sendAction ( 'rebootesp', this ); 
-                alert('Le système redémarre...', 'success', 'liveAlertPlaceholderAdvancesAction');">
-                    Redémarrer le Webserver</button>
+                <a class="btn btn-success" role="button" type="submit"
+                    href="DLconfig" onclick="this.blur();">
+                    Exporter la configuration MaxPV!</a>
+                
+                <label for="formFileRestore" class="form-label"></label>
+                <input class="form-control" type="file" id="formFileRestore">
                 <button class="btn btn-danger" type="submit"
-                    onclick="sendAction ( 'eraseconfigesp', this  ); sendAction ( 'rebootesp', this ); 
-                alert('Configurations Wifi et IP effacées.<br>Le système redémarre.<br>Se connecter au réseau temporaire de MaxPV avec l\'adresse 192.168.4.1', 'danger', 'liveAlertPlaceholderAdvancesAction');">
-                    Oublier le réseau Wifi</button>
+                    onclick="restoreConfigMaxPV ( this ); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); 
+                    alert('Configuration restaurée.<br>Le système redémarre.', 'danger', 'liveAlertPlaceholderAdvancesAction');">
+                    Restaurer la configuration MaxPV!</button>            
             </div>
+            <pre id="output"></pre>
             <br>
-            <div class="fixed-bottom" id="liveAlertPlaceholderAdvancesAction"></div>
+            <p class="lead">
+                <h4>Actions avancées</h4>
+                <span>Cliquer pour réaliser les actions avancées suivantes :</span>
+                </p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-warning" type="submit" onclick="sendAction ( 'rebootesp', this );         
+                        alert('Le système redémarre...', 'success', 'liveAlertPlaceholderAdvancesAction');">
+                        Redémarrer le Webserver</button>
+                    <button class="btn btn-danger" type="submit"
+                        onclick="sendAction ( 'eraseconfigesp', this  ); sendAction ( 'rebootesp', this ); 
+                        alert('Configurations Wifi et MaxPV! effacées.<br>Le système redémarre.<br>Se connecter au réseau temporaire de MaxPV avec l\'adresse 192.168.4.1', 'danger', 'liveAlertPlaceholderAdvancesAction');">
+                        Oublier le réseau Wifi</button>
+                </div>
+                <br>
+                <div class="fixed-bottom" id="liveAlertPlaceholderAdvancesAction"></div>
         </div>
 
     </main>
@@ -176,6 +225,11 @@
                     document.getElementById("http_port").value = doc["http_port"];
                     document.getElementById("boost_duration").value = doc["boost_duration"];
                     document.getElementById("boost_ratio").value = doc["boost_ratio"];
+                    document.getElementById("mqtt_ip").value = doc["mqtt_ip"];
+                    document.getElementById("mqtt_port").value = doc["mqtt_port"];
+                    document.getElementById("mqtt_period").value = doc["mqtt_period"];
+                    if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
+                    else mqtt_active.checked = false;
                 }
             }
             xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
@@ -194,6 +248,11 @@
             doc["http_port"] = document.getElementById("http_port").value;
             doc["boost_duration"] = document.getElementById("boost_duration").value;
             doc["boost_ratio"] = document.getElementById("boost_ratio").value;
+            doc["mqtt_ip"] = document.getElementById("mqtt_ip").value;
+            doc["mqtt_port"] = document.getElementById("mqtt_port").value;
+            doc["mqtt_period"] = document.getElementById("mqtt_period").value;
+            if(mqtt_active.checked == true) doc["mqtt_active"] = "1";
+            else doc["mqtt_active"] = "0";
             var value_param = JSON.stringify(doc);
             args += value_param;
             xhttp.open("GET", args, true);
@@ -201,9 +260,37 @@
             document.getElementById('btnFormIPConfig').blur();
         }
 
+        function restoreConfigMaxPV(ele) {
+            var fr = new FileReader();
+            fr.readAsText(document.getElementById('formFileRestore').files[0]);
+            fr.addEventListener('load', function() {
+                var doc = JSON.parse(this.result);
+                document.getElementById("ip").value = doc["ip"] ?? "";
+                document.getElementById("gateway").value = doc["gateway"] ?? "";
+                document.getElementById("subnet").value = doc["subnet"] ?? "";
+                document.getElementById("dns1").value = doc["dns1"] ?? "";
+                document.getElementById("dns2").value = doc["dns2"] ?? "";
+                document.getElementById("http_port").value = doc["http_port"] ?? "";
+                document.getElementById("boost_duration").value = doc["boost_duration"] ?? "";
+                document.getElementById("boost_ratio").value = doc["boost_ratio"] ?? "";
+                document.getElementById("mqtt_ip").value = doc["mqtt_ip"] ?? "";
+                document.getElementById("mqtt_port").value = doc["mqtt_port"] ?? "";
+                document.getElementById("mqtt_period").value = doc["mqtt_period"] ?? "";
+                if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
+                else mqtt_active.checked = false;
+    	    });
+        }
+
         function sendAction(action, ele) {
             var xhttp = new XMLHttpRequest();
             xhttp.open("GET", "api/action?" + action, true);
+            xhttp.send();
+            ele.blur();
+        }
+
+        function DLconfig(ele) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "DLconfig", true);
             xhttp.send();
             ele.blur();
         }

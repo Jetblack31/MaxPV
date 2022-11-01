@@ -108,6 +108,9 @@ Le mode BOOST permet de déclencher le fonctionnement du SSR (résistance du cha
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
+## MQTT (>v3.3 - expérimental)
+Un broker MQTT est configurable dans l'administration du système. Les puissances active, PV et routée sont transmises sur les canauc 'maxpv/pact', 'maxpv/pimpulsion' et 'maxpv/prouted'. 
+
 ## Accès au système de fichiers par FTP
 Vous pouvez accéder au système de fichiers du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
 
@@ -121,6 +124,9 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.3** - 01/11/2022
+* Ajout de la transmission de données par MQTT (expérimental)
+* Possibilité de sauvegarder et de restaurer la configuration MaxPV!
 ### **V 3.2** - 28/10/2022
 * Ajout du mode BOOST programmable en durée et en puissance
 ### **V 3.11** - 23/10/2022
