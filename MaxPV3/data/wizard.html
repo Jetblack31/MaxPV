@@ -112,7 +112,7 @@
       <h1>Assistant de configuration</h1>
       <p class="lead">
       <h4></h4>
-      <span>Cet assistant permet de configurer facilement votre routeur. Suivez les étapes les unes après les autres.
+      <span>Cet assistant permet de paramétrer facilement votre routeur. Suivez les étapes les unes après les autres.
         A tout moment vous pouvez interrompre le processus et recommencer en rafraîchissant cette page dans votre
         navigateur.</span><br>
       <span class="text-danger">A la fin, n'oubliez pas de sauvegarder votre configuration à l'étape 10 !</span>
@@ -273,16 +273,16 @@
       <p class="lead">
       <h4>Etape 10</h4>
       <span>Vous avez terminé la configuration.</span><br>
-      <span class="text-danger">Appuyer sur le bouton ci-dessous pour sauvegarder.</span><br>
+      <span class="text-danger">Appuyer sur le bouton ci-dessous pour sauvegarder les paramètres du routeur.</span><br>
       <span>Installer définitivement le routeur et clipser la pince ampèremétrique autour du fil de phase en sortie de
         votre disjoncteur principal.
         Si le fonctionnement est incorrect, retourner la pince ampèremétrique.
       </span>
       </p>
       <div class="d-grid gap-2">
-        <input class="btn btn-primary" type="submit" value="Sauver la configuration"
+        <input class="btn btn-primary" type="submit" value="Sauver le paramétrage"
           onclick="sendAction ( 'saveparam', this ); sendAction ( 'restart', this ); fillParam ( ); 
-  this.value = 'Configuration sauvegardée'; this.style.background = 'green'; this.style.border = 'green'; 
+  this.value = 'Paramètres sauvegardés'; this.style.background = 'green'; this.style.border = 'green'; 
   alert('C\'est terminé, MaxPV! est maintenant opérationnel.<br>Vous pouvez visualiser le fonctionnement sur la page <a href=\'index.html\'>Moniteur</a> ou consulter les paramètres du routeur sur la page <a href=\'configuration.html\'>Configuration avancée</a>.', 'success', 'liveAlertPlaceholderWizardSubmit');">
         </input>
         <div class="fixed-bottom" id="liveAlertPlaceholderWizardSubmit"></div>

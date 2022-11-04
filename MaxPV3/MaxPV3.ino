@@ -31,6 +31,9 @@
 // ******************            OPTIONS DE COMPILATION                ***************
 // ***********************************************************************************
 
+// Pas de debug série pour MQTT
+#define _ASYNC_MQTT_LOGLEVEL_               0
+
 // ***********************************************************************************
 // ******************        FIN DES OPTIONS DE COMPILATION            ***************
 // ***********************************************************************************
@@ -46,6 +49,7 @@
 #include <WiFiUdp.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
+#include <AsyncMqtt_Generic.h>
 #include <AsyncElegantOTA.h>
 #include <DNSServer.h>
 #include <NTPClient.h>
@@ -65,9 +69,11 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION "3.2"
-#define MAXPV_VERSION_FULL "MaxPV! 3.2"
-#define GMT_OFFSET 0 // Heure solaire
+#define MAXPV_VERSION "3.3"
+#define MAXPV_VERSION_FULL "MaxPV! 3.3"
+
+// Heure solaire
+#define GMT_OFFSET 0 
 
 // SSID pour le Config Portal
 #define SSID_CP "MaxPV"
@@ -77,7 +83,8 @@
 #define PWD_FTP "maxpv"
 
 // Communications
-#define TELNET_PORT 23
+#define TELNET_PORT 23     // Port Telnet
+
 #define SERIAL_BAUD 500000 // Vitesse de la liaison port série pour la connexion avec l'arduino
 #define SERIALTIMEOUT 100  // Timeout pour les interrogations sur liaison série en ms
 #define SERIAL_BUFFER 256  // Taille du buffer RX pour la connexion avec l'arduino (256 max)
@@ -153,6 +160,11 @@
 #define INDEX_EXPORT_J 25
 #define INDEX_IMPULSION_J 26
 
+// Définition des channels MQTT
+#define MQTT_P_ACT         "maxpv/pact"
+#define MQTT_P_ROUTED      "maxpv/prouted"
+#define MQTT_P_IMPULSION   "maxpv/pimpulsion"
+
 // ***********************************************************************************
 // ************************ Déclaration des variables globales ***********************
 // ***********************************************************************************
@@ -165,6 +177,8 @@ String ecoPVStatsAll;
 
 // Définition du nombre de tâches de Ticker
 TickerScheduler ts(11);
+// Compteur général à la seconde
+unsigned long generalCounterSecond = 0;
 
 // Variables de configuration de MaxPV!
 // Configuration IP statique
@@ -173,12 +187,20 @@ char static_gw[16] = "192.168.1.1";
 char static_sn[16] = "255.255.255.0";
 char static_dns1[16] = "192.168.1.1";
 char static_dns2[16] = "8.8.8.8";
-// Port HTTP                  // Attention, le choix du port est inopérant dans cette version
+
+// Port HTTP                  
+// Attention, le choix du port est inopérant dans cette version
 uint16_t httpPort = 80;
 
 // Définition des paramètres du mode BOOST
 byte boostRatio = 100;        // En % de la puissance max
 int boostDuration = 120;      // En minutes
+
+// Variables de configuration de MQTT
+char mqttIP[16] = "192.168.1.100";  // IP du serveur MQTT
+uint16_t mqttPort = 1883;           // Port du serveur MQTT
+int mqttPeriod = 10;                // Période de transmission en secondes
+int mqttActive = OFF;               // MQTT actif (=ON) ou non (=OFF)
 
 // Fin des variables de la configuration MaxPV!
 
@@ -203,8 +225,8 @@ struct historicData
 };
 historicData energyIndexHistoric[HISTORY_RECORD];
 int historyCounter = 0; // position courante dans le tableau de l'historique
-// = position du plus ancien enregistrement
-// = position du prochain enregistrement à réaliser
+                        // = position du plus ancien enregistrement
+                        // = position du prochain enregistrement à réaliser
 
 // Variables pour la gestion du mode BOOST
 #define BURST_PERIOD 300    // Période des bursts SSR pour le mode BOOST en secondes
@@ -214,7 +236,7 @@ int burstCnt = 0;           // Compteur de la PWM software pour la gestion du mo
 // buffer pour manipuler le fichier de configuration de MaxPV! (ajuster la taille en fonction des besoins)
 StaticJsonDocument<1024> jsonConfig;
 
-IPAddress _ip, _gw, _sn, _dns1, _dns2;
+IPAddress _ip, _gw, _sn, _dns1, _dns2, _ipmqtt;
 
 // ***********************************************************************************
 // ************************ DECLARATION DES SERVEUR ET CLIENTS ***********************
@@ -224,6 +246,7 @@ AsyncWebServer webServer(80);
 DNSServer dnsServer;
 WiFiServer telnetServer(TELNET_PORT);
 WiFiClient tcpClient;
+AsyncMqttClient mqttClient;
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600 * GMT_OFFSET, 600000);
 FtpServer ftpSrv;
@@ -460,6 +483,12 @@ void setup()
     request->send(LittleFS, F("/favicon.ico"), "image/png");
   });
 
+  // Download le fichier de configuration de MaxPV!
+  webServer.on("/DLconfig", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/config.json"), String(), true);
+  });
+
   // ***********************************************************************
   // ********                  HANDLERS DE L'API                    ********
   // ***********************************************************************
@@ -488,7 +517,7 @@ void setup()
       burstCnt = 0;
     }
     else if ( request->hasParam ( "boostoff" ) )  {
-      boostTime = 0; 
+      boostTime = 0;
     }
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
@@ -589,6 +618,13 @@ void setup()
       httpPort = jsonConfig["http_port"];
       boostDuration = jsonConfig["boost_duration"];
       boostRatio = jsonConfig["boost_ratio"];
+      strlcpy ( mqttIP,
+                jsonConfig ["mqtt_ip"],
+                16);
+      mqttPort = jsonConfig["mqtt_port"];
+      mqttPeriod = jsonConfig["mqtt_period"];
+      mqttActive = jsonConfig["mqtt_active"];
+ 
       configWrite ( );
     }
     else response = F("Bad request or request unknown");
@@ -637,7 +673,6 @@ void setup()
   });
 
 
-
   // ***********************************************************************
   // ********                   FIN DES HANDLERS                    ********
   // ***********************************************************************
@@ -647,10 +682,15 @@ void setup()
   AsyncElegantOTA.begin(&webServer);
   webServer.begin();
   timeClient.begin();
-
   tcpClient.println(F("Services web configurés et démarrés !"));
   tcpClient.print(F("Port web : "));
   tcpClient.println(httpPort);
+  if (mqttActive = ON) {
+    _ipmqtt.fromString(mqttIP);
+    mqttClient.setServer(_ipmqtt, mqttPort);
+    mqttClient.connect();
+    tcpClient.println(F("Services MQTT configuré et démarré !"));
+  }
 
   // Démarrage du service FTP
   ftpSrv.begin(LOGIN_FTP, PWD_FTP);
@@ -755,11 +795,12 @@ void setup()
   },
   nullptr, true);
 
-  // Traitement des tâches FTP
+  // Traitement des tâches FTP et DNS
   ts.add(
     5, 97, [&](void *)
   {
     ftpSrv.handleFTP();
+    dnsServer.processNextRequest();
   },
   nullptr, true);
 
@@ -802,10 +843,15 @@ void setup()
   },
   nullptr, true);
 
-  // Traitement du mode BOOST
+  // Traitement des tâches à la seconde
   ts.add(
     10, 1000, [&](void *)
   {
+    char buf[16];
+
+    generalCounterSecond++;
+
+    // mode BOOST
     if (boostTime > 0) {
       if ( burstCnt <= ( ( BURST_PERIOD * int ( boostRatio ) ) / 100 ) ) SSRModeEcoPV(FORCE);
       else SSRModeEcoPV(STOP);
@@ -817,6 +863,23 @@ void setup()
       SSRModeEcoPV(AUTOM);
       boostTime--;
     }
+    // fin du traitement du mode BOOST
+
+    // traitement MQTT
+    if ((mqttActive == ON) && (generalCounterSecond % mqttPeriod == 0) ){
+      if (mqttClient.connected ()) {
+        ecoPVStats[P_ACT].toCharArray(buf, 16);
+        mqttClient.publish(MQTT_P_ACT, 0, true, buf);
+        ecoPVStats[P_ROUTED].toCharArray(buf, 16);
+        mqttClient.publish(MQTT_P_ROUTED, 0, true, buf);
+        ecoPVStats[P_IMPULSION].toCharArray(buf, 16);
+        mqttClient.publish(MQTT_P_IMPULSION, 0, true, buf);
+      }
+      else mqttClient.connect();
+    }
+    // fin de traitement MQTT
+
+    
   },
   nullptr, true);
 
@@ -833,8 +896,6 @@ void loop()
 
   // Exécution des tâches récurrentes Ticker
   ts.update();
-
-  dnsServer.processNextRequest();
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -858,7 +919,7 @@ bool configRead(void)
       serializeJsonPretty(jsonConfig, Serial);
       if (jsonConfig["ip"])
       {
-        Serial.println(F("\n\nRestauration de la configuration IP..."));
+        //Serial.println(F("\n\nRestauration de la configuration IP..."));
         strlcpy(static_ip,
                 jsonConfig["ip"] | "192.168.1.250",
                 16);
@@ -875,10 +936,17 @@ bool configRead(void)
                 jsonConfig["dns2"] | "8.8.8.8",
                 16);
         httpPort = jsonConfig["http_port"] | 80;
-        Serial.println(F("\nRestauration des paramètres du mde boost..."));
+        //Serial.println(F("\nRestauration des paramètres du mode boost..."));
         boostDuration = jsonConfig["boost_duration"] | 120;
         boostRatio = jsonConfig["boost_ratio"] | 100;
-      }
+        //Serial.println(F("\nRestauration des paramètres MQTT..."));
+        strlcpy(mqttIP,
+                jsonConfig["mqtt_ip"] | "192.168.1.100",
+                16);
+        mqttPort = jsonConfig["mqtt_port"] | 1883;
+        mqttPeriod = jsonConfig["mqtt_period"] | 10;
+        mqttActive = jsonConfig["mqtt_active"] | OFF;
+     }
       else
       {
         Serial.println(F("\n\nPas d'adresse IP dans le fichier de configuration !"));
@@ -909,6 +977,10 @@ void configWrite(void)
   jsonConfig["http_port"] = httpPort;
   jsonConfig["boost_duration"] = boostDuration;
   jsonConfig["boost_ratio"] = boostRatio;
+  jsonConfig["mqtt_ip"] = mqttIP;
+  jsonConfig["mqtt_port"] = mqttPort;
+  jsonConfig["mqtt_period"] = mqttPeriod;
+  jsonConfig["mqtt_active"] = mqttActive;
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -1205,9 +1277,9 @@ void recordHistoricData(void)
 void timeScheduler(void)
 {
   // Le scheduler est exécuté toutes les minutes
-  int day=timeClient.getDay();
-  int hour=timeClient.getHours();
-  int minute=timeClient.getMinutes();
+  int day = timeClient.getDay();
+  int hour = timeClient.getHours();
+  int minute = timeClient.getMinutes();
 
   // Mise à jour des index de début de journée en début de journée solaire à 00H00
   if ( ( hour == 0 ) && ( minute == 0 ) ) setRefIndexJour ( );
