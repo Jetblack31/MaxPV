@@ -1,9 +1,16 @@
  /*
-  Programme d'amorce pour permettre le téléchargement des firmware et filesystem dans le Wemos 
+  Programme d'amorce OAT pour permettre le téléchargement des firmware et filesystem dans le Wemos(ESP8266) et ESP32 
   */
 
-#include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
+
+#if defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <ESPAsyncTCP.h>
+#elif defined(ESP32)
+  #include <WiFi.h>
+  #include <AsyncTCP.h>
+#endif
+
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 
@@ -29,6 +36,7 @@ void setup ( void ) {
       request->redirect("/update");
   } );
 
+  // Demarrage du serveur AsyncElegantOTA
   AsyncElegantOTA.begin ( &server ); 
 
   server.begin ( );
