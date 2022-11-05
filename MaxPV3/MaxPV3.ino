@@ -69,8 +69,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION "3.3"
-#define MAXPV_VERSION_FULL "MaxPV! 3.3"
+#define MAXPV_VERSION "3.31"
+#define MAXPV_VERSION_FULL "MaxPV! 3.31"
 
 // Heure solaire
 #define GMT_OFFSET 0 
@@ -161,9 +161,20 @@
 #define INDEX_IMPULSION_J 26
 
 // Définition des channels MQTT
+#define MQTT_V_RMS         "maxpv/vrms"
+#define MQTT_I_RMS         "maxpv/irms"
 #define MQTT_P_ACT         "maxpv/pact"
+#define MQTT_P_APP         "maxpv/papp"
 #define MQTT_P_ROUTED      "maxpv/prouted"
 #define MQTT_P_IMPULSION   "maxpv/pimpulsion"
+#define MQTT_COS_PHI       "maxpv/cosphi"
+#define MQTT_INDEX_ROUTED       "maxpv/indexrouted"
+#define MQTT_INDEX_IMPORT       "maxpv/indeximport"
+#define MQTT_INDEX_EXPORT       "maxpv/indexexport"
+#define MQTT_INDEX_IMPULSION    "maxpv/indeximpulsion"
+#define MQTT_TRIAC_MODE    "maxpv/triacmode"
+#define MQTT_RELAY_MODE    "maxpv/relaymode"
+#define MQTT_STATUS_BYTE   "maxpv/statusbyte"
 
 // ***********************************************************************************
 // ************************ Déclaration des variables globales ***********************
@@ -195,11 +206,18 @@ uint16_t httpPort = 80;
 // Définition des paramètres du mode BOOST
 byte boostRatio = 100;        // En % de la puissance max
 int boostDuration = 120;      // En minutes
+int boostTimerHour = 4;       // Heure Timer Boost
+int boostTimerMinute = 0;     // Minute Timer Boost
+int boostTimerActive = OFF;   // BOOST timer actif (=ON) ou non (=OFF)
+
 
 // Variables de configuration de MQTT
 char mqttIP[16] = "192.168.1.100";  // IP du serveur MQTT
 uint16_t mqttPort = 1883;           // Port du serveur MQTT
 int mqttPeriod = 10;                // Période de transmission en secondes
+char mqttUser[40] = "";             // Utilisateur du serveur MQTT
+                                    // Optionnel : si vide, pas d'authentification
+char mqttPass[40] = "";             // Mot de passe du serveur MQTT
 int mqttActive = OFF;               // MQTT actif (=ON) ou non (=OFF)
 
 // Fin des variables de la configuration MaxPV!
@@ -512,13 +530,10 @@ void setup()
       LittleFS.remove ( "/config.json" );
     else if ( request->hasParam ( "rebootesp" ) )
       rebootESP ( );
-    else if ( request->hasParam ( "booston" ) ) {
-      boostTime = ( 60 * boostDuration );   // conversion en secondes
-      burstCnt = 0;
-    }
-    else if ( request->hasParam ( "boostoff" ) )  {
-      boostTime = 0;
-    }
+    else if ( request->hasParam ( "booston" ) )
+      boostON ( );
+    else if ( request->hasParam ( "boostoff" ) )
+      boostOFF ( );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });
@@ -623,7 +638,16 @@ void setup()
                 16);
       mqttPort = jsonConfig["mqtt_port"];
       mqttPeriod = jsonConfig["mqtt_period"];
+      strlcpy ( mqttUser,
+                 jsonConfig["mqtt_user"],
+                 40);
+      strlcpy ( mqttPass,
+                 jsonConfig["mqtt_pass"],
+                 40);
       mqttActive = jsonConfig["mqtt_active"];
+      boostTimerHour = jsonConfig["boost_timer_hour"];
+      boostTimerMinute = jsonConfig["boost_timer_minute"];
+      boostTimerActive = jsonConfig["boost_timer_active"];
  
       configWrite ( );
     }
@@ -687,6 +711,9 @@ void setup()
   tcpClient.println(httpPort);
   if (mqttActive = ON) {
     _ipmqtt.fromString(mqttIP);
+    if (strlen(mqttUser) != 0) {
+       mqttClient.setCredentials(mqttUser,mqttPass);
+    }
     mqttClient.setServer(_ipmqtt, mqttPort);
     mqttClient.connect();
     tcpClient.println(F("Services MQTT configuré et démarré !"));
@@ -847,8 +874,6 @@ void setup()
   ts.add(
     10, 1000, [&](void *)
   {
-    char buf[16];
-
     generalCounterSecond++;
 
     // mode BOOST
@@ -867,15 +892,7 @@ void setup()
 
     // traitement MQTT
     if ((mqttActive == ON) && (generalCounterSecond % mqttPeriod == 0) ){
-      if (mqttClient.connected ()) {
-        ecoPVStats[P_ACT].toCharArray(buf, 16);
-        mqttClient.publish(MQTT_P_ACT, 0, true, buf);
-        ecoPVStats[P_ROUTED].toCharArray(buf, 16);
-        mqttClient.publish(MQTT_P_ROUTED, 0, true, buf);
-        ecoPVStats[P_IMPULSION].toCharArray(buf, 16);
-        mqttClient.publish(MQTT_P_IMPULSION, 0, true, buf);
-      }
-      else mqttClient.connect();
+        mqttTransmit();
     }
     // fin de traitement MQTT
 
@@ -945,7 +962,17 @@ bool configRead(void)
                 16);
         mqttPort = jsonConfig["mqtt_port"] | 1883;
         mqttPeriod = jsonConfig["mqtt_period"] | 10;
+        strlcpy(mqttUser,
+                jsonConfig["mqtt_user"] | "",
+                40);
+        strlcpy(mqttPass,
+                jsonConfig["mqtt_pass"] | "",
+                40);
         mqttActive = jsonConfig["mqtt_active"] | OFF;
+        boostTimerHour = jsonConfig["boost_timer_hour"] | 4;
+        boostTimerMinute = jsonConfig["boost_timer_minute"] | 0;
+        boostTimerActive = jsonConfig["boost_timer_active"] | OFF;
+
      }
       else
       {
@@ -980,7 +1007,13 @@ void configWrite(void)
   jsonConfig["mqtt_ip"] = mqttIP;
   jsonConfig["mqtt_port"] = mqttPort;
   jsonConfig["mqtt_period"] = mqttPeriod;
+  jsonConfig["mqtt_user"] = mqttUser;
+  jsonConfig["mqtt_pass"] = mqttPass;
   jsonConfig["mqtt_active"] = mqttActive;
+  jsonConfig["boost_timer_hour"] = boostTimerHour;
+  jsonConfig["boost_timer_minute"] = boostTimerMinute;
+  jsonConfig["boost_timer_active"] = boostTimerActive; 
+
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -1274,6 +1307,56 @@ void recordHistoricData(void)
   historyCounter %= HISTORY_RECORD;   // Création d'un tableau circulaire
 }
 
+void boostON(void)
+{
+  if ( boostRatio != 0 ) {
+    boostTime = ( 60 * boostDuration );   // conversion en secondes
+    burstCnt = 0;
+  }
+}
+
+void boostOFF(void)
+{
+  boostTime = 0;
+}
+
+void mqttTransmit(void)
+{
+  char buf[16];
+  if (mqttClient.connected ()) {          // On vérifie si on est connecté
+    ecoPVStats[V_RMS].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_V_RMS, 0, true, buf);
+    ecoPVStats[I_RMS].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_I_RMS, 0, true, buf);
+    ecoPVStats[P_APP].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_APP, 0, true, buf);
+    ecoPVStats[COS_PHI].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_COS_PHI, 0, true, buf);
+    ecoPVStats[P_ACT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_ACT, 0, true, buf);
+    ecoPVStats[P_ROUTED].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_ROUTED, 0, true, buf);
+    ecoPVStats[P_IMPULSION].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_IMPULSION, 0, true, buf);
+    ecoPVStats[INDEX_ROUTED].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_ROUTED, 0, true, buf);
+    ecoPVStats[INDEX_IMPORT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_IMPORT, 0, true, buf);
+    ecoPVStats[INDEX_EXPORT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_EXPORT, 0, true, buf);
+    ecoPVStats[INDEX_IMPULSION].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_IMPULSION, 0, true, buf);
+    ecoPVStats[TRIAC_MODE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_TRIAC_MODE, 0, true, buf);
+    ecoPVStats[RELAY_MODE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_RELAY_MODE, 0, true, buf);
+    ecoPVStats[STATUS_BYTE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_STATUS_BYTE, 0, true, buf);
+  }
+  else mqttClient.connect();        // Sinon on ne transmet pas mais on tente la reconnexion
+}
+
+
 void timeScheduler(void)
 {
   // Le scheduler est exécuté toutes les minutes
@@ -1283,4 +1366,9 @@ void timeScheduler(void)
 
   // Mise à jour des index de début de journée en début de journée solaire à 00H00
   if ( ( hour == 0 ) && ( minute == 0 ) ) setRefIndexJour ( );
+
+  // Déclenchement du mode BOOST sur Timer
+  if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute ) && ( boostTimerActive == ON ) ) {
+    boostON ( );
+  };
 }

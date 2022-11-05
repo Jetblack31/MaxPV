@@ -58,7 +58,10 @@
             <p class="lead"></p>
 
             <form id="formIPConfig"
-                onsubmit="event.preventDefault(); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
+                onsubmit="event.preventDefault();
+                    saveConfigMaxPV ( );
+                    sendAction ( 'rebootesp' );
+                    alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
                 <h4>Configuration du webserver MaxPV!</h4>
                 <br>
                 <div class="row mb-3">
@@ -124,7 +127,19 @@
                     <div class="col-6">
                         <label for="mqtt_port" class="form-label">Port MQTT</label>
                         <input type="number" class="form-control text-center"
-                            id="mqtt_port" placeholder="xxxx" required min="1" max="65535" disabled>
+                            id="mqtt_port" placeholder="1883" required min="1" max="65535">
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="mqtt_user" class="form-label">Utilisateur (opt.)</label>
+                        <input type="text" class="form-control text-center"
+                        id="mqtt_user" placeholder="" maxlength="39">
+                    </div>
+                    <div class="col-6">
+                        <label for="mqtt_pass" class="form-label">Mot de passe (opt.)</label>
+                        <input type="password" class="form-control text-center"
+                            id="mqtt_pass" placeholder="" maxlength="39">
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -136,7 +151,7 @@
                 </div>    
                 <br>
 
-                <h4>Configuration du mode boost</h4>
+                <h4>Configuration du mode Boost</h4>
                 <br>
                 <div class="row mb-3">
                     <div class="col-6">
@@ -147,14 +162,36 @@
                     <div class="col-6">
                         <label for="boost_ratio" class="form-label">Puissance (%)</label>
                         <input type="number" class="form-control text-center"
-                            id="boost_ratio" placeholder="xxx" required min="10" max="100" step="10">
+                            id="boost_ratio" placeholder="xxx" required min="0" max="100" step="10">
+                    </div>
+                </div>
+                <br>
+                <div class="row mb-3">
+                    <div class="col-9">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="boost_timer_active">
+                            <label class="form-check-label" for="boost_timer_active">Activation horaire mode Boost</label>
+                        </div>
+                    </div>
+                </div>    
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="boost_timer_hour" class="form-label">Heure d'activation</label>
+                        <input type="number" class="form-control text-center" id="boost_timer_hour" placeholder="xx"
+                            required min="0" max="23" step ="1">
+                    </div>
+                    <div class="col-6">
+                        <label for="boost_timer_minute" class="form-label">Minute d'activation</label>
+                        <input type="number" class="form-control text-center" id="boost_timer_minute" placeholder="xx"
+                            required min="0" max="59" step ="1">
                     </div>
                 </div>
 
                 <div class="row mb-3">
                     <div class="col-12 d-grid gap-2">
-                        <button type="submit" class="btn btn-warning" id="btnFormIPConfig">Enregistrer la
-                            configuration</button>
+                        <button type="submit" class="btn btn-warning" id="btnFormIPConfig" onclick="this.blur()";>
+                        Enregistrer la configuration
+                        </button>
                     </div>
                 </div>
             </form>
@@ -173,11 +210,11 @@
                 <label for="formFileRestore" class="form-label"></label>
                 <input class="form-control" type="file" id="formFileRestore">
                 <button class="btn btn-danger" type="submit"
-                    onclick="restoreConfigMaxPV ( this ); saveConfigMaxPV ( this ); sendAction ( 'rebootesp', this ); 
+                    onclick="restoreConfigMaxPV(); 
+                    this.blur();
                     alert('Configuration restaurée.<br>Le système redémarre.', 'danger', 'liveAlertPlaceholderAdvancesAction');">
                     Restaurer la configuration MaxPV!</button>            
             </div>
-            <pre id="output"></pre>
             <br>
             <p class="lead">
                 <h4>Actions avancées</h4>
@@ -228,14 +265,20 @@
                     document.getElementById("mqtt_ip").value = doc["mqtt_ip"];
                     document.getElementById("mqtt_port").value = doc["mqtt_port"];
                     document.getElementById("mqtt_period").value = doc["mqtt_period"];
+                    document.getElementById("mqtt_user").value = doc["mqtt_user"];
+                    document.getElementById("mqtt_pass").value = doc["mqtt_pass"];
                     if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
                     else mqtt_active.checked = false;
+                    document.getElementById("boost_timer_hour").value = doc["boost_timer_hour"];
+                    document.getElementById("boost_timer_minute").value = doc["boost_timer_minute"];
+                    if (doc["boost_timer_active"] == "1") boost_timer_active.checked = true;
+                    else boost_timer_active.checked = false;
                 }
             }
             xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
         }
 
-        function saveConfigMaxPV(ele) {
+        function saveConfigMaxPV() {
             var xhttp = new XMLHttpRequest();
             var args = "api/set?configmaxpv";
             args += "&value=";
@@ -251,16 +294,21 @@
             doc["mqtt_ip"] = document.getElementById("mqtt_ip").value;
             doc["mqtt_port"] = document.getElementById("mqtt_port").value;
             doc["mqtt_period"] = document.getElementById("mqtt_period").value;
+            doc["mqtt_user"] = document.getElementById("mqtt_user").value;
+            doc["mqtt_pass"] = document.getElementById("mqtt_pass").value;
             if(mqtt_active.checked == true) doc["mqtt_active"] = "1";
             else doc["mqtt_active"] = "0";
+            doc["boost_timer_hour"] = document.getElementById("boost_timer_hour").value;
+            doc["boost_timer_minute"] = document.getElementById("boost_timer_minute").value;
+            if(boost_timer_active.checked == true) doc["boost_timer_active"] = "1";
+            else doc["boost_timer_active"] = "0";
             var value_param = JSON.stringify(doc);
             args += value_param;
             xhttp.open("GET", args, true);
             xhttp.send();
-            document.getElementById('btnFormIPConfig').blur();
         }
 
-        function restoreConfigMaxPV(ele) {
+        function restoreConfigMaxPV() {
             var fr = new FileReader();
             fr.readAsText(document.getElementById('formFileRestore').files[0]);
             fr.addEventListener('load', function() {
@@ -276,21 +324,22 @@
                 document.getElementById("mqtt_ip").value = doc["mqtt_ip"] ?? "";
                 document.getElementById("mqtt_port").value = doc["mqtt_port"] ?? "";
                 document.getElementById("mqtt_period").value = doc["mqtt_period"] ?? "";
+                document.getElementById("mqtt_user").value = doc["mqtt_user"] ?? "";
+                document.getElementById("mqtt_pass").value = doc["mqtt_pass"] ?? "";
                 if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
                 else mqtt_active.checked = false;
+                document.getElementById("boost_timer_hour").value = doc["boost_timer_hour"] ?? "";
+                document.getElementById("boost_timer_minute").value = doc["boost_timer_minute"] ?? "";
+                if (doc["boost_timer_active"] == "1") boost_timer_active.checked = true;
+                else boost_timer_active.checked = false;
+                saveConfigMaxPV();
+                sendAction ( 'rebootesp' ); 
     	    });
         }
 
         function sendAction(action, ele) {
             var xhttp = new XMLHttpRequest();
             xhttp.open("GET", "api/action?" + action, true);
-            xhttp.send();
-            ele.blur();
-        }
-
-        function DLconfig(ele) {
-            var xhttp = new XMLHttpRequest();
-            xhttp.open("GET", "DLconfig", true);
             xhttp.send();
             ele.blur();
         }
