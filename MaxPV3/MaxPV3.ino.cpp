@@ -1,0 +1,1341 @@
+# 1 "/var/folders/1k/cvdx4p390tg68rksr_79vfb80000gp/T/tmp9c8vu7yb"
+#include <Arduino.h>
+# 1 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+# 35 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+#define _ASYNC_MQTT_LOGLEVEL_ 0
+# 45 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+#include <LittleFS.h>
+#include <ArduinoJson.h>
+#include <TickerScheduler.h>
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#include <ESPAsyncWebServer.h>
+#include <ESPAsyncWiFiManager.h>
+#include <AsyncMqtt_Generic.h>
+#include <AsyncElegantOTA.h>
+#include <DNSServer.h>
+#include <NTPClient.h>
+#include <SimpleFTPServer.h>
+# 72 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+#define MAXPV_VERSION "3.31"
+#define MAXPV_VERSION_FULL "MaxPV! 3.31"
+
+
+#define GMT_OFFSET 0
+
+
+#define SSID_CP "MaxPV"
+
+
+#define LOGIN_FTP "maxpv"
+#define PWD_FTP "maxpv"
+
+
+#define TELNET_PORT 23
+
+#define SERIAL_BAUD 500000
+#define SERIALTIMEOUT 100
+#define SERIAL_BUFFER 256
+
+
+#define HISTORY_INTERVAL 30
+
+#define HISTORY_RECORD 193
+
+
+
+#define OFF 0
+#define ON 1
+#define STOP 0
+#define FORCE 1
+#define AUTOM 9
+
+
+
+
+#define NB_PARAM 17
+#define ECOPV_VERSION 0
+#define V_CALIB 1
+#define P_CALIB 2
+#define PHASE_CALIB 3
+#define P_OFFSET 4
+#define P_RESISTANCE 5
+#define P_MARGIN 6
+#define GAIN_P 7
+#define GAIN_I 8
+#define E_RESERVE 9
+#define P_DIV2_ACTIVE 10
+#define P_DIV2_IDLE 11
+#define T_DIV2_ON 12
+#define T_DIV2_OFF 13
+#define T_DIV2_TC 14
+#define CNT_CALIB 15
+#define P_INSTALLPV 16
+
+
+
+
+
+
+
+#define NB_STATS 23
+#define NB_STATS_SUPP 4
+
+#define V_RMS 1
+#define I_RMS 2
+#define P_ACT 3
+#define P_APP 4
+#define P_ROUTED 5
+#define P_IMP 6
+#define P_EXP 7
+#define COS_PHI 8
+#define INDEX_ROUTED 9
+#define INDEX_IMPORT 10
+#define INDEX_EXPORT 11
+#define INDEX_IMPULSION 12
+#define P_IMPULSION 13
+#define TRIAC_MODE 14
+#define RELAY_MODE 15
+#define DELAY_MIN 16
+#define DELAY_AVG 17
+#define DELAY_MAX 18
+#define BIAS_OFFSET 19
+#define STATUS_BYTE 20
+#define ONTIME 21
+#define SAMPLES 22
+#define INDEX_ROUTED_J 23
+#define INDEX_IMPORT_J 24
+#define INDEX_EXPORT_J 25
+#define INDEX_IMPULSION_J 26
+
+
+#define MQTT_V_RMS "maxpv/vrms"
+#define MQTT_I_RMS "maxpv/irms"
+#define MQTT_P_ACT "maxpv/pact"
+#define MQTT_P_APP "maxpv/papp"
+#define MQTT_P_ROUTED "maxpv/prouted"
+#define MQTT_P_IMPULSION "maxpv/pimpulsion"
+#define MQTT_COS_PHI "maxpv/cosphi"
+#define MQTT_INDEX_ROUTED "maxpv/indexrouted"
+#define MQTT_INDEX_IMPORT "maxpv/indeximport"
+#define MQTT_INDEX_EXPORT "maxpv/indexexport"
+#define MQTT_INDEX_IMPULSION "maxpv/indeximpulsion"
+#define MQTT_TRIAC_MODE "maxpv/triacmode"
+#define MQTT_RELAY_MODE "maxpv/relaymode"
+#define MQTT_STATUS_BYTE "maxpv/statusbyte"
+
+
+
+
+
+
+String ecoPVConfig[NB_PARAM];
+String ecoPVStats[NB_STATS + NB_STATS_SUPP];
+String ecoPVConfigAll;
+String ecoPVStatsAll;
+
+
+TickerScheduler ts(11);
+
+unsigned long generalCounterSecond = 0;
+
+
+
+char static_ip[16] = "192.168.1.250";
+char static_gw[16] = "192.168.1.1";
+char static_sn[16] = "255.255.255.0";
+char static_dns1[16] = "192.168.1.1";
+char static_dns2[16] = "8.8.8.8";
+
+
+
+uint16_t httpPort = 80;
+
+
+byte boostRatio = 100;
+int boostDuration = 120;
+int boostTimerHour = 4;
+int boostTimerMinute = 0;
+int boostTimerActive = OFF;
+
+
+
+char mqttIP[16] = "192.168.1.100";
+uint16_t mqttPort = 1883;
+int mqttPeriod = 10;
+char mqttUser[40] = "";
+
+char mqttPass[40] = "";
+int mqttActive = OFF;
+
+
+
+
+bool shouldSaveConfig = false;
+
+
+bool shouldReadParams = false;
+
+
+unsigned long refTimeContactEcoPV = millis();
+bool contactEcoPV = false;
+
+
+struct historicData
+{
+  unsigned long time;
+  float eRouted;
+  float eImport;
+  float eExport;
+  float eImpulsion;
+};
+historicData energyIndexHistoric[HISTORY_RECORD];
+int historyCounter = 0;
+
+
+
+
+#define BURST_PERIOD 300
+int boostTime = -1;
+int burstCnt = 0;
+
+
+StaticJsonDocument<1024> jsonConfig;
+
+IPAddress _ip, _gw, _sn, _dns1, _dns2, _ipmqtt;
+
+
+
+
+
+AsyncWebServer webServer(80);
+DNSServer dnsServer;
+WiFiServer telnetServer(TELNET_PORT);
+WiFiClient tcpClient;
+AsyncMqttClient mqttClient;
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 3600 * GMT_OFFSET, 600000);
+FtpServer ftpSrv;
+# 284 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+void setup();
+void loop();
+bool configRead(void);
+void configWrite(void);
+void rebootESP(void);
+bool telnetDiscoverClient(void);
+void saveConfigCallback();
+void configModeCallback(AsyncWiFiManager *myWiFiManager);
+void clearScreen(void);
+void clearSerialInputCache(void);
+bool serialProcess(void);
+void formatEepromEcoPV(void);
+void getAllParamEcoPV(void);
+void setParamEcoPV(String param, String value);
+void getVersionEcoPV(void);
+void saveConfigEcoPV(void);
+void loadConfigEcoPV(void);
+void saveIndexEcoPV(void);
+void resetIndexEcoPV(void);
+void restartEcoPV(void);
+void relayModeEcoPV(byte opMode);
+void SSRModeEcoPV(byte opMode);
+void watchDogContactEcoPV(void);
+void setRefIndexJour(void);
+void initHistoric(void);
+void recordHistoricData(void);
+void boostON(void);
+void boostOFF(void);
+void mqttTransmit(void);
+void timeScheduler(void);
+#line 284 "/Users/Gaetan/git/MaxPV/MaxPV3/MaxPV3.ino"
+void setup()
+{
+  unsigned long refTime = millis();
+  boolean APmode = true;
+
+
+  Serial.begin(115200);
+  Serial.println(F("\nMaxPV! par Bernard Legrand (2022)."));
+  Serial.print(F("Version : "));
+  Serial.println(MAXPV_VERSION);
+  Serial.println();
+
+
+
+  if (!LittleFS.begin())
+  {
+    Serial.println(F("Système de fichier absent, formatage..."));
+    LittleFS.format();
+    if (LittleFS.begin())
+      Serial.println(F("Système de fichier prêt et monté !"));
+    else
+    {
+      Serial.println(F("Erreur de préparation du système de fichier, redémarrage..."));
+      delay(1000);
+      ESP.restart();
+    }
+  }
+  else
+    Serial.println(F("Système de fichier prêt et monté !"));
+
+  Serial.println();
+
+
+  if (LittleFS.exists(F("/config.json")))
+  {
+    Serial.println(F("Fichier de configuration présent, lecture de la configuration..."));
+    if (configRead())
+    {
+      Serial.println(F("Configuration lue et appliquée !"));
+      APmode = false;
+    }
+    else
+    {
+      Serial.println(F("Fichier de configuration incorrect, effacement du fichier et redémarrage..."));
+      LittleFS.remove(F("/config.json"));
+      delay(1000);
+      ESP.restart();
+    }
+  }
+  else
+    Serial.println(F("Fichier de configuration absent, démarrage en mode point d'accès pour la configuration réseau..."));
+
+  Serial.println();
+
+  _ip.fromString(static_ip);
+  _gw.fromString(static_gw);
+  _sn.fromString(static_sn);
+  _dns1.fromString(static_dns1);
+  _dns2.fromString(static_dns2);
+
+  AsyncWiFiManager wifiManager(&webServer, &dnsServer);
+
+  wifiManager.setAPCallback(configModeCallback);
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+  wifiManager.setDebugOutput(true);
+  wifiManager.setSTAStaticIPConfig(_ip, _gw, _sn, _dns1, _dns2);
+
+
+  if (APmode)
+  {
+    wifiManager.resetSettings();
+  }
+
+  else
+  {
+    Serial.print(F("Tentative de connexion au dernier réseau connu..."));
+    Serial.println(F("Configuration IP, GW, SN, DNS1, DNS2 :"));
+    Serial.println(_ip.toString());
+    Serial.println(_gw.toString());
+    Serial.println(_sn.toString());
+    Serial.println(_dns1.toString());
+    Serial.println(_dns2.toString());
+  }
+
+  wifiManager.autoConnect(SSID_CP);
+
+  Serial.println();
+  Serial.println(F("Connecté au réseau local en utilisant les paramètres IP, GW, SN, DNS1, DNS2 :"));
+  Serial.println(WiFi.localIP());
+  Serial.println(WiFi.gatewayIP());
+  Serial.println(WiFi.subnetMask());
+  Serial.println(WiFi.dnsIP(0));
+  Serial.println(WiFi.dnsIP(1));
+
+
+  WiFi.localIP().toString().toCharArray(static_ip, 16);
+  WiFi.gatewayIP().toString().toCharArray(static_gw, 16);
+  WiFi.subnetMask().toString().toCharArray(static_sn, 16);
+  WiFi.dnsIP(0).toString().toCharArray(static_dns1, 16);
+  WiFi.dnsIP(1).toString().toCharArray(static_dns2, 16);
+
+
+  if (shouldSaveConfig)
+  {
+    configWrite();
+    Serial.println(F("\nConfiguration sauvegardée !"));
+  }
+
+  Serial.println(F("\n\n***** Le debug se poursuit en connexion telnet *****"));
+  Serial.print(F("Dans un terminal : nc "));
+  Serial.print(static_ip);
+  Serial.print(F(" "));
+  Serial.println(TELNET_PORT);
+
+
+  telnetServer.begin();
+  telnetServer.setNoDelay(true);
+
+
+  refTime = millis();
+  while ((!telnetDiscoverClient()) && ((millis() - refTime) < 5000))
+  {
+    delay(200);
+    Serial.print(F("."));
+  }
+
+
+  wifiManager.setDebugOutput(false);
+  Serial.println(F("\nFermeture de la connexion série de debug et poursuite du démarrage..."));
+  Serial.println(F("Bye bye !\n"));
+  delay(100);
+  Serial.end();
+
+  tcpClient.println(F("\n***** Reprise de la transmission du debug *****\n"));
+  tcpClient.println(F("Connexion au réseau wifi réussie !"));
+  tcpClient.println(F("\nConfiguration des services web..."));
+
+
+
+
+
+  webServer.onNotFound([](AsyncWebServerRequest * request)
+  {
+    request->redirect("/");
+  });
+
+  webServer.on("/", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    String response = "";
+    if ( LittleFS.exists ( F("/main.html") ) ) {
+      request->send ( LittleFS, F("/main.html") );
+    }
+    else {
+      response = F("Site Web non trouvé. Filesystem non chargé. Allez à : http://");
+      response += WiFi.localIP().toString();
+      response += F("/update pour uploader le filesystem.");
+      request->send ( 200, "text/plain", response );
+    }
+  });
+
+  webServer.on("/index.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    String response = "";
+    if ( LittleFS.exists ( F("/index.html") ) ) {
+      request->send ( LittleFS, F("/index.html") );
+    }
+    else {
+      response = F("Site Web non trouvé. Filesystem non chargé. Allez à : http://");
+      response += WiFi.localIP().toString();
+      response += F("/update pour uploader le filesystem.");
+      request->send ( 200, "text/plain", response );
+    }
+  });
+
+  webServer.on("/configuration.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/configuration.html"));
+  });
+
+  webServer.on("/main.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/main.html"));
+  });
+
+  webServer.on("/admin.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/admin.html"));
+  });
+
+  webServer.on("/credits.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/credits.html"));
+  });
+
+  webServer.on("/wizard.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/wizard.html"));
+  });
+
+  webServer.on("/maj.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+
+    request->redirect("/update");
+  });
+
+  webServer.on("/graph.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/graph.html"));
+  });
+
+  webServer.on("/maxpv.css", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/maxpv.css"), "text/css");
+  });
+
+  webServer.on("/favicon.ico", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/favicon.ico"), "image/png");
+  });
+
+
+  webServer.on("/DLconfig", HTTP_ANY, [](AsyncWebServerRequest * request)
+  {
+    request->send(LittleFS, F("/config.json"), String(), true);
+  });
+
+
+
+
+
+  webServer.on("/api/action", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    String response = F("Request successfully processed");
+    if ( request->hasParam ( "restart" ) )
+      restartEcoPV ( );
+    else if ( request->hasParam ( "resetindex" ) )
+      resetIndexEcoPV ( );
+    else if ( request->hasParam ( "saveindex" ) )
+      saveIndexEcoPV ( );
+    else if ( request->hasParam ( "saveparam" ) )
+      saveConfigEcoPV ( );
+    else if ( request->hasParam ( "loadparam" ) )
+      loadConfigEcoPV ( );
+    else if ( request->hasParam ( "format" ) )
+      formatEepromEcoPV ( );
+    else if ( request->hasParam ( "eraseconfigesp" ) )
+      LittleFS.remove ( "/config.json" );
+    else if ( request->hasParam ( "rebootesp" ) )
+      rebootESP ( );
+    else if ( request->hasParam ( "booston" ) )
+      boostON ( );
+    else if ( request->hasParam ( "boostoff" ) )
+      boostOFF ( );
+    else response = F("Unknown request");
+    request->send ( 200, "text/plain", response );
+  });
+
+  webServer.on("/api/get", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    String response = "";
+    if ( request->hasParam ( "configmaxpv" ) )
+      request->send ( LittleFS, F("/config.json"), "text/plain" );
+    else if ( request->hasParam ( "versionweb" ) )
+      request->send ( LittleFS, F("/versionweb.txt"), "text/plain" );
+    else {
+      if ( ( request->hasParam ( "param" ) ) && ( request->getParam("param")->value().toInt() > 0 ) && ( request->getParam("param")->value().toInt() <= ( NB_PARAM - 1 ) ) )
+        response = ecoPVConfig [ request->getParam("param")->value().toInt() ];
+      else if ( ( request->hasParam ( "data" ) ) && ( request->getParam("data")->value().toInt() > 0 ) && ( request->getParam("data")->value().toInt() <= ( NB_STATS + NB_STATS_SUPP - 1 ) ) )
+        response = ecoPVStats [ request->getParam("data")->value().toInt() ];
+      else if ( request->hasParam ( "allparam" ) )
+        response = ecoPVConfigAll;
+      else if ( request->hasParam ( "alldata" ) )
+        response = ecoPVStatsAll;
+      else if ( request->hasParam ( "version" ) )
+        response = ecoPVConfig [ 0 ];
+      else if ( request->hasParam ( "versionmaxpv" ) )
+        response = MAXPV_VERSION;
+      else if ( request->hasParam ( "relaystate" ) ) {
+        if ( ecoPVStats[RELAY_MODE].toInt() == STOP ) response = F("STOP");
+        else if ( ecoPVStats[RELAY_MODE].toInt() == FORCE ) response = F("FORCE");
+        else if ( ecoPVStats[STATUS_BYTE].toInt() & B00000100 ) response = F("ON");
+        else response = F("OFF");
+      }
+      else if ( request->hasParam ( "ssrstate" ) ) {
+        if ( ecoPVStats[TRIAC_MODE].toInt() == STOP ) response = F("STOP");
+        else if ( ecoPVStats[TRIAC_MODE].toInt() == FORCE ) response = F("FORCE");
+        else if ( ecoPVStats[TRIAC_MODE].toInt() == AUTOM ) {
+          if ( ecoPVStats[STATUS_BYTE].toInt() & B00000010 ) response = F("MAX");
+          else if ( ecoPVStats[STATUS_BYTE].toInt() & B00000001 ) response = F("ON");
+          else response = F("OFF");
+        }
+      }
+      else if ( request->hasParam ( "ping" ) )
+        if ( contactEcoPV ) response = F("running");
+        else response = F("offline");
+      else if ( request->hasParam ( "time" ) )
+        response = timeClient.getFormattedTime ( );
+      else response = F("Unknown request");
+      request->send ( 200, "text/plain", response );
+    }
+  });
+
+  webServer.on("/api/set", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    String response = F("Request successfully processed");
+    String mystring = "";
+    if ( ( request->hasParam ( "param" ) ) && ( request->hasParam ( "value" ) )
+         && ( request->getParam("param")->value().toInt() > 0 ) && ( request->getParam("param")->value().toInt() <= ( NB_PARAM - 1 ) ) ) {
+      mystring = request->getParam("value")->value();
+      mystring.replace( ",", "." );
+      mystring.trim();
+      setParamEcoPV ( request->getParam("param")->value(), mystring );
+
+
+    }
+    else if ( ( request->hasParam ( "relaymode" ) ) && ( request->hasParam ( "value" ) ) ) {
+      mystring = request->getParam("value")->value();
+      mystring.trim();
+      if ( mystring == F("stop") ) relayModeEcoPV ( STOP );
+      else if ( mystring == F("force") ) relayModeEcoPV ( FORCE );
+      else if ( mystring == F("auto") ) relayModeEcoPV ( AUTOM );
+      else response = F("Bad request");
+    }
+    else if ( ( request->hasParam ( "ssrmode" ) ) && ( request->hasParam ( "value" ) ) ) {
+      mystring = request->getParam("value")->value();
+      mystring.trim();
+      if ( mystring == F("stop") ) SSRModeEcoPV ( STOP );
+      else if ( mystring == F("force") ) SSRModeEcoPV ( FORCE );
+      else if ( mystring == F("auto") ) SSRModeEcoPV ( AUTOM );
+      else response = F("Bad request");
+    }
+    else if ( ( request->hasParam ( "configmaxpv" ) ) && ( request->hasParam ( "value" ) ) ) {
+      mystring = request->getParam("value")->value();
+      deserializeJson ( jsonConfig, mystring );
+      strlcpy ( static_ip,
+                jsonConfig ["ip"],
+                16);
+      strlcpy ( static_gw,
+                jsonConfig ["gateway"],
+                16);
+      strlcpy ( static_sn,
+                jsonConfig ["subnet"],
+                16);
+      strlcpy ( static_dns1,
+                jsonConfig ["dns1"],
+                16);
+      strlcpy ( static_dns2,
+                jsonConfig ["dns2"],
+                16);
+      httpPort = jsonConfig["http_port"];
+      boostDuration = jsonConfig["boost_duration"];
+      boostRatio = jsonConfig["boost_ratio"];
+      strlcpy ( mqttIP,
+                jsonConfig ["mqtt_ip"],
+                16);
+      mqttPort = jsonConfig["mqtt_port"];
+      mqttPeriod = jsonConfig["mqtt_period"];
+      strlcpy ( mqttUser,
+                 jsonConfig["mqtt_user"],
+                 40);
+      strlcpy ( mqttPass,
+                 jsonConfig["mqtt_pass"],
+                 40);
+      mqttActive = jsonConfig["mqtt_active"];
+      boostTimerHour = jsonConfig["boost_timer_hour"];
+      boostTimerMinute = jsonConfig["boost_timer_minute"];
+      boostTimerActive = jsonConfig["boost_timer_active"];
+
+      configWrite ( );
+    }
+    else response = F("Bad request or request unknown");
+    request->send ( 200, "text/plain", response );
+  });
+
+
+
+
+
+
+  webServer.on("/api/history", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    AsyncResponseStream *response = request->beginResponseStream("text/csv");
+    String timeStamp;
+    float pRouted;
+    float pImport;
+    float pExport;
+    float pImpuls;
+    int localCounter;
+    int lastLocalCounter;
+    unsigned long timePowerFactor = 60000UL / HISTORY_INTERVAL;
+
+
+    if ( request->hasParam ( "power" ) )
+    {
+      response->print(F("Time,Import réseau,Export réseau,Production PV,Routage ECS\r\n"));
+      for (int i = 1; i < HISTORY_RECORD; i++) {
+        localCounter = (historyCounter + i) % HISTORY_RECORD;
+        lastLocalCounter = ((localCounter + HISTORY_RECORD - 1) % HISTORY_RECORD);
+        if ( ( energyIndexHistoric[localCounter].time != 0 ) && ( (energyIndexHistoric[lastLocalCounter].time) != 0 ) ) {
+          timeStamp = String (energyIndexHistoric[localCounter].time) + "000";
+          pRouted = (energyIndexHistoric[localCounter].eRouted - energyIndexHistoric[lastLocalCounter].eRouted) * timePowerFactor;
+          pImport = (energyIndexHistoric[localCounter].eImport - energyIndexHistoric[lastLocalCounter].eImport) * timePowerFactor;
+          pExport = -(energyIndexHistoric[localCounter].eExport - energyIndexHistoric[lastLocalCounter].eExport) * timePowerFactor;
+          pImpuls = (energyIndexHistoric[localCounter].eImpulsion - energyIndexHistoric[lastLocalCounter].eImpulsion) * timePowerFactor;
+          response->printf("%s,%.0f,%.0f,%.0f,%.0f\r\n", timeStamp.c_str(), pImport, pExport, pImpuls, pRouted);
+        }
+      }
+      request->send(response);
+    }
+    else
+    {
+      request->send ( 200, "text/plain", F("Unknown request") );
+    }
+  });
+
+
+
+
+
+
+
+  AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
+  AsyncElegantOTA.begin(&webServer);
+  webServer.begin();
+  timeClient.begin();
+  tcpClient.println(F("Services web configurés et démarrés !"));
+  tcpClient.print(F("Port web : "));
+  tcpClient.println(httpPort);
+  if (mqttActive = ON) {
+    _ipmqtt.fromString(mqttIP);
+    if (strlen(mqttUser) != 0) {
+       mqttClient.setCredentials(mqttUser,mqttPass);
+    }
+    mqttClient.setServer(_ipmqtt, mqttPort);
+    mqttClient.connect();
+    tcpClient.println(F("Services MQTT configuré et démarré !"));
+  }
+
+
+  ftpSrv.begin(LOGIN_FTP, PWD_FTP);
+
+  tcpClient.println(F("Service FTP configuré et démarré !"));
+  tcpClient.println(F("Port FTP : 21"));
+  tcpClient.print(F("Login FTP : "));
+  tcpClient.print(LOGIN_FTP);
+  tcpClient.print(F("  password FTP : "));
+  tcpClient.println(PWD_FTP);
+
+  tcpClient.println(F("\nDémarrage de la connexion à l'Arduino..."));
+
+  Serial.setRxBufferSize(SERIAL_BUFFER);
+  Serial.begin(SERIAL_BAUD);
+  Serial.setTimeout(SERIALTIMEOUT);
+  clearSerialInputCache();
+
+  tcpClient.println(F("Liaison série configurée pour la communication avec l'Arduino, en attente d'un contact..."));
+
+  while (!serialProcess())
+  {
+    tcpClient.print(F("."));
+  }
+  tcpClient.println(F("\nContact établi !\n"));
+  contactEcoPV = true;
+
+
+  clearSerialInputCache();
+  getAllParamEcoPV();
+  delay(100);
+  serialProcess();
+  clearSerialInputCache();
+  getVersionEcoPV();
+  delay(100);
+  serialProcess();
+
+
+
+  while (!serialProcess()) { }
+
+  tcpClient.println(F("\nDonnées récupérées de l'Arduino !\n"));
+
+
+  setRefIndexJour();
+
+  initHistoric();
+
+  tcpClient.println(F("Historiques initialisés.\n\n"));
+
+  tcpClient.println(MAXPV_VERSION_FULL);
+  tcpClient.print(F("EcoPV version "));
+  tcpClient.println(ecoPVConfig[ECOPV_VERSION]);
+  if (String(MAXPV_VERSION) != ecoPVConfig[ECOPV_VERSION])
+  {
+    tcpClient.println(F("\n*****                !! ATTENTION !!                  *****"));
+    tcpClient.println(F("\n***** Version ECOPV et version MaxPV! différentes !!! *****"));
+  };
+  tcpClient.println(F("\n*** Fin du Setup ***\n"));
+
+
+
+
+
+
+  ts.add(
+    0, 533, [&](void *)
+  {
+    telnetDiscoverClient();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    1, 70, [&](void *)
+  {
+    if ( Serial.available ( ) ) serialProcess ( );
+  },
+  nullptr, true);
+
+
+  ts.add(
+    2, 89234, [&](void *)
+  {
+    shouldReadParams = true;
+  },
+  nullptr, true);
+
+
+  ts.add(
+    3, 20003, [&](void *)
+  {
+    timeClient.update();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    4, 617, [&](void *)
+  {
+    watchDogContactEcoPV();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    5, 97, [&](void *)
+  {
+    ftpSrv.handleFTP();
+    dnsServer.processNextRequest();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    6, 2679, [&](void *)
+  {
+    if ( shouldReadParams ) getAllParamEcoPV ( );
+  },
+  nullptr, true);
+
+
+  ts.add(
+    7, 31234, [&](void *)
+  {
+    tcpClient.print ( F("Heap disponible : ") );
+    tcpClient.print ( ESP.getFreeHeap ( ) );
+    tcpClient.println ( F(" bytes") );
+    tcpClient.print ( F("Heap fragmentation : ") );
+    tcpClient.print ( ESP.getHeapFragmentation ( ) );
+    tcpClient.println ( F(" %") );
+  },
+  nullptr, true);
+
+
+
+
+  ts.add(
+    8, 59654, [&](void *)
+  {
+    timeScheduler();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    9, HISTORY_INTERVAL * 60000UL, [&](void *)
+  {
+    recordHistoricData();
+  },
+  nullptr, true);
+
+
+  ts.add(
+    10, 1000, [&](void *)
+  {
+    generalCounterSecond++;
+
+
+    if (boostTime > 0) {
+      if ( burstCnt <= ( ( BURST_PERIOD * int ( boostRatio ) ) / 100 ) ) SSRModeEcoPV(FORCE);
+      else SSRModeEcoPV(STOP);
+      boostTime--;
+      burstCnt++;
+      if ( burstCnt >= BURST_PERIOD ) burstCnt = 0;
+    }
+    else if (boostTime == 0) {
+      SSRModeEcoPV(AUTOM);
+      boostTime--;
+    }
+
+
+
+    if ((mqttActive == ON) && (generalCounterSecond % mqttPeriod == 0) ){
+        mqttTransmit();
+    }
+
+
+
+  },
+  nullptr, true);
+
+
+  delay(1000);
+}
+
+
+
+
+
+void loop()
+{
+
+
+  ts.update();
+}
+
+
+
+
+
+
+bool configRead(void)
+{
+
+  Serial.println(F("Lecture du fichier de configuration..."));
+  File configFile = LittleFS.open(F("/config.json"), "r");
+  if (configFile)
+  {
+    Serial.println(F("Configuration lue !"));
+    Serial.println(F("Analyse..."));
+    DeserializationError error = deserializeJson(jsonConfig, configFile);
+    if (!error)
+    {
+      Serial.println(F("\nparsed json:"));
+      serializeJsonPretty(jsonConfig, Serial);
+      if (jsonConfig["ip"])
+      {
+
+        strlcpy(static_ip,
+                jsonConfig["ip"] | "192.168.1.250",
+                16);
+        strlcpy(static_gw,
+                jsonConfig["gateway"] | "192.168.1.1",
+                16);
+        strlcpy(static_sn,
+                jsonConfig["subnet"] | "255.255.255.0",
+                16);
+        strlcpy(static_dns1,
+                jsonConfig["dns1"] | "192.168.1.1",
+                16);
+        strlcpy(static_dns2,
+                jsonConfig["dns2"] | "8.8.8.8",
+                16);
+        httpPort = jsonConfig["http_port"] | 80;
+
+        boostDuration = jsonConfig["boost_duration"] | 120;
+        boostRatio = jsonConfig["boost_ratio"] | 100;
+
+        strlcpy(mqttIP,
+                jsonConfig["mqtt_ip"] | "192.168.1.100",
+                16);
+        mqttPort = jsonConfig["mqtt_port"] | 1883;
+        mqttPeriod = jsonConfig["mqtt_period"] | 10;
+        strlcpy(mqttUser,
+                jsonConfig["mqtt_user"] | "",
+                40);
+        strlcpy(mqttPass,
+                jsonConfig["mqtt_pass"] | "",
+                40);
+        mqttActive = jsonConfig["mqtt_active"] | OFF;
+        boostTimerHour = jsonConfig["boost_timer_hour"] | 4;
+        boostTimerMinute = jsonConfig["boost_timer_minute"] | 0;
+        boostTimerActive = jsonConfig["boost_timer_active"] | OFF;
+
+     }
+      else
+      {
+        Serial.println(F("\n\nPas d'adresse IP dans le fichier de configuration !"));
+        return false;
+      }
+    }
+    else
+    {
+      Serial.println(F("Erreur durant l'analyse du fichier !"));
+      return false;
+    }
+  }
+  else
+  {
+    Serial.println(F("Erreur de lecture du fichier !"));
+    return false;
+  }
+  return true;
+}
+
+void configWrite(void)
+{
+  jsonConfig["ip"] = static_ip;
+  jsonConfig["gateway"] = static_gw;
+  jsonConfig["subnet"] = static_sn;
+  jsonConfig["dns1"] = static_dns1;
+  jsonConfig["dns2"] = static_dns2;
+  jsonConfig["http_port"] = httpPort;
+  jsonConfig["boost_duration"] = boostDuration;
+  jsonConfig["boost_ratio"] = boostRatio;
+  jsonConfig["mqtt_ip"] = mqttIP;
+  jsonConfig["mqtt_port"] = mqttPort;
+  jsonConfig["mqtt_period"] = mqttPeriod;
+  jsonConfig["mqtt_user"] = mqttUser;
+  jsonConfig["mqtt_pass"] = mqttPass;
+  jsonConfig["mqtt_active"] = mqttActive;
+  jsonConfig["boost_timer_hour"] = boostTimerHour;
+  jsonConfig["boost_timer_minute"] = boostTimerMinute;
+  jsonConfig["boost_timer_active"] = boostTimerActive;
+
+
+  File configFile = LittleFS.open(F("/config.json"), "w");
+  serializeJson(jsonConfig, configFile);
+  configFile.close();
+}
+
+void rebootESP(void)
+{
+  delay(100);
+  ESP.reset();
+  delay(1000);
+}
+
+bool telnetDiscoverClient(void)
+{
+  if (telnetServer.hasClient())
+  {
+    tcpClient = telnetServer.available();
+    clearScreen();
+    tcpClient.println(F("\nMaxPV! par Bernard Legrand (2022)."));
+    tcpClient.print(F("Version : "));
+    tcpClient.println(MAXPV_VERSION);
+    tcpClient.println();
+    tcpClient.println(F("Configuration IP : "));
+    tcpClient.print(F("Adresse IP : "));
+    tcpClient.println(WiFi.localIP());
+    tcpClient.print(F("Passerelle : "));
+    tcpClient.println(WiFi.gatewayIP());
+    tcpClient.print(F("Masque SR  : "));
+    tcpClient.println(WiFi.subnetMask());
+    tcpClient.print(F("IP DNS 1   : "));
+    tcpClient.println(WiFi.dnsIP(0));
+    tcpClient.print(F("IP DNS 2   : "));
+    tcpClient.println(WiFi.dnsIP(1));
+    tcpClient.print(F("Port HTTP : "));
+    tcpClient.println(httpPort);
+    tcpClient.println(F("Port FTP : 21"));
+    tcpClient.println();
+    tcpClient.println(F("Configuration du mode BOOST : "));
+    tcpClient.print(F("Durée du mode BOOST : "));
+    tcpClient.print(boostDuration);
+    tcpClient.println(F(" minutes"));
+    tcpClient.print(F("Puissance pour le mode BOOST : "));
+    tcpClient.print(boostRatio);
+    tcpClient.println(F(" %"));
+    return true;
+  }
+  return false;
+}
+
+void saveConfigCallback()
+{
+  Serial.println(F("La configuration sera sauvegardée !"));
+  shouldSaveConfig = true;
+}
+
+void configModeCallback(AsyncWiFiManager *myWiFiManager)
+{
+  Serial.print(F("Démarrage du mode point d'accès : "));
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+  Serial.println(F("Adresse du portail : "));
+  Serial.println(WiFi.softAPIP());
+}
+
+void clearScreen(void)
+{
+  tcpClient.write(27);
+  tcpClient.print(F("[2J"));
+  tcpClient.write(27);
+  tcpClient.print(F("[H"));
+}
+
+void clearSerialInputCache(void)
+{
+  while (Serial.available() > 0)
+  {
+    Serial.read();
+  }
+}
+
+bool serialProcess(void)
+{
+#define END_OF_TRANSMIT '#'
+  int stringCounter = 0;
+  int index = 0;
+
+
+  String incomingData = Serial.readStringUntil(END_OF_TRANSMIT);
+
+
+  if (incomingData.endsWith(F("END")))
+  {
+    tcpClient.print(F("Réception de : "));
+    tcpClient.println(incomingData);
+    incomingData.replace(F(",END"), "");
+    contactEcoPV = true;
+    refTimeContactEcoPV = millis();
+
+    if (incomingData.startsWith(F("STATS")))
+    {
+      incomingData.replace(F("STATS,"), "");
+      stringCounter++;
+      while ((incomingData.length() > 0) && (stringCounter < NB_STATS))
+      {
+        index = incomingData.indexOf(',');
+        if (index == -1)
+        {
+          ecoPVStats[stringCounter++] = incomingData;
+          break;
+        }
+        else
+        {
+          ecoPVStats[stringCounter++] = incomingData.substring(0, index);
+          incomingData = incomingData.substring(index + 1);
+        }
+      }
+
+      ecoPVStats[INDEX_ROUTED] = String((ecoPVStats[INDEX_ROUTED].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_IMPORT] = String((ecoPVStats[INDEX_IMPORT].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_EXPORT] = String((ecoPVStats[INDEX_EXPORT].toFloat() / 1000.0), 3);
+      ecoPVStats[INDEX_IMPULSION] = String((ecoPVStats[INDEX_IMPULSION].toFloat() / 1000.0), 3);
+
+      ecoPVStatsAll = "";
+
+      for (int i = 1; i < (NB_STATS + NB_STATS_SUPP); i++)
+      {
+        ecoPVStatsAll += ecoPVStats[i];
+        if (i < (NB_STATS + NB_STATS_SUPP - 1))
+          ecoPVStatsAll += F(",");
+      }
+    }
+
+    else if (incomingData.startsWith(F("PARAM")))
+    {
+      incomingData.replace(F("PARAM,"), "");
+      ecoPVConfigAll = incomingData;
+      stringCounter++;
+      while ((incomingData.length() > 0) && (stringCounter < NB_PARAM))
+      {
+        index = incomingData.indexOf(',');
+        if (index == -1)
+        {
+          ecoPVConfig[stringCounter++] = incomingData;
+          break;
+        }
+        else
+        {
+          ecoPVConfig[stringCounter++] = incomingData.substring(0, index);
+          incomingData = incomingData.substring(index + 1);
+        }
+      }
+    }
+
+    else if (incomingData.startsWith(F("VERSION")))
+    {
+      incomingData.replace(F("VERSION,"), "");
+      index = incomingData.indexOf(',');
+      if (index != -1)
+      {
+        ecoPVConfig[ECOPV_VERSION] = incomingData.substring(0, index);
+        ecoPVStats[ECOPV_VERSION] = ecoPVConfig[ECOPV_VERSION];
+      }
+    }
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+void formatEepromEcoPV(void)
+{
+  Serial.print(F("FORMAT,END#"));
+}
+
+void getAllParamEcoPV(void)
+{
+  Serial.print(F("PARAM,END#"));
+  shouldReadParams = false;
+}
+
+void setParamEcoPV(String param, String value)
+{
+  String command = "";
+  if ((param.toInt() < 10) && (!param.startsWith("0")))
+    param = "0" + param;
+  command = F("SETPARAM,") + param + F(",") + value + F(",END#");
+  Serial.print(command);
+  shouldReadParams = true;
+
+
+
+}
+
+void getVersionEcoPV(void)
+{
+  Serial.print(F("VERSION,END#"));
+}
+
+void saveConfigEcoPV(void)
+{
+  Serial.print(F("SAVECFG,END#"));
+}
+
+void loadConfigEcoPV(void)
+{
+  Serial.print(F("LOADCFG,END#"));
+  shouldReadParams = true;
+
+
+
+}
+
+void saveIndexEcoPV(void)
+{
+  Serial.print(F("SAVEINDX,END#"));
+}
+
+void resetIndexEcoPV(void)
+{
+  Serial.print(F("INDX0,END#"));
+}
+
+void restartEcoPV(void)
+{
+  Serial.print(F("RESET,END#"));
+}
+
+void relayModeEcoPV(byte opMode)
+{
+  String command = F("SETRELAY,");
+  if (opMode == STOP)
+    command += F("STOP");
+  if (opMode == FORCE)
+    command += F("FORCE");
+  if (opMode == AUTOM)
+    command += F("AUTO");
+  command += F(",END#");
+  Serial.print(command);
+}
+
+void SSRModeEcoPV(byte opMode)
+{
+  String command = F("SETSSR,");
+  if (opMode == STOP)
+    command += F("STOP");
+  if (opMode == FORCE)
+    command += F("FORCE");
+  if (opMode == AUTOM)
+    command += F("AUTO");
+  command += F(",END#");
+  Serial.print(command);
+}
+
+void watchDogContactEcoPV(void)
+{
+  if ((millis() - refTimeContactEcoPV) > 1500)
+    contactEcoPV = false;
+}
+
+void setRefIndexJour(void)
+{
+  ecoPVStats[INDEX_ROUTED_J] = ecoPVStats[INDEX_ROUTED];
+  ecoPVStats[INDEX_IMPORT_J] = ecoPVStats[INDEX_IMPORT];
+  ecoPVStats[INDEX_EXPORT_J] = ecoPVStats[INDEX_EXPORT];
+  ecoPVStats[INDEX_IMPULSION_J] = ecoPVStats[INDEX_IMPULSION];
+}
+
+void initHistoric(void)
+{
+  for (int i = 0; i < HISTORY_RECORD; i++)
+  {
+    energyIndexHistoric[i].time = 0;
+    energyIndexHistoric[i].eRouted = 0;
+    energyIndexHistoric[i].eImport = 0;
+    energyIndexHistoric[i].eExport = 0;
+    energyIndexHistoric[i].eImpulsion = 0;
+  }
+  historyCounter = 0;
+}
+
+void recordHistoricData(void)
+{
+  energyIndexHistoric[historyCounter].time = timeClient.getEpochTime();
+  energyIndexHistoric[historyCounter].eRouted = ecoPVStats[INDEX_ROUTED].toFloat();
+  energyIndexHistoric[historyCounter].eImport = ecoPVStats[INDEX_IMPORT].toFloat();
+  energyIndexHistoric[historyCounter].eExport = ecoPVStats[INDEX_EXPORT].toFloat();
+  energyIndexHistoric[historyCounter].eImpulsion = ecoPVStats[INDEX_IMPULSION].toFloat();
+  historyCounter++;
+  historyCounter %= HISTORY_RECORD;
+}
+
+void boostON(void)
+{
+  if ( boostRatio != 0 ) {
+    boostTime = ( 60 * boostDuration );
+    burstCnt = 0;
+  }
+}
+
+void boostOFF(void)
+{
+  boostTime = 0;
+}
+
+void mqttTransmit(void)
+{
+  char buf[16];
+  if (mqttClient.connected ()) {
+    ecoPVStats[V_RMS].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_V_RMS, 0, true, buf);
+    ecoPVStats[I_RMS].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_I_RMS, 0, true, buf);
+    ecoPVStats[P_APP].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_APP, 0, true, buf);
+    ecoPVStats[COS_PHI].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_COS_PHI, 0, true, buf);
+    ecoPVStats[P_ACT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_ACT, 0, true, buf);
+    ecoPVStats[P_ROUTED].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_ROUTED, 0, true, buf);
+    ecoPVStats[P_IMPULSION].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_P_IMPULSION, 0, true, buf);
+    ecoPVStats[INDEX_ROUTED].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_ROUTED, 0, true, buf);
+    ecoPVStats[INDEX_IMPORT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_IMPORT, 0, true, buf);
+    ecoPVStats[INDEX_EXPORT].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_EXPORT, 0, true, buf);
+    ecoPVStats[INDEX_IMPULSION].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_INDEX_IMPULSION, 0, true, buf);
+    ecoPVStats[TRIAC_MODE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_TRIAC_MODE, 0, true, buf);
+    ecoPVStats[RELAY_MODE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_RELAY_MODE, 0, true, buf);
+    ecoPVStats[STATUS_BYTE].toCharArray(buf, 16);
+    mqttClient.publish(MQTT_STATUS_BYTE, 0, true, buf);
+  }
+  else mqttClient.connect();
+}
+
+
+void timeScheduler(void)
+{
+
+  int day = timeClient.getDay();
+  int hour = timeClient.getHours();
+  int minute = timeClient.getMinutes();
+
+
+  if ( ( hour == 0 ) && ( minute == 0 ) ) setRefIndexJour ( );
+
+
+  if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute ) && ( boostTimerActive == ON ) ) {
+    boostON ( );
+  };
+}
