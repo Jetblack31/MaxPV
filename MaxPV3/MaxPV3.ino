@@ -161,6 +161,7 @@
 #define INDEX_IMPULSION_J 26
 
 // Définition des channels MQTT
+#define MQTT_STATE         "maxpv/state"
 #define MQTT_V_RMS         "maxpv/vrms"
 #define MQTT_I_RMS         "maxpv/irms"
 #define MQTT_P_ACT         "maxpv/pact"
@@ -655,7 +656,6 @@ void setup()
     request->send ( 200, "text/plain", response );
   });
 
-
   // ***********************************************************************
   // ********             HANDLERS DES DATAS HISTORIQUES            ********
   // ***********************************************************************
@@ -696,6 +696,12 @@ void setup()
     }
   });
 
+  // ***********************************************************************
+  // ********             HANDLERS DES EVENEMENTS MQTT              ********
+  // ***********************************************************************
+  
+  mqttClient.onConnect(onMqttConnect); // Appel de la fonction lors d'une connection MQTT établie
+  mqttClient.onMessage(onMqttMessage); // Appel de la fonction lors de la réception d'un message MQTT
 
   // ***********************************************************************
   // ********                   FIN DES HANDLERS                    ********
@@ -715,6 +721,7 @@ void setup()
        mqttClient.setCredentials(mqttUser,mqttPass);
     }
     mqttClient.setServer(_ipmqtt, mqttPort);
+    mqttClient.setWill(MQTT_STATE, 0, true, "disconnected");
     mqttClient.connect();
     tcpClient.println(F("Services MQTT configuré et démarré !"));
   }
@@ -1371,4 +1378,230 @@ void timeScheduler(void)
   if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute ) && ( boostTimerActive == ON ) ) {
     boostON ( );
   };
+}
+
+void onMqttConnect(bool sessionPresent) 
+{
+  // *TODO* Souscriptions aux topics pour gérer les états relais et SSR 
+ 
+  // Publication du status
+  mqttClient.publish(MQTT_STATE, 0, true, "connected");
+
+  // On crée les informations pour le Discovery HomeAssistant
+  // On crée un identifiant unique
+  String deviceID = "maxpv";
+  deviceID += ESP.getChipId();
+
+  // On récupère l'URL d'accès
+  String ip_url = "http://" + WiFi.localIP().toString();
+
+  // On crée les templates du topic et du Payload
+  String configTopicTemplate = String(F("homeassistant/#COMPONENT#/#DEVICEID#/#DEVICEID##SENSORID#/config"));
+  configTopicTemplate.replace(F("#DEVICEID#"), deviceID);
+
+  // Capteurs
+  String configPayloadTemplate = String(F(
+    "{"
+    "\"dev\":{"
+    "\"ids\":\"#DEVICEID#\","
+    "\"name\":\"MaxPV\","
+    "\"mdl\":\"MaxPV!\","
+    "\"mf\":\"JetBlack\","
+    "\"sw\":\"#VERSION#\","
+    "\"cu\":\"#IP#\""
+    "},"
+    "\"avty_t\":\"maxpv/state\","
+    "\"pl_avail\":\"connected\","
+    "\"pl_not_avail\":\"disconnected\","
+    "\"uniq_id\":\"#DEVICEID##SENSORID#\","
+    "\"dev_cla\":\"#CLASS#\","
+    "\"name\":\"#SENSORNAME#\","
+    "\"stat_t\":\"#STATETOPIC#\","
+    "\"unit_of_meas\":\"#UNIT#\""
+    "}"));
+  configPayloadTemplate.replace(" ", "");
+  configPayloadTemplate.replace(F("#DEVICEID#"), deviceID);
+  configPayloadTemplate.replace(F("#VERSION#"), MAXPV_VERSION);
+  configPayloadTemplate.replace(F("#IP#"), ip_url);
+
+  String topic;
+  String payload;
+
+  // On publie la config pour chaque sensor
+  // V_RMS
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("Tension"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Tension"));
+  payload.replace(F("#SENSORNAME#"), F("Tension"));
+  payload.replace(F("#CLASS#"), F("voltage"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_V_RMS));
+  payload.replace(F("#UNIT#"), "V");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // I_RMS
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("Courant"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Courant"));
+  payload.replace(F("#SENSORNAME#"), F("Courant"));
+  payload.replace(F("#CLASS#"), F("current"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_V_RMS));
+  payload.replace(F("#UNIT#"), "A");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // P_APP
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceApparente"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceApparente"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance apparente"));
+  payload.replace(F("#CLASS#"), F("apparent_power"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_APP));
+  payload.replace(F("#UNIT#"), "VA");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_COS_PHI
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("FacteurPuissance"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("FacteurPuissance"));
+  payload.replace(F("#SENSORNAME#"), F("Facteur de puissance"));
+  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_COS_PHI));
+  payload.replace(F("#UNIT#"), "");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_P_ACT
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceActive"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceActive"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance active"));
+  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_ACT));
+  payload.replace(F("#UNIT#"), "W");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_P_ROUTED
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceRoutee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceRoutee"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance routée"));
+  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_ROUTED));
+  payload.replace(F("#UNIT#"), "W");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+  
+  // MQTT_P_IMPULSION
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceProduite"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceProduite"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance produite"));
+  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_IMPULSION));
+  payload.replace(F("#UNIT#"), "W");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_INDEX_ROUTED
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("EnergieRoutee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("EnergieRoutee"));
+  payload.replace(F("#SENSORNAME#"), F("Energie routée"));
+  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_ROUTED));
+  payload.replace(F("#UNIT#"), "KWh");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_INDEX_IMPORT
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("EnergieImportee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("EnergieImportee"));
+  payload.replace(F("#SENSORNAME#"), F("Energie importée"));
+  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_IMPORT));
+  payload.replace(F("#UNIT#"), "KWh");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+  
+  // MQTT_INDEX_EXPORT
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("EnergieExportee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("EnergieExportee"));
+  payload.replace(F("#SENSORNAME#"), F("Energie exportée"));
+  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_EXPORT));
+  payload.replace(F("#UNIT#"), "KWh");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+  
+  // MQTT_INDEX_IMPULSION
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("EnergieProduite"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("EnergieProduite"));
+  payload.replace(F("#SENSORNAME#"), F("Energie produite"));
+  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_IMPULSION));
+  payload.replace(F("#UNIT#"), "KWh");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_TRIAC_MODE
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("SSR"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("SSR"));
+  payload.replace(F("#SENSORNAME#"), F("SSR"));
+  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_TRIAC_MODE));
+  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
+                  F("\"val_tpl\":\"{% if value == '0' %}Off{% elif value == '1' %}Force{% else %}Auto{% endif %}\""));
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_RELAY_MODE
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("Relais"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Relais"));
+  payload.replace(F("#SENSORNAME#"), F("Relais"));
+  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_RELAY_MODE));
+  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
+                  F("\"val_tpl\":\"{% if value == '0' %}Off{% elif value == '1' %}Force{% else %}Auto{% endif %}\""));
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+}
+
+void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, 
+                   const size_t& len, const size_t& index, const size_t& total)
+{
+  // *TODO* Traitement à la réception d'un message
 }
