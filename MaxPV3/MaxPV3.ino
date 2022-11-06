@@ -175,6 +175,8 @@
 #define MQTT_INDEX_IMPULSION    "maxpv/indeximpulsion"
 #define MQTT_TRIAC_MODE    "maxpv/triacmode"
 #define MQTT_RELAY_MODE    "maxpv/relaymode"
+#define MQTT_SET_TRIAC_MODE    "maxpv/settriacmode"
+#define MQTT_SET_RELAY_MODE    "maxpv/setrelaymode"
 #define MQTT_STATUS_BYTE   "maxpv/statusbyte"
 
 // ***********************************************************************************
@@ -1382,8 +1384,10 @@ void timeScheduler(void)
 
 void onMqttConnect(bool sessionPresent) 
 {
-  // *TODO* Souscriptions aux topics pour gérer les états relais et SSR 
- 
+  // Souscriptions aux topics pour gérer les états relais et SSR
+  mqttClient.subscribe(MQTT_SET_RELAY_MODE,0);
+  mqttClient.subscribe(MQTT_SET_TRIAC_MODE,0);
+
   // Publication du status
   mqttClient.publish(MQTT_STATE, 0, true, "connected");
 
@@ -1573,7 +1577,7 @@ void onMqttConnect(bool sessionPresent)
 
   // MQTT_TRIAC_MODE
   topic = configTopicTemplate;
-  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#COMPONENT#"), F("select"));
   topic.replace(F("#SENSORID#"), F("SSR"));
 
   payload = configPayloadTemplate;
@@ -1582,12 +1586,15 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
   payload.replace(F("#STATETOPIC#"), F(MQTT_TRIAC_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
-                  F("\"val_tpl\":\"{% if value == '0' %}Off{% elif value == '1' %}Force{% else %}Auto{% endif %}\""));
+                  F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
+                  "\"cmd_t\":\"#CMDTOPIC#\","
+                  "\"options\":[\"force\",\"auto\",\"stop\"]"));
+  payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_TRIAC_MODE));
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
   // MQTT_RELAY_MODE
   topic = configTopicTemplate;
-  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#COMPONENT#"), F("select"));
   topic.replace(F("#SENSORID#"), F("Relais"));
 
   payload = configPayloadTemplate;
@@ -1596,12 +1603,26 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
   payload.replace(F("#STATETOPIC#"), F(MQTT_RELAY_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
-                  F("\"val_tpl\":\"{% if value == '0' %}Off{% elif value == '1' %}Force{% else %}Auto{% endif %}\""));
+                  F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
+                  "\"cmd_t\":\"#CMDTOPIC#\","
+                  "\"options\":[\"force\",\"auto\",\"stop\"]"));
+  payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_RELAY_MODE));
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 }
 
 void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, 
                    const size_t& len, const size_t& index, const size_t& total)
 {
-  // *TODO* Traitement à la réception d'un message
+  // A la réception d'un message sur un des topics en écoute
+  // on vérifie le topic concerné et la commande reçue
+  if (String(topic).startsWith(F(MQTT_SET_RELAY_MODE))) {
+    if ( String(payload).startsWith(F("stop")) ) relayModeEcoPV ( STOP );
+    else if ( String(payload).startsWith(F("force")) ) relayModeEcoPV ( FORCE );
+    else if ( String(payload).startsWith(F("auto")) ) relayModeEcoPV ( AUTOM );
+  }
+  else if (String(topic).startsWith(F(MQTT_SET_TRIAC_MODE))) {
+    if ( String(payload).startsWith(F("stop")) ) SSRModeEcoPV ( STOP );
+    else if ( String(payload).startsWith(F("force")) ) SSRModeEcoPV ( FORCE );
+    else if ( String(payload).startsWith(F("auto")) ) SSRModeEcoPV ( AUTOM );
+  }
 }
