@@ -174,9 +174,11 @@
 #define MQTT_INDEX_EXPORT       "maxpv/indexexport"
 #define MQTT_INDEX_IMPULSION    "maxpv/indeximpulsion"
 #define MQTT_TRIAC_MODE    "maxpv/triacmode"
+#define MQTT_SET_TRIAC_MODE    "maxpv/triacmode/set"
 #define MQTT_RELAY_MODE    "maxpv/relaymode"
-#define MQTT_SET_TRIAC_MODE    "maxpv/settriacmode"
-#define MQTT_SET_RELAY_MODE    "maxpv/setrelaymode"
+#define MQTT_SET_RELAY_MODE    "maxpv/relaymode/set"
+#define MQTT_BOOST_MODE      "maxpv/boost"
+#define MQTT_SET_BOOST_MODE  "maxpv/boost/set"
 #define MQTT_STATUS_BYTE   "maxpv/statusbyte"
 
 // ***********************************************************************************
@@ -1255,12 +1257,18 @@ void restartEcoPV(void)
 void relayModeEcoPV(byte opMode)
 {
   String command = F("SETRELAY,");
-  if (opMode == STOP)
+  if (opMode == STOP) {
     command += F("STOP");
-  if (opMode == FORCE)
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "0");
+  }
+  else if (opMode == FORCE) {
     command += F("FORCE");
-  if (opMode == AUTOM)
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "1");
+  }
+  else if (opMode == AUTOM) {
     command += F("AUTO");
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "9");
+  }
   command += F(",END#");
   Serial.print(command);
 }
@@ -1268,12 +1276,18 @@ void relayModeEcoPV(byte opMode)
 void SSRModeEcoPV(byte opMode)
 {
   String command = F("SETSSR,");
-  if (opMode == STOP)
+  if (opMode == STOP) {
     command += F("STOP");
-  if (opMode == FORCE)
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "0");
+  }
+  else if (opMode == FORCE) {
     command += F("FORCE");
-  if (opMode == AUTOM)
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "1");
+  }
+  else if (opMode == AUTOM) {
     command += F("AUTO");
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "9");
+  }
   command += F(",END#");
   Serial.print(command);
 }
@@ -1321,12 +1335,14 @@ void boostON(void)
   if ( boostRatio != 0 ) {
     boostTime = ( 60 * boostDuration );   // conversion en secondes
     burstCnt = 0;
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "on");
   }
 }
 
 void boostOFF(void)
 {
   boostTime = 0;
+  if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
 }
 
 void mqttTransmit(void)
@@ -1361,6 +1377,8 @@ void mqttTransmit(void)
     mqttClient.publish(MQTT_RELAY_MODE, 0, true, buf);
     ecoPVStats[STATUS_BYTE].toCharArray(buf, 16);
     mqttClient.publish(MQTT_STATUS_BYTE, 0, true, buf);
+    if (boostTime == -1) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
+    else mqttClient.publish(MQTT_BOOST_MODE, 0, true, "on");
   }
   else mqttClient.connect();        // Sinon on ne transmet pas mais on tente la reconnexion
 }
@@ -1384,9 +1402,10 @@ void timeScheduler(void)
 
 void onMqttConnect(bool sessionPresent) 
 {
-  // Souscriptions aux topics pour gérer les états relais et SSR
+  // Souscriptions aux topics pour gérer les états relais, SSR et boost
   mqttClient.subscribe(MQTT_SET_RELAY_MODE,0);
   mqttClient.subscribe(MQTT_SET_TRIAC_MODE,0);
+  mqttClient.subscribe(MQTT_SET_BOOST_MODE,0);
 
   // Publication du status
   mqttClient.publish(MQTT_STATE, 0, true, "connected");
@@ -1587,8 +1606,8 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#STATETOPIC#"), F(MQTT_TRIAC_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
                   F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
-                  "\"cmd_t\":\"#CMDTOPIC#\","
-                  "\"options\":[\"force\",\"auto\",\"stop\"]"));
+                    "\"cmd_t\":\"#CMDTOPIC#\","
+                    "\"options\":[\"force\",\"auto\",\"stop\"]"));
   payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_TRIAC_MODE));
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
@@ -1604,10 +1623,28 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#STATETOPIC#"), F(MQTT_RELAY_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
                   F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
-                  "\"cmd_t\":\"#CMDTOPIC#\","
-                  "\"options\":[\"force\",\"auto\",\"stop\"]"));
+                    "\"cmd_t\":\"#CMDTOPIC#\","
+                    "\"options\":[\"force\",\"auto\",\"stop\"]"));
   payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_RELAY_MODE));
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_BOOST_MODE
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("switch"));
+  topic.replace(F("#SENSORID#"), F("Boost"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Boost"));
+  payload.replace(F("#SENSORNAME#"), F("Boost"));
+  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_BOOST_MODE));
+  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
+                  F("\"cmd_t\":\"#CMDTOPIC#\","
+                    "\"payload_on\":\"on\","
+                    "\"payload_off\":\"off\""));
+  payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_BOOST_MODE));
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
 }
 
 void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessageProperties& properties, 
@@ -1624,5 +1661,9 @@ void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessagePrope
     if ( String(payload).startsWith(F("stop")) ) SSRModeEcoPV ( STOP );
     else if ( String(payload).startsWith(F("force")) ) SSRModeEcoPV ( FORCE );
     else if ( String(payload).startsWith(F("auto")) ) SSRModeEcoPV ( AUTOM );
+  }
+  else if (String(topic).startsWith(F(MQTT_SET_BOOST_MODE))) {
+    if ( String(payload).startsWith(F("on")) ) boostON ( );
+    else if ( String(payload).startsWith(F("off")) ) boostOFF ( );
   }
 }
