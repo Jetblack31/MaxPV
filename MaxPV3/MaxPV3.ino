@@ -1256,40 +1256,48 @@ void restartEcoPV(void)
 
 void relayModeEcoPV(byte opMode)
 {
+  char buff[2];
+  String str;
   String command = F("SETRELAY,");
   if (opMode == STOP) {
     command += F("STOP");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "0");
   }
   else if (opMode == FORCE) {
     command += F("FORCE");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "1");
   }
   else if (opMode == AUTOM) {
     command += F("AUTO");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, "9");
   }
   command += F(",END#");
   Serial.print(command);
+
+  // Envoi du status via MQTT
+  str = String(opMode);
+  str.toCharArray(buff,2);
+  if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, buff);
+
 }
 
 void SSRModeEcoPV(byte opMode)
 {
+  char buff[2];
+  String str;
   String command = F("SETSSR,");
   if (opMode == STOP) {
     command += F("STOP");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "0");
   }
   else if (opMode == FORCE) {
     command += F("FORCE");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "1");
   }
   else if (opMode == AUTOM) {
     command += F("AUTO");
-    if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, "9");
   }
   command += F(",END#");
   Serial.print(command);
+  // Envoi du status via MQTT
+  str = String(opMode);
+  str.toCharArray(buff,2);
+  if (mqttClient.connected ()) mqttClient.publish(MQTT_TRIAC_MODE, 0, true, buff);
 }
 
 void watchDogContactEcoPV(void)
