@@ -1259,15 +1259,12 @@ void relayModeEcoPV(byte opMode)
   char buff[2];
   String str;
   String command = F("SETRELAY,");
-  if (opMode == STOP) {
+  if (opMode == STOP)
     command += F("STOP");
-  }
-  else if (opMode == FORCE) {
+  if (opMode == FORCE)
     command += F("FORCE");
-  }
-  else if (opMode == AUTOM) {
+  if (opMode == AUTOM)
     command += F("AUTO");
-  }
   command += F(",END#");
   Serial.print(command);
 
@@ -1283,15 +1280,12 @@ void SSRModeEcoPV(byte opMode)
   char buff[2];
   String str;
   String command = F("SETSSR,");
-  if (opMode == STOP) {
+  if (opMode == STOP)
     command += F("STOP");
-  }
-  else if (opMode == FORCE) {
+  if (opMode == FORCE)
     command += F("FORCE");
-  }
-  else if (opMode == AUTOM) {
+  if (opMode == AUTOM)
     command += F("AUTO");
-  }
   command += F(",END#");
   Serial.print(command);
   // Envoi du status via MQTT
