@@ -1,6 +1,6 @@
 {
-  "ecopvver" : "3.32",
+  "ecopvver" : "3.31",
   "maxpvver" : "3.32",
   "webver" : "3.32",
-  "whatsnew" : "Nouveautés : Auto-découverte MQTT pour Home Assitant. Améliorations diverses."
+  "whatsnew" : "Nouveautés : Auto-découverte MQTT pour Home Assistant.<br>Améliorations diverses des pages web.<br>Amélioration de l'avertissement de mise à jour."
 }
