@@ -57,10 +57,8 @@
             <p class="lead">
             <h4></h4>
             MaxPv! est la nouvelle interface web de EcoPV. Découvrez les fonctionnalités en parcourant le menu !<br><br>
-            Si vous utiliser MaxPV! et EcoPV pour la première fois, utilisez <a href="wizard.html">l'assistant de
-                configuration</a>.
-            Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a>.<br><br>
-            Nouveau en version 3.31 : corrections de bugs, MQTT authentifié.<br><br>
+            Nouveau dans la communauté MaxPV! ? Utilisez <a href="wizard.html">l'assistant de configuration</a>
+            <br>Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a><br>
             <span class="text-danger" id="livemsg"></span>
             </p>
             <div>
@@ -77,8 +75,9 @@
 
         function fillVersion() {
 
-            const urlVersion = "https://raw.githubusercontent.com/Jetblack31/MaxPV/main/MaxPV3/data/versionweb.txt";
-            const messageVersion = "Une mise à jour est disponible !<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>";
+            const urlVersion = "https://raw.githubusercontent.com/Jetblack31/MaxPV/main/latest";
+            var messageVersion = "";
+            var maj = false;
             var xhttp1 = new XMLHttpRequest();
             var xhttp2 = new XMLHttpRequest();
             var xhttp3 = new XMLHttpRequest();
@@ -120,11 +119,31 @@
 
             xhttp4.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    result4 = this.responseText.trim();
-                    if ( ( result4.localeCompare ( result3 ) != 0 ) || ( result4.localeCompare ( result2 ) != 0 ) || ( result4.localeCompare ( result1 ) != 0 ) ) {
-                        document.getElementById("livemsg").innerHTML = messageVersion;
+                    result4 = JSON.parse(this.responseText);
+                    if ( result4["ecopvver"] != result1 ) {
+                        maj = true;
+                        messageVersion += "<br>L'Arduino Nano peut être mise à jour vers ";
+                        messageVersion += result4["ecopvver"];
                     }
-                    else document.getElementById("livemsg").innerHTML = "";
+                    if ( result4["maxpvver"] != result2 ) {
+                        maj = true;
+                        messageVersion += "<br>Le firmware Wemos peut être mise à jour vers ";
+                        messageVersion += result4["maxpvver"];
+                    }
+                    if ( result4["webver"] != result3 ) {
+                        maj = true;
+                        messageVersion += "<br>Le site Web peut être mise à jour vers ";
+                        messageVersion += result4["webver"];
+                    }
+                    if ( maj == true ) {
+                        messageVersion += "<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a>";
+                        messageVersion += "<br>";
+                        messageVersion += result4["whatsnew"];
+                    }
+                    else {
+                        messageVersion += "Système à jour !";
+                    }
+                    document.getElementById("livemsg").innerHTML = messageVersion;
                 }
             };
         }

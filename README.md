@@ -22,13 +22,14 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 * Abandon de l'option de communication MySensors.
 * Abandon de l'utilisation du shield ethernet. Toutefois, celui-ci peut rester en place sur le circuit mais il ne sera plus utilisé.
 * Interface web responsive avec visualisation graphique des données.
+* Support pour MQTT et autodiscovery Home Assistant
 * Installation et paramétrage réseau facilitée.
 * Mise à jour du Wemos en OTA.
 * Assistant de configuration des paramètres du routeur.
 * Amélioration des index de comptage de la puissance.
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut).
+* Mode Boost sur SSR pour complément de chauffe
 * Nouvelle API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
-* En développement : compteurs journaliers, historique des données.
 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
@@ -110,7 +111,7 @@ Un déclenchement horaire programmé du mode BOOST est également configurable. 
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
 ## MQTT
-Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... 
+Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... Le service MQTT supporte l'autodiscovery au format Home Assistant.
 
 ## Accès au système de fichiers par FTP
 Vous pouvez accéder au système de fichiers du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence.
@@ -125,6 +126,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.32** - 11/11/2022
+* MQTT version complète. Support Auto-discovery MQTT Home Assistant (Merci à zenman94)
+* Corrections et ajouts dans l'interface web (Merci à Grubuntu)
+* Avertissement de mise à jour amélioré. Découplage des 3 MAJ.
 ### **V 3.31** - 05/11/2022
 * Transmission MQTT authentifiée (optionnelle). Ajout de données transmises en MQTT
 * Programmation horaire du mode BOOST
