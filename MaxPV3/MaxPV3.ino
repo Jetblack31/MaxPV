@@ -69,8 +69,8 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define MAXPV_VERSION "3.31"
-#define MAXPV_VERSION_FULL "MaxPV! 3.31"
+#define MAXPV_VERSION "3.32"
+#define MAXPV_VERSION_FULL "MaxPV! 3.32"
 
 // Heure solaire
 #define GMT_OFFSET 0 
