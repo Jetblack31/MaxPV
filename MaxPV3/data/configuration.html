@@ -57,12 +57,15 @@
       <h1>Paramétrage avancé</h1>
       <p class="lead">
       <h4></h4>
-      <span>Vous pouvez modifier les paramètres du routeur et réaliser des actions manuellement.</span><br>
+      <span>Vous pouvez modifier les paramètres du routeur enregistrés dans l'Arduino Nano et réaliser des actions manuellement.</span><br>
       </p>
 
       <p class="lead">
       <h4>Paramètres du routeur</h4>
-      <span class="text-danger">N'oubliez pas de sauvegarder les paramètres dans l'EEPROM et de redémarrer le routeur après les
+      <span>Aide sur les paramètres : <a href="https://github.com/Jetblack31/EcoPV#calibrage-et-param%C3%A9trage" target="_blank">ici</a>
+      </span>
+      <br>
+      <span class="text-danger">N'oubliez pas de sauvegarder les paramètres en EEPROM et de redémarrer le routeur après les
         modifications !</span>
       </p>
 
@@ -74,19 +77,19 @@
         </thead>
         <tbody>
           <tr>
-            <td scope="row"><b>P_INSTALLPV :</b><br>Puissance de l'installation photovoltaïque (Wc)</td> 
+            <td scope="row"><b>P_INSTALLPV</b><br>Puissance de l'installation photovoltaïque (Wc)</td> 
             <td scope="col"><input type="text" class="form-control text-center" id="p_installpv"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_installpv', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>P_RESISTANCE :</b><br>Puissance de la résistance commandée (W) </td>
+            <td scope="row"><b>P_RESISTANCE</b><br>Puissance de la résistance commandée (W) </td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_resistance"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_resistance', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>CNT_CALIB :</b><br>Poids des impulsions du compteur d'impulsion (Wh) </td>
+            <td scope="row"><b>CNT_CALIB</b><br>Poids des impulsions du compteur d'impulsion (Wh) </td>
             <td scope="col"><input type="text" class="form-control text-center" id="cnt_calib"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('cnt_calib', this)">Envoyer</button></td>
@@ -99,25 +102,25 @@
         </thead>
         <tbody>
           <tr>
-            <td scope="row"><b>V_CALIB :</b><br>Facteur de calibrage de la tension </td>
+            <td scope="row"><b>V_CALIB</b><br>Facteur de calibrage de la tension</td>
             <td scope="col"><input type="text" class="form-control text-center" id="v_calib"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('v_calib', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>P_CALIB :</b><br>Facteur de calibrage de la puissance </td>
+            <td scope="row"><b>P_CALIB</b><br>Facteur de calibrage de la puissance</td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_calib"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_calib', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>PHASE_CALIB :</b><br>Facteur de calibrage de la phase </td>
+            <td scope="row"><b>PHASE_CALIB</b><br>Facteur de calibrage de la phase</td>
             <td scope="col"><input type="text" class="form-control text-center" id="phase_calib"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('phase_calib', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>P_OFFSET :</b><br>Décalage de puissance active (W) </td>
+            <td scope="row"><b>P_OFFSET</b><br>Décalage de puissance active (W)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_offset"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_offset', this)">Envoyer</button></td>
@@ -130,25 +133,25 @@
         </thead>
         <tbody>
           <tr>
-            <td scope="row"><b>P_MARGIN :</b><br>Consigne de régulation (W) </td>
+            <td scope="row"><b>P_MARGIN</b><br>Consigne de régulation (W)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_margin"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_margin', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>GAIN_P :</b><br>Gain proportionnel de régulation </td>
+            <td scope="row"><b>GAIN_P</b><br>Gain proportionnel de régulation</td>
             <td scope="col"><input type="text" class="form-control text-center" id="gain_p"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('gain_p', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>GAIN_I :</b><br>Gain intégral de régulation </td>
+            <td scope="row"><b>GAIN_I</b><br>Gain intégral de régulation</td>
             <td scope="col"><input type="text" class="form-control text-center" id="gain_i"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('gain_i', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>E_RESERVE :</b><br>Tolérance de régulation (J)  </td>
+            <td scope="row"><b>E_RESERVE</b><br>Tolérance de régulation (J)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="e_reserve"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('e_reserve', this)">Envoyer</button></td>
@@ -161,31 +164,31 @@
         </thead>
         <tbody>
           <tr>
-            <td scope="row"><b>P_DIV2_ACTIVE :</b><br>Excédent de production pour relais ON (W)</td>
+            <td scope="row"><b>P_DIV2_ACTIVE</b><br>Excédent de production pour relais ON (W)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_div2_active"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_div2_active', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>P_DIV2_IDLE :</b><br>Importation minimale pour relais OFF (W) </td>
+            <td scope="row"><b>P_DIV2_IDLE</b><br>Importation minimale pour relais OFF (W)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="p_div2_idle"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('p_div2_idle', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>T_DIV2_ON :</b><br>Durée minimale ON (min) </td>
+            <td scope="row"><b>T_DIV2_ON</b><br>Durée minimale ON (min)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="t_div2_on"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('t_div2_on', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>T_DIV2_OFF :</b><br>Durée minimale OFF (min) </td>
+            <td scope="row"><b>T_DIV2_OFF</b><br>Durée minimale OFF (min)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="t_div2_off"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('t_div2_off', this)">Envoyer</button></td>
           </tr>
           <tr>
-            <td scope="row"><b>T_DIV2_TC :</b><br>Constante de lissage (min) </td>
+            <td scope="row"><b>T_DIV2_TC</b><br>Constante de lissage (min)</td>
             <td scope="col"><input type="text" class="form-control text-center" id="t_div2_tc"></td>
             <td scope="col"><button class="btn btn-primary" type="submit"
                 onclick="sendParam ('t_div2_tc', this)">Envoyer</button></td>
