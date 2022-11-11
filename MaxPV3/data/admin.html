@@ -60,7 +60,7 @@
             <form id="formIPConfig"
                 onsubmit="event.preventDefault();
                     saveConfigMaxPV ( );
-                    sendAction ( 'rebootesp' );
+                    sendAction ( 'rebootesp', this );
                     alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
                 <h4>Configuration du webserver MaxPV!</h4>
                 <br>
