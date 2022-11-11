@@ -182,22 +182,10 @@
 #define MQTT_STATUS_BYTE   "maxpv/statusbyte"
 
 // ***********************************************************************************
-// ************************ Déclaration des variables globales ***********************
+// ******************* Variables globales de configuration MaxPV! ********************
 // ***********************************************************************************
 
-// Stockage des informations en provenance de EcoPV - Arduino Nano
-String ecoPVConfig[NB_PARAM];
-String ecoPVStats[NB_STATS + NB_STATS_SUPP];
-String ecoPVConfigAll;
-String ecoPVStatsAll;
-
-// Définition du nombre de tâches de Ticker
-TickerScheduler ts(11);
-// Compteur général à la seconde
-unsigned long generalCounterSecond = 0;
-
-// Variables de configuration de MaxPV!
-// Configuration IP statique
+// Configuration IP statique mode STA
 char static_ip[16] = "192.168.1.250";
 char static_gw[16] = "192.168.1.1";
 char static_sn[16] = "255.255.255.0";
@@ -215,24 +203,38 @@ int boostTimerHour = 4;       // Heure Timer Boost
 int boostTimerMinute = 0;     // Minute Timer Boost
 int boostTimerActive = OFF;   // BOOST timer actif (=ON) ou non (=OFF)
 
-
-// Variables de configuration de MQTT
+// Configuration de MQTT
 char mqttIP[16] = "192.168.1.100";  // IP du serveur MQTT
 uint16_t mqttPort = 1883;           // Port du serveur MQTT
 int mqttPeriod = 10;                // Période de transmission en secondes
 char mqttUser[40] = "";             // Utilisateur du serveur MQTT
                                     // Optionnel : si vide, pas d'authentification
 char mqttPass[40] = "";             // Mot de passe du serveur MQTT
-int mqttActive = OFF;               // MQTT actif (=ON) ou non (=OFF)
+int mqttActive = OFF;               // MQTT actif (= ON) ou non (= OFF)
 
-// Fin des variables de la configuration MaxPV!
+// ***********************************************************************************
+// *************** Fin des variables globales de configuration MaxPV! ****************
+// ***********************************************************************************
 
+
+// ***********************************************************************************
+// ************************ Déclaration des variables globales ***********************
+// ***********************************************************************************
+
+// Stockage des informations en provenance de EcoPV - Arduino Nano
+String ecoPVConfig[NB_PARAM];
+String ecoPVStats[NB_STATS + NB_STATS_SUPP];
+String ecoPVConfigAll;
+String ecoPVStatsAll;
+
+// Définition du nombre de tâches de Ticker
+TickerScheduler ts(11);
+// Compteur général à la seconde
+unsigned long generalCounterSecond = 0;
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
 bool shouldSaveConfig = false;
-
 // Flag indiquant la nécessité de lire les paramètres de routage EcoPV
 bool shouldReadParams = false;
-
 // Variables pour surveiller que l'on garde le contact avec EcoPV dans l'Arduino Nano
 unsigned long refTimeContactEcoPV = millis();
 bool contactEcoPV = false;
@@ -258,7 +260,7 @@ int burstCnt = 0;           // Compteur de la PWM software pour la gestion du mo
 
 // buffer pour manipuler le fichier de configuration de MaxPV! (ajuster la taille en fonction des besoins)
 StaticJsonDocument<1024> jsonConfig;
-
+// Variables pour la manipulation des adresses IP
 IPAddress _ip, _gw, _sn, _dns1, _dns2, _ipmqtt;
 
 // ***********************************************************************************
@@ -277,6 +279,8 @@ FtpServer ftpSrv;
 // ***********************************************************************************
 // **********************  FIN DES DEFINITIONS ET DECLARATIONS  **********************
 // ***********************************************************************************
+
+
 
 // ***********************************************************************************
 // ***************************   FONCTIONS ET PROCEDURES   ***************************
@@ -421,7 +425,6 @@ void setup()
 
   tcpClient.println(F("\n***** Reprise de la transmission du debug *****\n"));
   tcpClient.println(F("Connexion au réseau wifi réussie !"));
-  tcpClient.println(F("\nConfiguration des services web..."));
 
   // ***********************************************************************
   // ********      DECLARATIONS DES HANDLERS DU SERVEUR WEB         ********
@@ -711,7 +714,8 @@ void setup()
   // ********                   FIN DES HANDLERS                    ********
   // ***********************************************************************
 
-  // Démarrage du service update OTA et des services réseaux
+  // Démarrage des service réseau
+  tcpClient.println(F("\nConfiguration des services web..."));
   AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
   AsyncElegantOTA.begin(&webServer);
   webServer.begin();
@@ -732,7 +736,6 @@ void setup()
 
   // Démarrage du service FTP
   ftpSrv.begin(LOGIN_FTP, PWD_FTP);
-
   tcpClient.println(F("Service FTP configuré et démarré !"));
   tcpClient.println(F("Port FTP : 21"));
   tcpClient.print(F("Login FTP : "));
@@ -741,18 +744,13 @@ void setup()
   tcpClient.println(PWD_FTP);
 
   tcpClient.println(F("\nDémarrage de la connexion à l'Arduino..."));
-
   Serial.setRxBufferSize(SERIAL_BUFFER);
   Serial.begin(SERIAL_BAUD);
   Serial.setTimeout(SERIALTIMEOUT);
   clearSerialInputCache();
-
   tcpClient.println(F("Liaison série configurée pour la communication avec l'Arduino, en attente d'un contact..."));
 
-  while (!serialProcess())
-  {
-    tcpClient.print(F("."));
-  }
+  while (!serialProcess()) { tcpClient.print(F(".")); }
   tcpClient.println(F("\nContact établi !\n"));
   contactEcoPV = true;
 
@@ -765,18 +763,15 @@ void setup()
   getVersionEcoPV();
   delay(100);
   serialProcess();
-
   // Récupération des informations de fonctionnement
   // En moins d'une seconde EcoPV devrait envoyer les informations
   while (!serialProcess()) { }
-
   tcpClient.println(F("\nDonnées récupérées de l'Arduino !\n"));
 
   // Peuplement des références des index journaliers
   setRefIndexJour();
   // Initialisation de l'historique
   initHistoric();
-
   tcpClient.println(F("Historiques initialisés.\n\n"));
 
   tcpClient.println(MAXPV_VERSION_FULL);
@@ -788,6 +783,7 @@ void setup()
     tcpClient.println(F("\n***** Version ECOPV et version MaxPV! différentes !!! *****"));
   };
   tcpClient.println(F("\n*** Fin du Setup ***\n"));
+
 
   // ***********************************************************************
   // ********      DEFINITION DES TACHES RECURRENTES DE TICKER      ********
@@ -887,7 +883,7 @@ void setup()
   {
     generalCounterSecond++;
 
-    // mode BOOST
+    // traitement du mode BOOST
     if (boostTime > 0) {
       if ( burstCnt <= ( ( BURST_PERIOD * int ( boostRatio ) ) / 100 ) ) SSRModeEcoPV(FORCE);
       else SSRModeEcoPV(STOP);
@@ -910,10 +906,10 @@ void setup()
     
   },
   nullptr, true);
-
-
   delay(1000);
 }
+
+
 
 ///////////////////////////////////////////////////////////////////
 // loop                                                          //
@@ -926,11 +922,12 @@ void loop()
   ts.update();
 }
 
+
+
 ///////////////////////////////////////////////////////////////////
 // Fonctions                                                     //
 // et Procédures                                                 //
 ///////////////////////////////////////////////////////////////////
-
 bool configRead(void)
 {
   // Note ici on utilise un debug sur liaison série car la fonction n'est appelé qu'au début du SETUP
@@ -1024,7 +1021,6 @@ void configWrite(void)
   jsonConfig["boost_timer_hour"] = boostTimerHour;
   jsonConfig["boost_timer_minute"] = boostTimerMinute;
   jsonConfig["boost_timer_active"] = boostTimerActive; 
-
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -1384,7 +1380,6 @@ void mqttTransmit(void)
   }
   else mqttClient.connect();        // Sinon on ne transmet pas mais on tente la reconnexion
 }
-
 
 void timeScheduler(void)
 {
