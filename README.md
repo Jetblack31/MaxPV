@@ -105,7 +105,7 @@ Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit d
 
 ## Mode BOOST
 Le mode BOOST permet de déclencher le fonctionnement du SSR (résistance du chauffe-eau) pour une durée déterminée et avec une puissance déterminée par configuration dans le menu Administration. Le mode BOOST se déclenche dans le menu Moniteur. Si une nouvelle demande BOOST est effectuée pendant que le mode BOOST est déjà actif, la durée de fonctionnement est ré-initialisée à la valeur de configuration. Le mode BOOST peut être interrompu en cliquant sur le bouton correspondant. A l'arrêt du mode BOOST, la gestion du SSR passe en mode AUTO. Le pilotage de la résistance du chauffe-eau en mode BOOST est de type 'burst PWM' ou modulation de largeur d'impulsion, sur une période de 5 minutes. Ce n'est donc pas un pilotage proportionnel de type gradateur piloté en phase afin de limiter l'échauffement du SSR.
-Un déclenchement horaire programmé du mode BOOST est également configurable. La référence horaire poru cette programmation est l'heure solaire de France (= UTC) !
+Un déclenchement horaire programmé du mode BOOST est également configurable. La référence horaire pour cette programmation est l'heure solaire de France (= UTC) !
 
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
