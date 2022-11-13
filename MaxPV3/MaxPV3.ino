@@ -1470,7 +1470,7 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#SENSORID#"), F("Courant"));
   payload.replace(F("#SENSORNAME#"), F("Courant"));
   payload.replace(F("#CLASS#"), F("current"));
-  payload.replace(F("#STATETOPIC#"), F(MQTT_V_RMS));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_I_RMS));
   payload.replace(F("#UNIT#"), "A");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
