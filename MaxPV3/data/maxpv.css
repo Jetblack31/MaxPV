@@ -57,15 +57,22 @@ body {
 
 @media (prefers-color-scheme: dark) {
     
-body, .accordion-body, rect.highcharts-background, .accordion-button, .bg-light, .table-hover, td, .highcharts-contextmenu > ul {
-    background-color: #0d1117 !important;
-    color: #c9d1d9;
-    fill:#0d1117;
+body,
+.accordion-body,
+.highcharts-background,
+.accordion-button,
+.bg-light,
+.table-hover,
+td,
+.highcharts-contextmenu > ul {
+    background-color: #161618 !important;
+    color: #ffffff;
+    fill:#161618;
     --bs-accordion-inner-border-radius:0;
 }
 
 .highcharts-contextmenu > ul > li {
-    color: #c9d1d9 !important;
+    color: #ffffff !important;
 }
     
 .highcharts-title,
@@ -75,14 +82,12 @@ body, .accordion-body, rect.highcharts-background, .accordion-button, .bg-light,
 .highcharts-caption,
 .highcharts-radial-axis-labels > text,
 .highcharts-tracker > div > span > div {
-    fill: #c9d1d9 !important;
-    color: #c9d1d9;
+    fill: #ffffff !important;
+    color: #ffffff;
 }
 
  .highcharts-tooltip-box {
-    fill: black;
-    fill-opacity: 0.6;
-    stroke-width: 0;
+    fill: #000000;
 }
     
 .highcharts-legend-item > text:hover,
@@ -91,6 +96,6 @@ body, .accordion-body, rect.highcharts-background, .accordion-button, .bg-light,
 }
     
 .highcharts-legend-item-hidden > text {
-    fill: #666666 !important;
+    fill: #818181 !important;
 }
 }
