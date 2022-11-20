@@ -1,0 +1,17 @@
+name: Contrib to readme
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  contrib-readme-job:
+    runs-on: ubuntu-latest
+    name: A job to automate contributers list in readme
+    if: github.repository_owner == 'Jetblack31'
+    steps:
+      - name: Contribute List
+        uses: akhilmhdh/contributors-readme-action@v2.3.6
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
