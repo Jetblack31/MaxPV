@@ -1,0 +1,54 @@
+name: Build and Release
+
+on:
+  [push]
+
+jobs:
+  build-fw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Run PlatformIO build on selected platforms 🏗️
+        run: platformio run -e d1_mini
+      - name: Run PlatformIO buildfs on selected platforms 🏗️
+        run: platformio run --target buildfs -e d1_mini 
+
+      - name: Upload build artifacts 💾
+        uses: actions/upload-artifact@v3
+        with:
+          name: maxpv-firmware
+          path: .pio/build/d1_mini/*.bin
+
+  release-fw:
+    needs: build-fw
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download artifacts 💾
+        uses: actions/download-artifact@v3
+        with:
+          name: maxpv-firmware
+
+      - name: Display structure of downloaded files 🔍
+        run: ls -R
+
+      - name: Upload binaries to release 🚀
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./MaxPV*.bin
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true

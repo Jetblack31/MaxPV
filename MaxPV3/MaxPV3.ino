@@ -1434,7 +1434,8 @@ void onMqttConnect(bool sessionPresent)
     "\"pl_avail\":\"connected\","
     "\"pl_not_avail\":\"disconnected\","
     "\"uniq_id\":\"#DEVICEID##SENSORID#\","
-    "\"dev_cla\":\"#CLASS#\","
+    "\"dev_cla\":\"#DEVICECLASS#\","
+    "\"stat_cla\":\"#STATECLASS#\","
     "\"name\":\"#SENSORNAME#\","
     "\"stat_t\":\"#STATETOPIC#\","
     "\"unit_of_meas\":\"#UNIT#\""
@@ -1456,7 +1457,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("Tension"));
   payload.replace(F("#SENSORNAME#"), F("Tension"));
-  payload.replace(F("#CLASS#"), F("voltage"));
+  payload.replace(F("#DEVICECLASS#"), F("voltage"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_V_RMS));
   payload.replace(F("#UNIT#"), "V");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1469,7 +1471,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("Courant"));
   payload.replace(F("#SENSORNAME#"), F("Courant"));
-  payload.replace(F("#CLASS#"), F("current"));
+  payload.replace(F("#DEVICECLASS#"), F("current"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_I_RMS));
   payload.replace(F("#UNIT#"), "A");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1482,7 +1485,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("PuissanceApparente"));
   payload.replace(F("#SENSORNAME#"), F("Puissance apparente"));
-  payload.replace(F("#CLASS#"), F("apparent_power"));
+  payload.replace(F("#DEVICECLASS#"), F("apparent_power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_APP));
   payload.replace(F("#UNIT#"), "VA");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1495,7 +1499,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("FacteurPuissance"));
   payload.replace(F("#SENSORNAME#"), F("Facteur de puissance"));
-  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_COS_PHI));
   payload.replace(F("#UNIT#"), "");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1508,7 +1513,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("PuissanceActive"));
   payload.replace(F("#SENSORNAME#"), F("Puissance active"));
-  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#DEVICECLASS#"), F("power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_ACT));
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1521,7 +1527,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("PuissanceRoutee"));
   payload.replace(F("#SENSORNAME#"), F("Puissance routée"));
-  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#DEVICECLASS#"), F("power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_ROUTED));
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1534,7 +1541,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("PuissanceProduite"));
   payload.replace(F("#SENSORNAME#"), F("Puissance produite"));
-  payload.replace(F("#CLASS#"), F("power"));
+  payload.replace(F("#DEVICECLASS#"), F("power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_IMPULSION));
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
@@ -1547,9 +1555,10 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("EnergieRoutee"));
   payload.replace(F("#SENSORNAME#"), F("Energie routée"));
-  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#DEVICECLASS#"), F("energy"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_ROUTED));
-  payload.replace(F("#UNIT#"), "KWh");
+  payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
   // MQTT_INDEX_IMPORT
@@ -1560,9 +1569,10 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("EnergieImportee"));
   payload.replace(F("#SENSORNAME#"), F("Energie importée"));
-  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#DEVICECLASS#"), F("energy"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_IMPORT));
-  payload.replace(F("#UNIT#"), "KWh");
+  payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
   
   // MQTT_INDEX_EXPORT
@@ -1573,9 +1583,10 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("EnergieExportee"));
   payload.replace(F("#SENSORNAME#"), F("Energie exportée"));
-  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#DEVICECLASS#"), F("energy"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_EXPORT));
-  payload.replace(F("#UNIT#"), "KWh");
+  payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
   
   // MQTT_INDEX_IMPULSION
@@ -1586,9 +1597,10 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("EnergieProduite"));
   payload.replace(F("#SENSORNAME#"), F("Energie produite"));
-  payload.replace(F("#CLASS#"), F("energy"));
+  payload.replace(F("#DEVICECLASS#"), F("energy"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_IMPULSION));
-  payload.replace(F("#UNIT#"), "KWh");
+  payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
   // MQTT_TRIAC_MODE
@@ -1599,7 +1611,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("SSR"));
   payload.replace(F("#SENSORNAME#"), F("SSR"));
-  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("#STATECLASS#"), F(""));
   payload.replace(F("#STATETOPIC#"), F(MQTT_TRIAC_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
                   F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
@@ -1616,7 +1629,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("Relais"));
   payload.replace(F("#SENSORNAME#"), F("Relais"));
-  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("#STATECLASS#"), F(""));
   payload.replace(F("#STATETOPIC#"), F(MQTT_RELAY_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
                   F("\"val_tpl\":\"{% if value == '0' %}stop{% elif value == '1' %}force{% else %}auto{% endif %}\","
@@ -1633,7 +1647,8 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("Boost"));
   payload.replace(F("#SENSORNAME#"), F("Boost"));
-  payload.replace(F("\"dev_cla\":\"#CLASS#\","), F(""));
+  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("#STATECLASS#"), F(""));
   payload.replace(F("#STATETOPIC#"), F(MQTT_BOOST_MODE));
   payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
                   F("\"cmd_t\":\"#CMDTOPIC#\","

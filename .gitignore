@@ -33,8 +33,11 @@
 .DS_Store
 
 # Platformio
-platformio.ini
 .pio
 
 #VSCode
-.vscode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
