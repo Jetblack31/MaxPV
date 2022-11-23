@@ -126,6 +126,11 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.35** - 23/11/2022
+* Correction de bugs Auto-discovery MQTT Home Assistant. Intégration des compteurs d'énergie au panneau Energie de Home Assistant (Merci à zenman94). 
+* Ajout d'un mode sombre au thème du site Web MaxPV! (Merci à Grubuntu).
+* Améliorations mineures diverses.
+* Versions : MaxPV! 3.35, site Web 3.35, EcoPV 3.31.
 ### **V 3.32** - 11/11/2022
 * MQTT version complète. Support Auto-discovery MQTT Home Assistant (Merci à zenman94)
 * Corrections et ajouts dans l'interface web (Merci à Grubuntu)
