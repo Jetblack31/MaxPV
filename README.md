@@ -12,6 +12,7 @@ La lecture de ces fils de discussion est plus que recommandée pour la mise en o
 * Forum photovoltaïque, discussion sur EcoPV : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=42721  
 * Forum photovoltaïque, réalisation de la carte électronique (PCB) : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=42874  
 * Forum photovoltaïque, montage du PCB : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=43197  
+* Forum photovoltaïque, montage KIT MaxPV 2023 : https://forum-photovoltaique.fr/viewtopic.php?f=110&t=60073
 
 ## Mise en garde  
 Les programmes et les schémas proposés ont une vocation informative et pédagogique. Ils ont été testés avec succès par les auteurs. Cependant les auteurs de ces programmes et de ces schémas déclinent toute responsabilité. Les auteurs ne pourraient être tenus pour responsables du fonctionnement et des conséquences de l'utilisation des programmes et des schémas mis à disposition.  
