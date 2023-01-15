@@ -18,7 +18,6 @@
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">MaxPV!</a>
-            <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
                 aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -56,13 +55,15 @@
         <div class="bg-light p-5 rounded">
             <h1>Administration du système</h1>
             <p class="lead"></p>
+            <span class="text-danger">N'oubliez pas d'enregistrer la configuration !</span>
+            <br><br>
 
             <form id="formIPConfig"
                 onsubmit="event.preventDefault();
                     saveConfigMaxPV ( );
                     sendAction ( 'rebootesp', this );
                     alert('Configuration sauvegardée !<br>Le système redémarre avec les nouveaux paramètres...', 'success', 'liveAlertPlaceholderIPConfig');">
-                <h4>Configuration du webserver MaxPV!</h4>
+                <h4>Serveur Web MaxPV!</h4>
                 <br>
                 <div class="row mb-3">
                     <div class="col-6">
@@ -107,19 +108,19 @@
                 </div>
                 <br>
 
-                <h4>Configuration MQTT</h4>
+                <h4>Service MQTT (optionnel)</h4>
                 <br>
                 <div class="row mb-3">
-                    <div class="col-6">
+                    <div class="col-12">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="mqtt_active">
-                            <label class="form-check-label" for="mqtt_active">Activation MQTT</label>
+                            <label class="form-check-label" for="mqtt_active">Activation MQTT - Home Assistant</label>
                         </div>
                     </div>
                 </div>    
                 <div class="row mb-3">
                     <div class="col-6">
-                        <label for="mqtt_ip" class="form-label">IP serveur MQTT</label>
+                        <label for="mqtt_ip" class="form-label">IP du serveur MQTT</label>
                         <input type="text" class="form-control text-center" id="mqtt_ip" placeholder="xxx.xxx.xxx.xxx"
                             required
                             pattern="^((\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$">
@@ -151,7 +152,7 @@
                 </div>    
                 <br>
 
-                <h4>Configuration du mode Boost</h4>
+                <h4>Mode Boost</h4>
                 <br>
                 <div class="row mb-3">
                     <div class="col-6">
@@ -165,12 +166,11 @@
                             id="boost_ratio" placeholder="xxx" required min="0" max="100" step="10">
                     </div>
                 </div>
-                <br>
                 <div class="row mb-3">
                     <div class="col-9">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="boost_timer_active">
-                            <label class="form-check-label" for="boost_timer_active">Activation horaire mode Boost</label>
+                            <label class="form-check-label" for="boost_timer_active">Programmation horaire mode Boost</label>
                         </div>
                     </div>
                 </div>    
@@ -186,7 +186,8 @@
                             required min="0" max="59" step ="1">
                     </div>
                 </div>
-
+                <br>
+                
                 <div class="row mb-3">
                     <div class="col-12 d-grid gap-2">
                         <button type="submit" class="btn btn-warning" id="btnFormIPConfig" onclick="this.blur()";>
@@ -227,7 +228,7 @@
                     <button class="btn btn-danger" type="submit"
                         onclick="sendAction ( 'eraseconfigesp', this  ); sendAction ( 'rebootesp', this ); 
                         alert('Configurations Wifi et MaxPV! effacées.<br>Le système redémarre.<br>Se connecter au réseau temporaire de MaxPV avec l\'adresse 192.168.4.1', 'danger', 'liveAlertPlaceholderAdvancesAction');">
-                        Oublier le réseau Wifi</button>
+                        Retour configuration origine</button>
                 </div>
                 <br>
                 <div class="fixed-bottom" id="liveAlertPlaceholderAdvancesAction"></div>
@@ -302,6 +303,7 @@
             doc["boost_timer_minute"] = document.getElementById("boost_timer_minute").value;
             if(boost_timer_active.checked == true) doc["boost_timer_active"] = "1";
             else doc["boost_timer_active"] = "0";
+
             var value_param = JSON.stringify(doc);
             args += value_param;
             xhttp.open("GET", args, true);
@@ -332,6 +334,7 @@
                 document.getElementById("boost_timer_minute").value = doc["boost_timer_minute"] ?? "";
                 if (doc["boost_timer_active"] == "1") boost_timer_active.checked = true;
                 else boost_timer_active.checked = false;
+
                 saveConfigMaxPV();
                 sendAction ( 'rebootesp' ); 
     	    });
@@ -343,27 +346,6 @@
             xhttp.send();
             ele.blur();
         }
-
-        setInterval(function () {
-            var xhttp5 = new XMLHttpRequest();
-
-            xhttp5.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    var result = this.responseText;
-                    if (result == "running") {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur running";
-                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
-                    }
-                    else {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur offline";
-                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
-                    }
-                }
-            };
-            xhttp5.open("GET", "api/get?ping", true);
-            xhttp5.send();
-
-        }, 1000);
 
     </script>
 

@@ -73,7 +73,6 @@
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">MaxPV!</a>
-      <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
         aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -501,7 +500,6 @@
 
     setInterval(function () {
       var xhttp1 = new XMLHttpRequest();
-      var xhttp5 = new XMLHttpRequest();
 
       xhttp1.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
@@ -512,30 +510,11 @@
           if ( cosphiMax < cosphiValue ) cosphiMax = cosphiValue;
           if ( bulletCosphi ) {
             bulletCosphi.series[0].addPoint ( [0,cosphiValue,cosphiMax], true, true);
-            //bulletCosphi.series[0].target = cosphiMax;            
           }
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);
       xhttp1.send();
-
-      var xhttp5 = new XMLHttpRequest();
-
-      xhttp5.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          if (result == "running") {
-            document.getElementById("ecopvstate").innerHTML = "Routeur running";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
-          }
-          else {
-            document.getElementById("ecopvstate").innerHTML = "Routeur offline";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
-          }
-        }
-      };
-      xhttp5.open("GET", "api/get?ping", true);
-      xhttp5.send();
 
     }, 1000);
 

@@ -18,7 +18,6 @@
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">MaxPV!</a>
-            <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
                 aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -52,15 +51,46 @@
     </nav>
 
     <main class="container-fluid">
+    
         <div class="bg-light p-5 rounded">
             <h1>Bienvenue sur MaxPV!</h1>
             <p class="lead">
             <h4></h4>
-            MaxPv! est la nouvelle interface web de EcoPV. Découvrez les fonctionnalités en parcourant le menu !<br><br>
-            Nouveau dans la communauté MaxPV! ? Utilisez <a href="wizard.html">l'assistant de configuration</a>
-            <br>Plus d'aide est disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a><br>
-            <span class="text-danger" id="livemsg"></span>
+            <span id="livemsg"><br></span>
+            <span class="text-warning" id="ecopvstate">Connexion au routeur...<br><br></span>
             </p>
+
+            <h1>Accès rapide</h1>
+            <p class="lead">
+            <h4></h4>
+            <div>
+                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Boost</button>
+                <button class="btn btn-outline-primary col-2" type="submit" onclick="sendAction ( 'boostoff', this )">OFF</button>
+                <button class="btn btn-outline-danger col-2" type="submit" onclick="sendAction ( 'booston', this )">ON</button>
+            </div>
+            <br>
+            <div>
+                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">SSR</button>
+                <button class="btn btn-outline-primary col-2" type="submit" name="ssrmode" id="ssrstop" onclick="sendMode (name, this)">STOP</button>
+                <button class="btn btn-outline-success col-3" type="submit" name="ssrmode" id="ssrauto" onclick="sendMode (name, this)">AUTO</button>
+                <button class="btn btn-outline-danger col-3" type="submit" name="ssrmode" id="ssrforce" onclick="sendMode (name, this)">FORCE</button>
+            </div>
+            <br>
+            <div>
+                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Relais</button>
+                <button class="btn btn-outline-primary col-2" type="submit" name="relaymode" id="relaystop" onclick="sendMode (name, this)">STOP</button>
+                <button class="btn btn-outline-success col-3" type="submit" name="relaymode" id="relayauto" onclick="sendMode (name, this)">AUTO</button>
+                <button class="btn btn-outline-danger col-3" type="submit" name="relaymode" id="relayforce" onclick="sendMode (name, this)">FORCE</button>
+            </div>
+            </p>
+            
+            <div>
+                <br>
+                <a href="https://paypal.me/EcoPV" target="_blank"><button type="button" class="btn btn-success col-6">Je soutiens MaxPV!</button></a>
+                <br><br>
+            </div>
+            Aide disponible <a href="https://github.com/Jetblack31/MaxPV" target="_blank">ici</a><br>
+            
             <div>
                 EcoPV <span id="ecopvver"></span><span> | </span>
                 MaxPV! <span id="maxpvver"></span><span> | </span>
@@ -86,6 +116,9 @@
             var result2 = "";
             var result3 = "";
             var result4 = "";
+
+            document.getElementById("livemsg").innerHTML = "Recherche de mise à jour...<br>";
+            document.getElementById("livemsg").className = "text-warning";
 
             xhttp1.open("GET", "api/get?version", true);
             xhttp1.send();
@@ -122,26 +155,28 @@
                     result4 = JSON.parse(this.responseText);
                     if ( result4["ecopvver"] != result1 ) {
                         maj = true;
-                        messageVersion += "<br>L'Arduino Nano peut être mise à jour vers ";
+                        messageVersion += "Le firmware de l'Arduino Nano peut être mis à jour vers ";
                         messageVersion += result4["ecopvver"];
                     }
                     if ( result4["maxpvver"] != result2 ) {
                         maj = true;
-                        messageVersion += "<br>Le firmware Wemos peut être mise à jour vers ";
+                        messageVersion += "<br>Le firmware du Wemos peut être mis à jour vers ";
                         messageVersion += result4["maxpvver"];
                     }
                     if ( result4["webver"] != result3 ) {
                         maj = true;
-                        messageVersion += "<br>Le site Web peut être mise à jour vers ";
+                        messageVersion += "<br>Le site Web peut être mis à jour vers ";
                         messageVersion += result4["webver"];
                     }
                     if ( maj == true ) {
-                        messageVersion += "<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a>";
-                        messageVersion += "<br><br>";
+                        messageVersion += "<br>";
                         messageVersion += result4["whatsnew"];
+                        messageVersion += "<br>";
+                        document.getElementById("livemsg").className = "text-danger";
                     }
                     else {
-                        messageVersion += "<br>Système à jour !";
+                        document.getElementById("livemsg").className = "text-success";
+                        messageVersion += "Le système est à jour !<br>";
                     }
                     document.getElementById("livemsg").innerHTML = messageVersion;
                 }
@@ -155,19 +190,37 @@
                 if (this.readyState == 4 && this.status == 200) {
                     var result = this.responseText;
                     if (result == "running") {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur running";
-                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
+                        document.getElementById("ecopvstate").innerHTML = "Routeur en fonctionnement<br><br>";
+                        document.getElementById("ecopvstate").className = "text-success";
                     }
                     else {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur offline";
-                        document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
+                        document.getElementById("ecopvstate").innerHTML = "Routeur injoignable<br><br>";
+                        document.getElementById("ecopvstate").className = "text-danger";
                     }
                 }
             };
             xhttp5.open("GET", "api/get?ping", true);
             xhttp5.send();
 
-        }, 1000);
+        }, 1507);
+
+        function sendAction(action, ele) {
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("GET", "api/action?" + action, true);
+            xhttp.send();
+            ele.blur();
+        }
+
+        function sendMode(name, ele) {
+            var xhttp = new XMLHttpRequest();
+            var args = "api/set?";
+            args += name;
+            args += "&value=";
+            args += ele.id.replace("relay", "").replace("ssr", "");
+            xhttp.open("GET", args, true);
+            xhttp.send();
+            ele.blur();
+            }
 
     </script>
 

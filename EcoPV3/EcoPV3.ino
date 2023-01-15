@@ -3,8 +3,8 @@
   by monitoring energy consumption and diverting power to a resistive charge
   when needed.
   Copyright (C) 2019 - Bernard Legrand and Mickaël Lefebvre.
-  Copyright (C) 2022 - Bernard Legrand.
-
+  Copyright (C) 2023 - Bernard Legrand.
+  maxpv@bernard-legrand.net
   https://github.com/Jetblack31/EcoPV
   https://github.com/Jetblack31/MaxPV
 
@@ -69,7 +69,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION           "3.31"      // Version logicielle
+#define VERSION           "3.5"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -79,6 +79,7 @@
 // Dépend de la configuration de l'ADC dans le programme
 #define WH_PER_INC            5       // Nombre de Wh par incrément pour le stockage 3 compteurs d'énergie (Rout, Imp, Exp)
 
+#define BOOST_BURST_PERIOD  300       // Durée de la période du cycle PWM mode BOOST en secondes
 
 // ***********************************************************************************
 // ***************************   Définitions utilitaires   ***************************
@@ -336,6 +337,7 @@ long                   indexRouted      = 0;        // compteur d'énergie en in
 long                   indexImported    = 0;        // compteur d'énergie en incrément
 long                   indexExported    = 0;        // compteur d'énergie en incrément
 long                   indexImpulsion   = 0;        // compteur d'impulsions externes
+long                   indexRelayOn     = 0;        // compteur de temps de fonctionnement du relais en minutes
 volatile unsigned long deltaTimeImpulsion = 0;      // temps entre 2 impulsions externes
 
 float                  Prouted          = 0;        // puissance routée en Watts
@@ -363,6 +365,20 @@ byte                   ledBlink         = 0;        // séquenceur de clignoteme
 
 byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
 byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
+
+// ***********************************************************************************
+// ************* Variables pour la gestion du mode BOOST                 *************
+// ***********************************************************************************
+
+long                   boostTime = -1;         // Temps restant pour le mode BOOST, en secondes (-1 = arrêt)
+int                    burstCnt  = 0;          // Compteur de la PWM software pour la gestion du mode BOOST entre 0 et BOOST_BURST_PERIOD
+int                    burstThreshold  = 10;   // Instant de mise en route SSR dans la période burst pour le mode BOOST entre 0 et BOOST_BURST_PERIOD
+
+// ***********************************************************************************
+// ************* Variables pour la gestion du relais en mode Timer       *************
+// ***********************************************************************************
+
+long                   relayplusTime = -1;     // Temps restant pour le mode relay+, en secondes (-1 = arrêt)
 
 // ***********************************************************************************
 // ********  Définitions pour manipuler les données en EEPROM               **********
@@ -402,7 +418,8 @@ struct indexEeprom {
   long                  imported;
   long                  exported;
   long                  impulsion;
-  // taille totale : 16 bytes
+  long                  relayon;
+  // taille totale : 20 bytes
 };
 
 // ***********************************************************************************
@@ -475,7 +492,7 @@ void setup ( ) {
   oled.setFont ( System5x7 );
   oled.clear ( );
   oled.set2X ( );
-  oled.print ( F("MaxPV V") );
+  oled.print ( F("MaxPV! ") );
   oled.println ( F(VERSION) );
   oled.println ( );
   oled.println ( F("Starting...") );
@@ -519,6 +536,7 @@ void loop ( ) {
   static float         routedEnergy   = ( -3600.0 * WH_PER_INC ); // initialisation à valeur négative
   static float         exportedEnergy = ( -3600.0 * WH_PER_INC ); // Ca permet ensuite de faire la comparaison
   static float         importedEnergy = ( -3600.0 * WH_PER_INC ); // au passage à 0
+  static int           relayOnSeconds = -60;
 
   static float         inv_NB_CYCLES  = 1 / float ( NB_CYCLES );
   static float         inv_255        = 1 / float ( 255 );
@@ -541,6 +559,8 @@ void loop ( ) {
   long                 indexImpulsionTemp = 0;
   byte                 i = 0;
 
+  // *** Si on est en warm-up après un reset, on initialise refTime
+  if ( coldStart > 0) refTime = millis ( );
   // *** Vérification perte longue de synchronisation secteur
   if ( ( millis ( ) - refTime ) > 2010 ) {
     // Absence de remontée d'informations depuis plus de 2 secondes = absence de synchronisation secteur
@@ -609,9 +629,17 @@ void loop ( ) {
 
     // *** Calcul des valeurs filtrées de Pact et Prouted                 ***
     // *** Usage : déclenchement du relais secondaire de délestage        ***
-    Filter_param = 1 / float ( 1 + ( int ( T_DIV2_TC ) * 60 ) );
-    Pact_filtered = Pact_filtered + Filter_param * ( Pact - Pact_filtered );
-    Prouted_filtered = Prouted_filtered + Filter_param * ( Prouted - Prouted_filtered );
+    // *** Uniquement en mode Triac AUTO                                  ***
+    // *** Pour éviter le déclenchement du relais en mode Triac FORCE     ***
+    if ( triacMode == AUTOM ) {
+      Filter_param = 1 / float ( 1 + ( int ( T_DIV2_TC ) * 60 ) );
+      Pact_filtered = Pact_filtered + Filter_param * ( Pact - Pact_filtered );
+      Prouted_filtered = Prouted_filtered + Filter_param * ( Prouted - Prouted_filtered );
+    }
+    else {
+      Pact_filtered = 0;
+      Prouted_filtered = 0;
+    }
 
     // *** Déclenchement et gestion du relais secondaire de délestage     ***
     if ( ( relayMode == AUTOM ) && ( triacMode == AUTOM ) ) {
@@ -639,10 +667,11 @@ void loop ( ) {
     }                                                                 // le relais ne peut être activé (OFF)
 
     // *** Vérification de l'état du relais de délestage                  ***
-    if ( digitalRead ( relayPin ) == ON )
+    if ( digitalRead ( relayPin ) == ON ) {
       stats_error_status |= B00000100;
-    else
-      stats_error_status &= B11111011;
+      relayOnSeconds++;
+    }
+    else stats_error_status &= B11111011;
 
 
     // *** Correction de l'artefact de puissance routée maximale          ***
@@ -674,6 +703,11 @@ void loop ( ) {
       importedEnergy -= ( 3600.0 * WH_PER_INC );
       indexImported ++;
     }
+    if ( relayOnSeconds >= 0 ) {
+      relayOnSeconds -= 60;
+      indexRelayOn ++;
+    }
+    
 
     // *** Calcul des statistiques du déclenchement du TRIAC              ***
     OCR1A_avg /= OCR1A_cnt;
@@ -718,7 +752,8 @@ void loop ( ) {
     Serial.print ( F(",") );
     Serial.print ( relayMode );
     Serial.print ( F(",") );
-    if ( OCR1A_min < 255 ) {
+    if ( ( OCR1A_min < 255 ) && ( triacMode == AUTOM ) ) {   
+      // Affichage si on est en mode SSR automatique et régime de régulation (exécent PV)
       Serial.print ( float ( OCR1A_min * 0.064 ), 2 );
       Serial.print ( F(",") );
       Serial.print ( float ( OCR1A_avg * 0.064 ), 2 );
@@ -753,6 +788,8 @@ void loop ( ) {
     Serial.print ( secondsOnline );
     Serial.print ( F(",") );
     Serial.print ( stats_samples );
+    Serial.print ( F(",") );
+    Serial.print ( indexRelayOn );
     Serial.print ( F(",END#") );
 
     // *** Reset du Flag pour indiquer que les données ont été traitées   ***
@@ -881,7 +918,9 @@ void serialRequest ( void ) {
 
   // Les chaînes valides envoyées par l'ESP se terminent toujours par #
   // !! envoyer les châines avec un Serial.print et non pas un Serialprintln !
-  String incomingCommand = Serial.readStringUntil ( '#' );
+  String incomingCommand;
+  incomingCommand.reserve(32);
+  incomingCommand = Serial.readStringUntil ( '#' );
   incomingCommand.trim();
   // On teste la validité de la chaîne qui doit contenir 'END' à la fin
   if ( incomingCommand.endsWith ( F("END") ) ) {
@@ -978,7 +1017,7 @@ void serialRequest ( void ) {
       incomingCommand.replace ( F("SETPARAM,"), "" );
       incomingCommand.replace ( F(",END"), "" );
 
-      int paramNum = incomingCommand.substring ( 0, 2 ).toInt();
+      int paramNum = incomingCommand.substring ( 0, 2 ).toInt ( );
 
       if ( ( paramNum > 0) && ( paramNum <= NB_PARAM ) ) {
         int index = paramNum - 1;
@@ -1032,6 +1071,12 @@ void serialRequest ( void ) {
       if ( incomingCommand == F("STOP") )       relayMode = STOP;
       else if ( incomingCommand == F("FORCE") ) relayMode = FORCE;
       else if ( incomingCommand == F("AUTO") )  relayMode = AUTOM;
+      // Arrêt du mode relayPlus si il est en cours pour donner la priorité 
+      // au changement de mode relais
+      if ( relayplusTime >= 0 ) {
+          relayplusTime = -1;
+          Serial.print ( F("RELAYPLUSTIME,-1,END") );
+      }
       Serial.print ( F("DONE:SETRELAY,OK,") );
     }
 
@@ -1043,7 +1088,43 @@ void serialRequest ( void ) {
       if ( incomingCommand == F("STOP") )       triacMode = STOP;
       else if ( incomingCommand == F("FORCE") ) triacMode = FORCE;
       else if ( incomingCommand == F("AUTO") )  triacMode = AUTOM;
+      // Arrêt du mode BOOST si il est en cours pour donner la priorité 
+      // au changement de mode SSR
+      if ( boostTime >= 0 ) {
+          boostTime = -1;
+          Serial.print ( F("BOOSTTIME,-1,END") );
+      }
       Serial.print ( F("DONE:SETSSR,OK,") );
+    }
+
+    else if ( incomingCommand.startsWith ( F("SETBOOST") ) ) {
+      int index = 0;
+      long bT = 0;
+      int burstRatio = 100;  // rapport PWM par défaut : 100%
+
+      incomingCommand.replace ( F("SETBOOST,"), "" );
+      incomingCommand.replace ( F(",END"), "" );
+
+      bT = incomingCommand.toInt ( );
+      bT = constrain ( bT, 0, 86400 );
+      if ( ( bT != 0 ) || ( boostTime != -1 ) ) boostTime = bT;
+      index = incomingCommand.indexOf(',');
+      if ( index != -1 ) burstRatio = incomingCommand.substring ( index + 1 ).toInt ( );
+      burstRatio = constrain ( burstRatio, 10, 100 );
+      burstThreshold = int ( ( long ( BOOST_BURST_PERIOD ) * long ( burstRatio ) ) / 100 );
+      burstCnt = 0; // reset du cycle de la PWM burst
+      Serial.print ( F("DONE:SETBOOST,OK,") );
+    }
+
+    else if ( incomingCommand.startsWith ( F("SETRELAY+") ) ) {
+      long rT = 0;
+
+      incomingCommand.replace ( F("SETRELAY+,"), "" );
+      incomingCommand.replace ( F(",END"), "" );
+
+      rT = incomingCommand.toInt ( );
+      relayplusTime = constrain ( rT, 0, 86400 );
+      Serial.print ( F("DONE:SETRELAY+,OK,") );
     }
 
     else Serial.print ( F("UNKNOWN COMMAND,") );
@@ -1160,6 +1241,7 @@ void indexRead ( void ) {
   indexRouted = indexTable.routed;
   indexImported = indexTable.imported;
   indexExported = indexTable.exported;
+  indexRelayOn = indexTable.relayon;
   noInterrupts ( );
   indexImpulsion = indexTable.impulsion;
   interrupts ( );
@@ -1176,6 +1258,7 @@ void indexWrite ( void ) {
   indexTable.routed = indexRouted;
   indexTable.imported = indexImported;
   indexTable.exported = indexExported;
+  indexTable.relayon = indexRelayOn; 
   noInterrupts ( );
   indexTable.impulsion = indexImpulsion;
   interrupts ( );
@@ -1206,7 +1289,7 @@ void upTime ( void ) {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // PVRScheduler                                                                      //
-// Fonction Scheduler                                                                //
+// Fonction Scheduler appelée chque seconde                                          //
 ///////////////////////////////////////////////////////////////////////////////////////
 void PVRScheduler ( void ) {
   static unsigned long  lastDeltaTimeImpulsion = 0;
@@ -1228,6 +1311,20 @@ void PVRScheduler ( void ) {
   }
 #endif
 
+  //*** Toutes les 30 secondes , envoi du temps BOOST restant                            ***
+  if ( ( secondsOnline % 30 )  == 17 ) {
+    Serial.print ( F("BOOSTTIME,") );
+    Serial.print ( boostTime );
+    Serial.print ( F(",END#") );
+  }
+
+  //*** Toutes les 30 secondes , envoi du temps relayPlus restant                        ***
+  if ( ( secondsOnline % 30 )  == 19 ) {
+    Serial.print ( F("RELAYPLUSTIME,") );
+    Serial.print ( relayplusTime );
+    Serial.print ( F(",END#") );
+  }
+
   //*** Toutes les 2 secondes : Calcul de la puissance relative à la mesure d'impulsion  ***
   //*** Calcul en 'impulsion par heure'                                                  ***
   if ( ( secondsOnline % 2 ) == 0 ) {
@@ -1246,6 +1343,33 @@ void PVRScheduler ( void ) {
       if ( impulsionFlag ) Pimpulsion = ( 3600000.0 / float ( deltaTimeImpulsion_tmp ) );
       else impulsionFlag = true;
     }
+  }
+
+  //*** Toutes les secondes : Traitement du mode BOOST
+  if (boostTime == 0) {
+    boostTime--;
+    triacMode = AUTOM;
+    // Envoi immédiat de la fin du mode Boost
+    Serial.print ( F("BOOSTTIME,-1,END") );
+  }
+  else if (boostTime > 0) {
+    if ( burstCnt <= burstThreshold ) triacMode = FORCE;
+    else triacMode = STOP;
+    boostTime--;
+    burstCnt++;
+    burstCnt %= BOOST_BURST_PERIOD;
+  }
+
+  //*** Toutes les secondes : Traitement du mode relayPlus
+  if (relayplusTime == 0) {
+    relayplusTime--;
+    relayMode = AUTOM;
+    // Envoi immédiat de la fin du mode relayPlus
+    Serial.print ( F("RELAYPLUSTIME,-1,END") );
+  }
+  else if (relayplusTime > 0) {
+    relayplusTime--;
+    relayMode = FORCE;
   }
 }
 
@@ -1517,10 +1641,15 @@ void zeroCrossingInterrupt ( void ) {
   }
 
   else if ( ( present_time - last_time ) > 8000 ) {
-    // *** PASSAGE PAR ZERO - ON A TERMINE UNE DEMI PERIODE ***
+    // *** PASSAGE PAR ZERO DETECTE - ON A TERMINE UNE DEMI PERIODE ***
     // gestion de l'antirebond du passage à 0 en calculant de temps
     // entre 2 passages à 0 qui doivent être séparés de 8 ms au moins
-    if ( triacMode == FORCE ) TRIAC_ON; else TRIAC_OFF;
+
+    // Si on est en mode SSR FORCE, on active immédiatement le SSR
+    // Sinon on arrête le SSR (mode AUTOM ou STOP)
+    if ( triacMode == FORCE ) TRIAC_ON;
+    else TRIAC_OFF;
+
     TCCR1B = 0x00;                        // arrêt du Timer par sécurité
     TCNT1  = 0x00;                        // on remet le compteur à 0 par sécurité
     TCCR1B = 0x05;                        // on démarre le Timer par pas de 64 us
@@ -1566,17 +1695,26 @@ void zeroCrossingInterrupt ( void ) {
         controlCommand = 255;                                   // Pleine puissance
         controlIntegral -= controlError;                        // gel de l'accumulation de l'intégrale, fonction anti integral windup
       }
-      // *** Régime linéaire de régulation : initialisation du comparateur de CNT1
+      // *** Régime linéaire de régulation (ou SSR max) : initialisation du comparateur de CNT1
       // *** pour le déclenchement du SSR/TRIAC géré par interruptions Timer1
+      // par conséquent, si OCR1A garde sa valeur d'initialisation à 30000 : on n'est pas en régulation linéaire
       OCR1A = energyToDelay [ byte ( controlCommand ) ];
     }
 
-    // si on n'est pas en mode automatique, on gèle la commande routage (==> arrêt Timer et pas d'accumulation de puissance routée)
-    // mais on a quand même fait auparavant les calculs de régulation
-    if ( triacMode != AUTOM ) {
+    // si on n'est pas en mode automatique, on gèle la commande routage par arrêt du Timer
+    // mais on a quand même fait auparavant les calculs de régulation.
+    // on réaffecte controlCommand pour l'accumulation de la puissance délivrée réellement par le SSR
+    // qui servira à l'affichage de la puissance routée et de l'index de routage
+    if ( triacMode == STOP ) {
       TCCR1B = 0;
       TCNT1  = 0;
       controlCommand = 0;
+    }
+    else if ( triacMode == FORCE ) {
+      TCCR1B = 0;
+      TCNT1  = 0;
+      controlCommand = 255;
+      // Note : en mode FORCE, le triac a été déclenché précédemment avant le calcul de la régulation
     }
 
     // Calcul pour les statistiques

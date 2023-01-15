@@ -1,6 +1,6 @@
 {
-  "ecopvver" : "3.31",
-  "maxpvver" : "3.35",
-  "webver" : "3.35",
-  "whatsnew" : "Nouveautés : MQTT amélioré pour Home Assistant.<br>Ajout d'un mode sombre automatique dans l'interface Web.<br>Correction de bugs mineurs."
+  "ecopvver" : "3.5",
+  "maxpvver" : "3.5",
+  "webver" : "3.5",
+  "whatsnew" : "Nouveautés : Correction des bugs et amélioration du fonctionnement.<br>Ajout d'un index du temps de fonctionnement du relais.<br>Amélioration de l'interface Web.<br>Watchdog sur la connexion Wifi.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br><br>"
 }

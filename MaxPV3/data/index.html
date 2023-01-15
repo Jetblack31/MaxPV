@@ -13,12 +13,11 @@
   <link href="maxpv.css" rel="stylesheet">
 </head>
 
-<body onload="fillRadioMode ( )">
+<body>
 
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">MaxPV!</a>
-      <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
         aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -55,77 +54,52 @@
     <div class="bg-light p-5 rounded">
       <h1>Moniteur</h1>
       <p class="lead">
-      <h4>Mode et état des sorties</h4>
+      <h4>Mode de fonctionnement</h4>
       </p>
       <table class="table text-center align-middle">
         <tbody>
           <tr>
             <td scope="col">
               <h4>
-                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR : ----</span>
+                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR ----</span>
               </h4>
             </td>
             <td scope="col">
               <h4>
-                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais : ----</span>
+                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais ----</span>
               </h4>
             </td>
-          </tr>
-          <tr>
-            <td>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="ssrmode" id="ssrforce"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="ssrforce">
-                  FORCE
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="ssrmode" id="ssrauto"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="ssrauto">
-                  AUTO
-                </label>
-              </div>
-              <div class="form-check">
-                <input class="form-check-input" type="radio" name="ssrmode" id="ssrstop"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="ssrstop">
-                  STOP
-                </label>
-              </div>
-            </td>
-            <td>
-              <div class="form-check-reverse text-center">
-                <input class="form-check-input" type="radio" name="relaymode" id="relayforce"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="relayforce">
-                  FORCE
-                </label>
-              </div>
-              <div class="form-check-reverse text-center">
-                <input class="form-check-input" type="radio" name="relaymode" id="relayauto"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="relayauto">
-                  AUTO
-                </label>
-              </div>
-              <div class="form-check-reverse text-center">
-                <input class="form-check-input" type="radio" name="relaymode" id="relaystop"
-                  onclick="sendMode (name, this)">
-                <label class="form-check-label" for="relaystop">
-                  STOP
-                </label>
-              </div>
+            <td scope="col">
+              <h4>
+                <span class="badge rounded-pill text-bg-warning" id="booststate">Boost ----</span>
+              </h4>
             </td>
           </tr>
         </tbody>
       </table>
-      <div class="d-grid gap-2">
-        <button class="btn btn-primary" type="submit" onclick="sendAction ( 'booston', this )">Marche SSR en mode BOOST</button>
-        <button class="btn btn-primary" type="submit" onclick="sendAction ( 'boostoff', this  )">Arrêt du mode BOOST</button>
-      </div>
-      <p class="lead">
+
+      <div>
+        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Boost</button>
+        <button class="btn btn-outline-primary col-2" type="submit" onclick="sendAction ( 'boostoff', this )">OFF</button>
+        <button class="btn btn-outline-danger col-2" type="submit" onclick="sendAction ( 'booston', this )">ON</button>
+    </div>
+    <br>
+    <div>
+        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">SSR</button>
+        <button class="btn btn-outline-primary col-2" type="submit" name="ssrmode" id="ssrstop" onclick="sendMode (name, this)">STOP</button>
+        <button class="btn btn-outline-success col-3" type="submit" name="ssrmode" id="ssrauto" onclick="sendMode (name, this)">AUTO</button>
+        <button class="btn btn-outline-danger col-3" type="submit" name="ssrmode" id="ssrforce" onclick="sendMode (name, this)">FORCE</button>
+    </div>
+    <br>
+    <div>
+        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Relais</button>
+        <button class="btn btn-outline-primary col-2" type="submit" name="relaymode" id="relaystop" onclick="sendMode (name, this)">STOP</button>
+        <button class="btn btn-outline-success col-3" type="submit" name="relaymode" id="relayauto" onclick="sendMode (name, this)">AUTO</button>
+        <button class="btn btn-outline-danger col-3" type="submit" name="relaymode" id="relayforce" onclick="sendMode (name, this)">FORCE</button>
+    </div>
+    <br>
+    
+<p class="lead">
       <h4>Valeurs courantes</h4>
       </p>
       <table class="table table-hover">
@@ -202,6 +176,11 @@
             <td class="text-center"><span id="indeximpulsionJ">-----</span></td>
             <td class="text-center">kWh</td>
           </tr>
+          <tr>
+            <th scope="row">Durée relais On</th>
+            <td class="text-center"><span id="indexrelayJ">-----</span></td>
+            <td class="text-center">min.</td>
+          </tr>
         </tbody>
 
         <thead>
@@ -231,6 +210,11 @@
             <th scope="row">Energie produite</th>
             <td class="text-center"><span id="indeximpulsion">-----</span></td>
             <td class="text-center">kWh</td>
+          </tr>
+          <tr>
+            <th scope="row">Durée relais On</th>
+            <td class="text-center"><span id="indexrelay">-----</span></td>
+            <td class="text-center">min.</td>
           </tr>
         </tbody>
 
@@ -312,6 +296,7 @@
           document.getElementById("indeximport").innerHTML = config[9];
           document.getElementById("indexexport").innerHTML = config[10];
           document.getElementById("indeximpulsion").innerHTML = config[11];
+          document.getElementById("indexrelay").innerHTML = config[22];
           document.getElementById("pimpulsion").innerHTML = config[12];
           document.getElementById("dmin").innerHTML = config[15];
           document.getElementById("davg").innerHTML = config[16];
@@ -320,10 +305,11 @@
           document.getElementById("status").innerHTML = config[19];
           document.getElementById("ontime").innerHTML = config[20];
           document.getElementById("sample").innerHTML = config[21];
-          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[22]) ).toFixed(3).toString();
-          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[23]) ).toFixed(3).toString();
-          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[24]) ).toFixed(3).toString();
-          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[25]) ).toFixed(3).toString();
+          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[23]) ).toFixed(3).toString();
+          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[24]) ).toFixed(3).toString();
+          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[25]) ).toFixed(3).toString();
+          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[26]) ).toFixed(3).toString();
+          document.getElementById("indexrelayJ").innerHTML = (parseInt( config[22], 10 ) - parseInt( config[27], 10 ) ).toString();
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);
@@ -332,7 +318,7 @@
       xhttp2.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          result = "SSR : " + result;
+          result = "SSR " + result;
           document.getElementById("ssrstate").innerHTML = result;
         }
       };
@@ -342,7 +328,7 @@
       xhttp3.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          result = "Relais : " + result;
+          result = "Relais " + result;
           document.getElementById("relaystate").innerHTML = result;
         }
       };
@@ -361,21 +347,14 @@
       xhttp5.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          if (result == "running") {
-            document.getElementById("ecopvstate").innerHTML = "Routeur running";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
-          }
-          else {
-            document.getElementById("ecopvstate").innerHTML = "Routeur offline";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
-          }
+          result = "Boost " + result;
+          document.getElementById("booststate").innerHTML = result;
         }
       };
-      xhttp5.open("GET", "api/get?ping", true);
+      xhttp5.open("GET", "api/get?booststate", true);
       xhttp5.send();
 
     }, 1000);
-
 
     function sendMode(name, ele) {
       var xhttp = new XMLHttpRequest();
@@ -386,34 +365,6 @@
       xhttp.open("GET", args, true);
       xhttp.send();
       ele.blur();
-    }
-
-
-    function fillRadioMode() {
-      var xhttp1 = new XMLHttpRequest();
-      var xhttp2 = new XMLHttpRequest();
-
-      xhttp1.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          if (result == "FORCE") document.getElementById("ssrforce").checked = true;
-          else if (result == "STOP") document.getElementById("ssrstop").checked = true;
-          else document.getElementById("ssrauto").checked = true;
-        }
-      };
-      xhttp1.open("GET", "api/get?ssrstate", true);
-      xhttp1.send();
-
-      xhttp2.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          if (result == "FORCE") document.getElementById("relayforce").checked = true;
-          else if (result == "STOP") document.getElementById("relaystop").checked = true;
-          else document.getElementById("relayauto").checked = true;
-        }
-      };
-      xhttp2.open("GET", "api/get?relaystate", true);
-      xhttp2.send();
     }
 
     function sendAction(action, ele) {
