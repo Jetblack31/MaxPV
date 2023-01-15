@@ -82,7 +82,6 @@
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">MaxPV!</a>
-      <span class="badge rounded-pill text-bg-warning" id="ecopvstate">Routeur</span>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
         aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -122,12 +121,17 @@
           <tr>
             <td scope="col">
               <h4>
-                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR : ----</span>
+                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR ----</span>
               </h4>
             </td>
             <td scope="col">
               <h4>
-                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais : ----</span>
+                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais ----</span>
+              </h4>
+            </td>
+            <td scope="col">
+              <h4>
+                <span class="badge rounded-pill text-bg-warning" id="booststate">Boost ----</span>
               </h4>
             </td>
           </tr>
@@ -852,7 +856,7 @@
       xhttp2.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          result = "SSR : " + result;
+          result = "SSR " + result;
           document.getElementById("ssrstate").innerHTML = result;
         }
       };
@@ -862,7 +866,7 @@
       xhttp3.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          result = "Relais : " + result;
+          result = "Relais " + result;
           document.getElementById("relaystate").innerHTML = result;
         }
       };
@@ -872,17 +876,11 @@
       xhttp5.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
           var result = this.responseText;
-          if (result == "running") {
-            document.getElementById("ecopvstate").innerHTML = "Routeur running";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-success";
-          }
-          else {
-            document.getElementById("ecopvstate").innerHTML = "Routeur offline";
-            document.getElementById("ecopvstate").className = "badge rounded-pill text-bg-warning";
-          }
+          result = "Boost " + result;
+          document.getElementById("booststate").innerHTML = result;
         }
       };
-      xhttp5.open("GET", "api/get?ping", true);
+      xhttp5.open("GET", "api/get?booststate", true);
       xhttp5.send();
 
     }, 1000);
