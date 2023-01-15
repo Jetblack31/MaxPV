@@ -52,7 +52,7 @@
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
 #define DEFAULT_GW          "192.168.1.1"
-#define DEFAULT_SN          "255.255.255.1"
+#define DEFAULT_SN          "255.255.255.0"
 #define DEFAULT_DNS1        "192.168.1.1"
 #define DEFAULT_DNS2        "8.8.8.8"
 
