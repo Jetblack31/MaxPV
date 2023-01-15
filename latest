@@ -2,5 +2,5 @@
   "ecopvver" : "3.5",
   "maxpvver" : "3.5",
   "webver" : "3.5",
-  "whatsnew" : "Nouveautés : Correction des bugs et amélioration du fonctionnement.<br>Ajout d'un index du temps de fonctionnement du relais.<br>Amélioration de l'interface Web.<br>Watchdog sur la connexion Wifi.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br><br>"
+  "whatsnew" : "Nouveautés : Correction des bugs et amélioration du fonctionnement.<br> amélioration du mode BOOST.<br>Ajout d'un index du temps de fonctionnement du relais.<br>Amélioration de l'interface Web.<br>Watchdog sur la connexion Wifi.<br>Log et debug du Wemos sur la liaison MQTT.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br><br>"
 }
