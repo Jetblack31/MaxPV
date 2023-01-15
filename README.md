@@ -17,19 +17,16 @@ La lecture de ces fils de discussion est plus que recommandée pour la mise en o
 Les programmes et les schémas proposés ont une vocation informative et pédagogique. Ils ont été testés avec succès par les auteurs. Cependant les auteurs de ces programmes et de ces schémas déclinent toute responsabilité. Les auteurs ne pourraient être tenus pour responsables du fonctionnement et des conséquences de l'utilisation des programmes et des schémas mis à disposition.  
 Intervenir sur des circuits électriques est dangereux et nécessite le recours à une personne qualifiée et le respect strict des normes de sécurité et de protection en vigueur.
 
-## Caractérisitiques de MaxPV! et changements par rapport à EcoPV
-* Même qualité de routage du surplus photovoltaïque.
-* Abandon de l'option de communication MySensors.
-* Abandon de l'utilisation du shield ethernet. Toutefois, celui-ci peut rester en place sur le circuit mais il ne sera plus utilisé.
+## Caractérisitiques de MaxPV!
+* Même qualité de routage du surplus photovoltaïque que EcoPV.
 * Interface web responsive avec visualisation graphique des données.
-* Support pour MQTT et autodiscovery Home Assistant
+* Support pour MQTT et autodiscovery Home Assistant.
 * Installation et paramétrage réseau facilitée.
 * Mise à jour du Wemos en OTA.
 * Assistant de configuration des paramètres du routeur.
-* Amélioration des index de comptage de la puissance.
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut).
 * Mode Boost sur SSR pour complément de chauffe
-* Nouvelle API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
+* API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
@@ -37,7 +34,7 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 
 # Installation
 ## Pré-requis
-L'installation de MaxPV! sur votre routeur EcoPV se fait par reprogrammation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
+L'installation de MaxPV! se fait par programmation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
 Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
 ## Programmation de l'Arduino Nano
