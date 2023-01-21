@@ -489,6 +489,7 @@
           var config = this.responseText.split(",");
           EcoPV_p_calib = 1.0 * config[1];
           EcoPV_p_offset = 1.0 * config[3];
+          document.getElementById('phase_calib').value = config[2];
           document.getElementById('p_resistance').value = config[4];
           document.getElementById('p_installpv').value = config[15];
           document.getElementById('cnt_calib').value = config[14];
