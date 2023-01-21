@@ -116,27 +116,7 @@
 
   <main class="container-fluid">
     <div class="bg-light p-5 rounded">
-      <table class="table text-center align-middle">
-        <tbody>
-          <tr>
-            <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR ----</span>
-              </h4>
-            </td>
-            <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais ----</span>
-              </h4>
-            </td>
-            <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="booststate">Boost ----</span>
-              </h4>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <h1>Graphiques</h1>
       <div class="accordion accordion-flush" id="accordionFlushExample">
         <div class="accordion-item">
           <h2 class="accordion-header" id="flush-headingOne">
@@ -845,43 +825,6 @@
 
       xhttp1.open("GET", "api/get?alldata", true);
       xhttp1.send();
-
-    }, 1000);
-
-    setInterval(function () {
-      var xhttp2 = new XMLHttpRequest();
-      var xhttp3 = new XMLHttpRequest();
-      var xhttp5 = new XMLHttpRequest();
-
-      xhttp2.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "SSR " + result;
-          document.getElementById("ssrstate").innerHTML = result;
-        }
-      };
-      xhttp2.open("GET", "api/get?ssrstate", true);
-      xhttp2.send();
-
-      xhttp3.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "Relais " + result;
-          document.getElementById("relaystate").innerHTML = result;
-        }
-      };
-      xhttp3.open("GET", "api/get?relaystate", true);
-      xhttp3.send();
-
-      xhttp5.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-          var result = this.responseText;
-          result = "Boost " + result;
-          document.getElementById("booststate").innerHTML = result;
-        }
-      };
-      xhttp5.open("GET", "api/get?booststate", true);
-      xhttp5.send();
 
     }, 1000);
 

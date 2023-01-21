@@ -223,6 +223,8 @@ void setup()
   File              configFile;
   boolean           APmode = true;
   String            msg;
+  unsigned long     refTime = millis();
+
 
   msg.reserve(32);
 
@@ -392,35 +394,40 @@ void setup()
   logMqtt ( F("[328]"), F("Connexion à l'Arduino configurée, en attente d'un contact") ); 
   delay(5); 
   clearSerialInputCache();
-  while (!serialProcess()) { delay (100); }
+  refTime = millis();
+  contactEcoPV = false;
+  while (( (millis()-refTime) <= 3000 ) && (!contactEcoPV) ) serialProcess();
   delay(5);
-  logMqtt ( F("[328]"), F("Contact établi") ); 
-  contactEcoPV = true;
-  delay(5);
+  if (contactEcoPV) {
+    logMqtt ( F("[328]"), F("Contact établi") ); 
+    delay(5);
+    // Premier peuplement des informations de configuration de EcoPV
+    logMqtt ( F("[328]"), F("Récupération des informations") ); 
+    clearSerialInputCache();
+    getAllParamEcoPV();
+    delay(50);
+    while (!serialProcess()) { delay (10); }
+    delay(5);
+    clearSerialInputCache();
+    delay(5);
+    getVersionEcoPV();
+    delay(50);
+    while (!serialProcess()) { delay (10); }
+    delay(5);
+    clearSerialInputCache();
+    // Récupération des informations de fonctionnement
+    // En moins d'une seconde EcoPV devrait envoyer les informations
+    while (!serialProcess()) { delay (10); }
+    delay(5);
+    logMqtt ( F("[328]"), F("Informations récupérées") ); 
+    msg = F("Version EcoPV : ");
+    msg += ecoPVConfig[ECOPV_VERSION];
+    logMqtt ( F("[328]"), msg ); 
+    delay(5);
+  }
+  
+  else logMqtt ( F("[328]"), F("Pas de contact avec l'Arduino, poursuite du démarrage") ); 
 
-  // Premier peuplement des informations de configuration de EcoPV
-  logMqtt ( F("[328]"), F("Récupération des informations") ); 
-  clearSerialInputCache();
-  getAllParamEcoPV();
-  delay(50);
-  while (!serialProcess()) { delay (10); }
-  delay(5);
-  clearSerialInputCache();
-  delay(5);
-  getVersionEcoPV();
-  delay(50);
-  while (!serialProcess()) { delay (10); }
-  delay(5);
-  clearSerialInputCache();
-  // Récupération des informations de fonctionnement
-  // En moins d'une seconde EcoPV devrait envoyer les informations
-  while (!serialProcess()) { delay (10); }
-  delay(5);
-  logMqtt ( F("[328]"), F("Informations récupérées") ); 
-  msg = F("Version EcoPV : ");
-  msg += ecoPVConfig[ECOPV_VERSION];
-  logMqtt ( F("[328]"), msg ); 
-  delay(5);
 
 /*
   // Configuration des sorties de l'Arduino Nano en mode AUTOM par défaut
@@ -440,11 +447,7 @@ void setup()
   initHistoric();
   delay(5);
   recordHistoricData();
-  delay(50);
-
-  // Transmission des informations de fonctionnement
-  espTransmitInfos (); 
-  delay (200);
+  delay(5);
 
   // Transmission des informations de fonctionnement
   espTransmitInfos (); 
@@ -461,6 +464,7 @@ void setup()
  
   logMqtt ( F("[ESP]"), F("Démarrage serveur Web") );
   startWeb();
+  delay(50);
 
   // Transmission des informations de fonctionnement
   espTransmitInfos (); 
@@ -497,13 +501,13 @@ void loop()
   yield();
 
   ts.update();
+
   yield();
 
 #if defined (MAXPV_FTP_SERVER)
   ftpSrv.handleFTP();
   yield(); 
 #endif
-
 
 
   // ***   Actions sur Flag   ***
@@ -548,13 +552,10 @@ void loop()
     shouldExecuteTimeScheduler = false;
   }
 
- if ((!mqttClient.connected ()) && (mqttActive == ON)) startMqtt();
-
   yield();
 
   if ( (millis() - refTime) >= 100 ) logMqtt ( F("[WARNING LOOP TIME]"), String (millis() - refTime) );
 
-  delay (5);
 }
 
 
@@ -914,10 +915,9 @@ bool serialProcess(void)
     }
     return true;
   }
-  
   else
   {
-    logMqtt ( F("[328]"), F("Transmission invalide") ); 
+    //logMqtt ( F("[328]"), F("Transmission invalide") ); 
     return false;
   }
 }
