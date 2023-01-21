@@ -53,59 +53,27 @@
   <main class="container-fluid">
     <div class="bg-light p-5 rounded">
       <h1>Moniteur</h1>
-      <p class="lead">
-      <h4>Mode de fonctionnement</h4>
-      </p>
       <table class="table text-center align-middle">
         <tbody>
           <tr>
             <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="ssrstate">SSR ----</span>
-              </h4>
+                <button class="btn btn-warning col-12" id="booststate" type="submit" disabled onclick="this.blur()">Boost ---</button>
             </td>
             <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="relaystate">Relais ----</span>
-              </h4>
+                <button class="btn btn-warning col-12" id="ssrstate" type="submit" disabled onclick="this.blur()">SSR ---</button>
             </td>
             <td scope="col">
-              <h4>
-                <span class="badge rounded-pill text-bg-warning" id="booststate">Boost ----</span>
-              </h4>
+                <button class="btn btn-warning col-12" id="relaystate" type="submit" disabled onclick="this.blur()">Relais ---</button>
             </td>
           </tr>
         </tbody>
-      </table>
-
-      <div>
-        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Boost</button>
-        <button class="btn btn-outline-primary col-2" type="submit" onclick="sendAction ( 'boostoff', this )">OFF</button>
-        <button class="btn btn-outline-danger col-2" type="submit" onclick="sendAction ( 'booston', this )">ON</button>
-    </div>
-    <br>
-    <div>
-        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">SSR</button>
-        <button class="btn btn-outline-primary col-2" type="submit" name="ssrmode" id="ssrstop" onclick="sendMode (name, this)">STOP</button>
-        <button class="btn btn-outline-success col-3" type="submit" name="ssrmode" id="ssrauto" onclick="sendMode (name, this)">AUTO</button>
-        <button class="btn btn-outline-danger col-3" type="submit" name="ssrmode" id="ssrforce" onclick="sendMode (name, this)">FORCE</button>
-    </div>
-    <br>
-    <div>
-        <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Relais</button>
-        <button class="btn btn-outline-primary col-2" type="submit" name="relaymode" id="relaystop" onclick="sendMode (name, this)">STOP</button>
-        <button class="btn btn-outline-success col-3" type="submit" name="relaymode" id="relayauto" onclick="sendMode (name, this)">AUTO</button>
-        <button class="btn btn-outline-danger col-3" type="submit" name="relaymode" id="relayforce" onclick="sendMode (name, this)">FORCE</button>
-    </div>
-    <br>
-    
+      </table>    
 <p class="lead">
-      <h4>Valeurs courantes</h4>
       </p>
       <table class="table table-hover">
         <thead>
           <tr class="table-primary">
-            <th scope="col">Paramètre</th>
+            <th scope="col">Paramètres</th>
             <th scope="col" class="text-center">Valeur</th>
             <th scope="col" class="text-center">Unité</th>
           </tr>

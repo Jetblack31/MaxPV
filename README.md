@@ -126,6 +126,13 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.51** - 21/01/2023
+* Prise en compte de l'énergie routée en mode FORCE selon une option de compilation du programme Arduino Nano
+* Amélioration de la gestion de l'écran Oled.
+* Correction d'un effet de bord en cas de demande de redémarrage de l'Arduino Nano.
+* Amélioration du site Web. Retour d'état des boutons en page d'accueil.
+* L'absence de réponse de l'Arduino Nano n'est plus bloquante pour le démarrage du Wemos et du site Web.
+* Corrections diverses.
 ### **V 3.5** - 15/01/2023
 * Réorganisation du code MaxPV!. Fonctionnement à 160 MHz au lieu de 80 MHz. Optimisation de l'utilisation mémoire et de la vitesse de fonctionnement.
 * Suppression de l'accès TELNET. Accès FTP possible en option de compilation.

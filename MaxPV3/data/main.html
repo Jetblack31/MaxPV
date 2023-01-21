@@ -57,31 +57,29 @@
             <p class="lead">
             <h4></h4>
             <span id="livemsg"><br></span>
-            <span class="text-warning" id="ecopvstate">Connexion au routeur...<br><br></span>
-            </p>
+            <span class="text-warning" id="ecopvstate">Connexion à l'Arduino Nano...<br><br></span>
 
-            <h1>Accès rapide</h1>
-            <p class="lead">
-            <h4></h4>
             <div>
-                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Boost</button>
+                <button class="btn btn-dark col-3" id="btnboost" type="submit" disabled onclick="this.blur()">Boost</button>
                 <button class="btn btn-outline-primary col-2" type="submit" onclick="sendAction ( 'boostoff', this )">OFF</button>
-                <button class="btn btn-outline-danger col-2" type="submit" onclick="sendAction ( 'booston', this )">ON</button>
+                <button class="btn btn-outline-danger col-3" type="submit" onclick="sendAction ( 'booston', this )">ON</button>
             </div>
             <br>
             <div>
-                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">SSR</button>
+                <button class="btn btn-dark col-3" id="btnssr" type="submit" disabled onclick="this.blur()">SSR</button>
                 <button class="btn btn-outline-primary col-2" type="submit" name="ssrmode" id="ssrstop" onclick="sendMode (name, this)">STOP</button>
                 <button class="btn btn-outline-success col-3" type="submit" name="ssrmode" id="ssrauto" onclick="sendMode (name, this)">AUTO</button>
                 <button class="btn btn-outline-danger col-3" type="submit" name="ssrmode" id="ssrforce" onclick="sendMode (name, this)">FORCE</button>
             </div>
             <br>
             <div>
-                <button class="btn btn-dark col-3" type="submit" disabled onclick="this.blur()">Relais</button>
+                <button class="btn btn-dark col-3" id="btnrelay" type="submit" disabled onclick="this.blur()">Relais</button>
                 <button class="btn btn-outline-primary col-2" type="submit" name="relaymode" id="relaystop" onclick="sendMode (name, this)">STOP</button>
                 <button class="btn btn-outline-success col-3" type="submit" name="relaymode" id="relayauto" onclick="sendMode (name, this)">AUTO</button>
                 <button class="btn btn-outline-danger col-3" type="submit" name="relaymode" id="relayforce" onclick="sendMode (name, this)">FORCE</button>
             </div>
+            <br>
+            <span>L'actualisation des états après modification peut prendre quelques secondes.</span>
             </p>
             
             <div>
@@ -184,9 +182,15 @@
         }
 
         setInterval(function () {
+            var xhttp1 = new XMLHttpRequest();
+            var xhttp2 = new XMLHttpRequest();
+            var xhttp3 = new XMLHttpRequest();
             var xhttp5 = new XMLHttpRequest();
+            var resultSSR;
+            var resultRelay;
+            var resultBoost;
 
-            xhttp5.onreadystatechange = function () {
+            xhttp1.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     var result = this.responseText;
                     if (result == "running") {
@@ -194,15 +198,47 @@
                         document.getElementById("ecopvstate").className = "text-success";
                     }
                     else {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur injoignable<br><br>";
+                        document.getElementById("ecopvstate").innerHTML = "Arduino Nano injoignable, état de fonctionnement inconnu<br><br>";
                         document.getElementById("ecopvstate").className = "text-danger";
                     }
                 }
             };
-            xhttp5.open("GET", "api/get?ping", true);
+            xhttp1.open("GET", "api/get?ping", true);
+            xhttp1.send();
+
+            xhttp2.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                resultSSR = this.responseText;
+                if (resultSSR == "FORCE") document.getElementById("btnssr").className = "btn btn-danger col-3";
+                else if (resultSSR == "STOP") document.getElementById("btnssr").className = "btn btn-primary col-3";
+                else document.getElementById("btnssr").className = "btn btn-success col-3";
+                }
+            };
+            xhttp2.open("GET", "api/get?ssrstate", true);
+            xhttp2.send();
+
+            xhttp3.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                resultRelay = this.responseText;
+                if (resultRelay == "FORCE") document.getElementById("btnrelay").className = "btn btn-danger col-3";
+                else if (resultRelay == "STOP") document.getElementById("btnrelay").className = "btn btn-primary col-3";
+                else document.getElementById("btnrelay").className = "btn btn-success col-3";
+                }
+            };
+            xhttp3.open("GET", "api/get?relaystate", true);
+            xhttp3.send();
+
+            xhttp5.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                resultBoost = this.responseText;
+                if (resultBoost == "ON") document.getElementById("btnboost").className = "btn btn-danger col-3";
+                else document.getElementById("btnboost").className = "btn btn-primary col-3";
+                }
+            };
+            xhttp5.open("GET", "api/get?booststate", true);
             xhttp5.send();
 
-        }, 1507);
+        }, 1007);
 
         function sendAction(action, ele) {
             var xhttp = new XMLHttpRequest();

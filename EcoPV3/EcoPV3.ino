@@ -56,6 +56,21 @@
 // *** Note : ne pas oublier de placer un résistance de pull-up de 10 kohms
 // *** sur les lignes SDA et SCK
 
+
+// ***********************************************************************************
+// ****************** Configuration de l'accumulation                  ***************
+// ****************** de l'énergie routée                              ***************
+// ***********************************************************************************
+
+#define ACC_FORCE_ENERGY    true
+
+// *** ACC_FORCE_ENERGY peut être true ou false 
+//     false : le compteur d'énergie routée accumule uniquement l'énergie routée en cas
+//     de surplus de production PV
+//     true : le compteur d'énergie routée accumule l'énergie délivrée par le SSR
+//     en cas de routage d'excédent PV, en mode FORCE et en mode BOOST
+
+
 // ***********************************************************************************
 // ******************        FIN DES OPTIONS DE COMPILATION            ***************
 // ***********************************************************************************
@@ -69,7 +84,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION           "3.5"       // Version logicielle
+#define VERSION          "3.51"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -191,10 +206,10 @@ byte  T_DIV2_TC     =       1;         // Constante de temps de moyennage des pu
 // P_DIV2_ACTIVE + P_DIV2_IDLE > à la puissance de la charge de délestage secondaire
 
 // ************* Calibration du compteur à impulsion | conversion nombre de Wh par impulsion (valeur par défaut)
-float CNT_CALIB     =       1.0;         // En Wh par impulsion externe
+float CNT_CALIB     =       1.0;       // En Wh par impulsion externe
 
 // ************* Puissance de l'installation PV (valeurs par défaut)
-int   P_INSTALLPV   =     3000;          // Valeur en Wc de la puissance de l'installation PV | production max (valeur par défaut)
+int   P_INSTALLPV   =    3000;         // Valeur en Wc de la puissance de l'installation PV | production max (valeur par défaut)
 
 // ***********************************************************************************************************************
 // energyToDelay [ ] = Tableau du retard de déclenchement du SSR/TRIAC en fonction du routage de puissance désiré.
@@ -366,6 +381,8 @@ byte                   ledBlink         = 0;        // séquenceur de clignoteme
 byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
 byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
 
+bool                   hasRestarted     = false;    // flag indiquant que le routeur a redémarré                
+
 // ***********************************************************************************
 // ************* Variables pour la gestion du mode BOOST                 *************
 // ***********************************************************************************
@@ -428,15 +445,13 @@ struct indexEeprom {
 // *** OLED_128X64 utilise les pins A4 et A5
 // *** pour la connexion I2C de l'écran
 #if defined (OLED_128X64)
-
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiAvrI2c.h"
 
-#define I2C_ADDRESS 0x3C                    // adresse I2C de l'écran oled
-#define OLED_128X64_REFRESH_PERIOD  6       // période de raffraichissement des données à l'écran en secondes
+#define I2C_ADDRESS                   0x3C       // adresse I2C de l'écran oled
+#define OLED_128X64_REFRESH_PERIOD       6       // période de raffraichissement des données à l'écran en secondes
 
-SSD1306AsciiAvrI2c oled;
-
+SSD1306AsciiAvrI2c      oled;
 #endif
 
 
@@ -490,12 +505,7 @@ void setup ( ) {
 #if defined (OLED_128X64)
   oled.begin( &Adafruit128x64, I2C_ADDRESS );
   oled.setFont ( System5x7 );
-  oled.clear ( );
-  oled.set2X ( );
-  oled.print ( F("MaxPV! ") );
-  oled.println ( F(VERSION) );
-  oled.println ( );
-  oled.println ( F("Starting...") );
+  oLedPrint ( 9 );
 #endif
 
   // Chargement de la configuration EEPROM si existante
@@ -514,12 +524,7 @@ void setup ( ) {
   startPVR ( );
 
 #if defined (OLED_128X64)
-  oled.clear ( );
-  oled.set2X ( );
-  oled.print ( F("MaxPV V") );
-  oled.println ( F(VERSION) );
-  oled.println ( );
-  oled.println ( F("Running !") );
+  oLedPrint ( 10 );
 #endif
 }
 
@@ -559,8 +564,6 @@ void loop ( ) {
   long                 indexImpulsionTemp = 0;
   byte                 i = 0;
 
-  // *** Si on est en warm-up après un reset, on initialise refTime
-  if ( coldStart > 0) refTime = millis ( );
   // *** Vérification perte longue de synchronisation secteur
   if ( ( millis ( ) - refTime ) > 2010 ) {
     // Absence de remontée d'informations depuis plus de 2 secondes = absence de synchronisation secteur
@@ -687,7 +690,7 @@ void loop ( ) {
     // *** Accumulation des énergies routée, importée, exportée           ***
     // *** Les calculs sont faits toutes les secondes                     ***
     // *** La puissance x 1s = énergie en Joule                           ***
-    routedEnergy += Prouted;
+    if ( ( ACC_FORCE_ENERGY ) || ( triacMode == AUTOM ) ) routedEnergy += Prouted;
     if ( Pact < 0 )     exportedEnergy -= Pact;
     else                importedEnergy += Pact;
 
@@ -817,6 +820,8 @@ void loop ( ) {
   // *** Mise à jour de l'état des LEDs de signalisation                  ***
   PVRLed ( );
 
+  hasRestarted = false;
+
   // *** Traitement des requêtes par liaison série                        ***
   // *** On fait 5 traitements de suite au cas où il y a une salve        ***
   // *** de données communiquées                                          ***
@@ -826,11 +831,12 @@ void loop ( ) {
   }
 
   // *** Traitement de la perte longue de synchronisation, erreur majeure ***
-  if ( stats_error_status >= B10000000 ) {
-    fatalError ( );
-    clearSerialInputCache ( );    // à voir si nécessaire
+  if ( stats_error_status >= B10000000 ) fatalError ( );
+
+  if ( hasRestarted ) {
+    clearSerialInputCache ( );
     refTime = millis ( );
-  };
+  }
 
 }
 
@@ -886,6 +892,7 @@ void startPVR ( void ) {
   while ( coldStart > 0 ) {
     delay ( 10 );
   };
+  hasRestarted = true;
 }
 
 
@@ -1146,15 +1153,10 @@ void fatalError ( void ) {
   // Sauvegarde des index par sécurité
 
 #if defined (OLED_128X64)
-  oled.clear ( );
-  oled.set2X ( );
-  oled.println ( F("***********") );
-  oled.println ( F("* ANOMALIE*") );
-  oled.println ( F("* MAJEURE *") );
-  oled.println ( F("***********") );
+  oLedPrint ( 99 );
 #endif
 
-  for ( int k = 0; k <= 300; k++ ) {
+  for ( int k = 0; k <= 100; k++ ) {
     digitalWrite ( pulseTriacPin, OFF ); //arrêt du SSR par sécurité
     digitalWrite ( ledPinStatus,  OFF );
     digitalWrite ( ledPinRouting, ON );
@@ -1163,7 +1165,7 @@ void fatalError ( void ) {
     digitalWrite ( ledPinRouting, OFF );
     delay ( 100 );
   }
-  // le système redémarre au bout d'une minute environ
+  // le système redémarre au bout de 20 secondes environ
   startPVR ( );
 }
 
@@ -1331,7 +1333,7 @@ void PVRScheduler ( void ) {
     noInterrupts ( );
     deltaTimeImpulsion_tmp = deltaTimeImpulsion;
     interrupts ( );
-    if ( secondsOnline == 8 ) {                     // une fois par minute, on teste l'absence d'impulsions
+    if ( secondsOnline == 8 ) {    // une fois par minute, on teste l'absence d'impulsions
       if ( deltaTimeImpulsion_tmp == lastMinuteDeltaTimeImpulsion ) {
         Pimpulsion = 0;
         impulsionFlag = false;
@@ -1494,8 +1496,33 @@ void oLedPrint ( int page ) {
         oled.print ( Irms, 1 );
         oled.println ( F(" Amps") );
         oled.print ( F(" ") );
-        oled.print ( abs ( cos_phi ), 1 );
-        oled.println ( F(" Cosfi") );
+        oled.print ( abs ( cos_phi ), 3 );
+        oled.println ( F(" PF ") );
+        break;
+      }
+
+    case 9 : {
+        oled.print ( F("MaxPV! ") );
+        oled.println ( F(VERSION) );
+        oled.println ( );
+        oled.println ( F(" Démarrage") );
+        oled.println ( F("en cours...") );
+        break;
+      }
+
+    case 10 : {
+        oled.print ( F("MaxPV! ") );
+        oled.println ( F(VERSION) );
+        oled.println ( );
+        oled.println ( F(" Démarré !") );
+        break;
+      }
+
+    case 99 : {
+        oled.println ( F("***********") );
+        oled.println ( F("* ANOMALIE*") );
+        oled.println ( F("* MAJEURE *") );
+        oled.println ( F("***********") );
         break;
       }
   }

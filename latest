@@ -1,6 +1,6 @@
 {
-  "ecopvver" : "3.5",
-  "maxpvver" : "3.5",
-  "webver" : "3.5",
-  "whatsnew" : "Nouveautés : Correction des bugs et amélioration du fonctionnement.<br> amélioration du mode BOOST.<br>Ajout d'un index du temps de fonctionnement du relais.<br>Amélioration de l'interface Web.Comptage de l'énergie routée en mode SSR FORCE.<br>Watchdog sur la connexion Wifi.<br>Log et debug du Wemos sur la liaison MQTT.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "ecopvver" : "3.51",
+  "maxpvver" : "3.51",
+  "webver" : "3.51",
+  "whatsnew" : "Nouveautés : Correction des bugs et effets de bord signalés en version 3.5.<br>Pages Web épurées.<br>Retour d'état des boutons en page d'accueil.<br>Comptage de l'énergie routée en mode SSR FORCE en option de compilation de l'Arduino.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
