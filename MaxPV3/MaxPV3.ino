@@ -1477,6 +1477,20 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
+  // MQTT_INDEX_RELAY
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("TempsFonctionnementRelais"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("TempsFonctionnementRelais"));
+  payload.replace(F("#SENSORNAME#"), F("Temps de fonctionnement relais"));
+  payload.replace(F("#DEVICECLASS#"), F("duration"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_RELAY));
+  payload.replace(F("#UNIT#"), "min");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
   // MQTT_TRIAC_MODE
   topic = configTopicTemplate;
   topic.replace(F("#COMPONENT#"), F("select"));
@@ -1587,6 +1601,8 @@ void mqttTransmit(void)
     mqttClient.publish(MQTT_INDEX_EXPORT, 0, true, ecoPVStats[INDEX_EXPORT].c_str());
     yield();
     mqttClient.publish(MQTT_INDEX_IMPULSION, 0, true, ecoPVStats[INDEX_IMPULSION].c_str());
+    yield();
+    mqttClient.publish(MQTT_INDEX_RELAY, 0, true, ecoPVStats[INDEX_RELAY].c_str());
     yield();
     mqttClient.publish(MQTT_TRIAC_MODE, 0, true, ecoPVStats[TRIAC_MODE].c_str());
     yield();

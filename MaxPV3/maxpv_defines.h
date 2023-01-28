@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.51"
-#define MAXPV_VERSION_FULL "MaxPV! 3.51"
+#define MAXPV_VERSION      "3.52"
+#define MAXPV_VERSION_FULL "MaxPV! 3.52"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -174,6 +174,7 @@
 #define MQTT_INDEX_IMPORT   "maxpv/indeximport"
 #define MQTT_INDEX_EXPORT   "maxpv/indexexport"
 #define MQTT_INDEX_IMPULSION "maxpv/indeximpulsion"
+#define MQTT_INDEX_RELAY     "maxpv/indexrelay"
 #define MQTT_TRIAC_MODE     "maxpv/triacmode"
 #define MQTT_SET_TRIAC_MODE "maxpv/triacmode/set"
 #define MQTT_RELAY_MODE     "maxpv/relaymode"
