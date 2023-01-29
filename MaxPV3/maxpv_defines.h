@@ -47,7 +47,7 @@
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    800         // en caractères
+#define JSON_CONFIG_SIZE    1024        // en caractères
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
@@ -75,11 +75,17 @@
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
 #define RECONNECT_TIME          5               // Délai de reconnexion en secondes suite à perte de connexion du serveur mqtt
 
+#define DEFAULT_REMOTE_RELAY_SERVER     "192.168.1.200"   // Serveur du relais distant
+#define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant
+#define DEFAULT_REMOTE_RELAY_CMD_ON     "/relay0/cmd/1"   // Chemin de requête pour relais on
+#define DEFAULT_REMOTE_RELAY_CMD_OFF    "/relay0/cmd/0"   // Chemin de requête pour relais off
+
 
 #define DEFAUT_EMPTY_USER  ""
 #define DEFAUT_EMPTY_PWD   ""
 #define DEFAUT_USER_LENGTH 39
 #define DEFAUT_PWD_LENGTH  39
+#define DEFAUT_PATH_CMD    64
 
 // Mode BOOST
 #define DEFAULT_BOOST_RATIO      100 // Ratio des burst 0..100

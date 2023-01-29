@@ -42,6 +42,9 @@
 
 // Pas de debug série pour MQTT
 #define _ASYNC_MQTT_LOGLEVEL_       0  
+// Pas de debug série pour HTTP
+#define _ASYNC_HTTP_LOGLEVEL_       0
+
 
 // Permet l'utilisation de connexions TCP sécurisées
 #define ASYNC_TCP_SSL_ENABLED       true
