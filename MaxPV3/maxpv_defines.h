@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.51"
-#define MAXPV_VERSION_FULL "MaxPV! 3.51"
+#define MAXPV_VERSION      "3.52"
+#define MAXPV_VERSION_FULL "MaxPV! 3.52"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -43,11 +43,11 @@
 #define END_OF_TRANSMIT '#'    // Caractère de fin de transmission de l'Arduino
 
 // Communications TCP, ports 
-#define TELNET_PORT     23              // Port Telnet
+#define MAXPV_MDNS      "maxpv"         // mDNS pour accès local
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    800         // en caractères
+#define JSON_CONFIG_SIZE    1024        // en caractères
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
@@ -75,11 +75,17 @@
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
 #define RECONNECT_TIME          5               // Délai de reconnexion en secondes suite à perte de connexion du serveur mqtt
 
+#define DEFAULT_REMOTE_RELAY_SERVER     "192.168.1.200"   // Serveur du relais distant
+#define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant
+#define DEFAULT_REMOTE_RELAY_CMD_ON     "/relay0/cmd/1"   // Chemin de requête pour relais on
+#define DEFAULT_REMOTE_RELAY_CMD_OFF    "/relay0/cmd/0"   // Chemin de requête pour relais off
+
 
 #define DEFAUT_EMPTY_USER  ""
 #define DEFAUT_EMPTY_PWD   ""
 #define DEFAUT_USER_LENGTH 39
 #define DEFAUT_PWD_LENGTH  39
+#define DEFAUT_PATH_CMD    64
 
 // Mode BOOST
 #define DEFAULT_BOOST_RATIO      100 // Ratio des burst 0..100
@@ -174,6 +180,7 @@
 #define MQTT_INDEX_IMPORT   "maxpv/indeximport"
 #define MQTT_INDEX_EXPORT   "maxpv/indexexport"
 #define MQTT_INDEX_IMPULSION "maxpv/indeximpulsion"
+#define MQTT_INDEX_RELAY     "maxpv/indexrelay"
 #define MQTT_TRIAC_MODE     "maxpv/triacmode"
 #define MQTT_SET_TRIAC_MODE "maxpv/triacmode/set"
 #define MQTT_RELAY_MODE     "maxpv/relaymode"

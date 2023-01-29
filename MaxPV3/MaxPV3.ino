@@ -47,12 +47,14 @@
 
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <DNSServer.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
 #include <AsyncMqtt_Generic.h>
+#include <AsyncHTTPRequest_Generic.h> 
 #include <AsyncElegantOTA.h>
 #include <Ticker.h>
 #include <TickerScheduler.h>
@@ -124,6 +126,15 @@ uint16_t mqttPort   = DEFAULT_MQTT_PORT;            // Port du serveur MQTT
 int mqttPeriod      = DEFAULT_MQTT_PUBLISH_PERIOD;  // Période de transmission en secondes
 int mqttActive      = OFF;                          // MQTT actif (= ON) ou non (= OFF)
 
+// Configuration du relais distant
+String relaisDistantIP;                                     // IP du relais distant       
+uint16_t relaisDistantPort   = DEFAULT_REMOTE_RELAY_PORT;   // Port du relais distant
+String relaisDistantOn;                                     // Chemin pour relais ON
+String relaisDistantOff;                                    // Chemin pour relais OFF
+int relaisDistantActive      = OFF;                         // Relais distant actif (= ON) ou non (= OFF)
+
+
+
 // ***********************************************************************************
 // *************** Déclaration des variables globales de fonctionnement **************
 // ***********************************************************************************
@@ -180,19 +191,23 @@ int historyCounter = 0; // position courante dans le tableau de l'historique
 // Variables pour la gestion du mode BOOST
 long boostTime = -1;         // Temps restant pour le mode BOOST, en secondes (-1 = arrêt)
 
+// Variables pour la gestion du relais distant
+int relaisDistantPreviousState = OFF;
+
 
 // ***********************************************************************************
 // ********************** Déclaration des serveurs et des clients ********************
 // ***********************************************************************************
 
-AsyncWebServer  webServer(HTTP_PORT);
-AsyncMqttClient mqttClient;
-WiFiUDP         ntpUDP;
-NTPClient       timeClient(ntpUDP, NTP_SERVER, 3600 * GMT_OFFSET, NTP_UPDATE_INTERVAL);
+AsyncWebServer    webServer(HTTP_PORT);
+AsyncMqttClient   mqttClient;
+AsyncHTTPRequest  remoteRelayRequest;
+WiFiUDP           ntpUDP;
+NTPClient         timeClient(ntpUDP, NTP_SERVER, 3600 * GMT_OFFSET, NTP_UPDATE_INTERVAL);
 AsyncPing ping;
 
 #if defined (MAXPV_FTP_SERVER)
-FtpServer       ftpSrv;
+FtpServer         ftpSrv;
 #endif
 
 // ***********************************************************************************
@@ -246,6 +261,13 @@ void setup()
   mqttIP      = DEFAULT_MQTT_SERVER;     
   mqttUser    = DEFAUT_EMPTY_USER;     
   mqttPass    = DEFAUT_EMPTY_PWD;
+
+  relaisDistantIP.reserve(15);
+  relaisDistantOn.reserve(DEFAUT_PATH_CMD);
+  relaisDistantOff.reserve(DEFAUT_PATH_CMD);
+  relaisDistantIP = DEFAULT_REMOTE_RELAY_SERVER;
+  relaisDistantOn = DEFAULT_REMOTE_RELAY_CMD_ON;
+  relaisDistantOff = DEFAULT_REMOTE_RELAY_CMD_OFF;
 
   ecoPVConfigAll.reserve(100);
   ecoPVStatsAll.reserve(200);
@@ -461,10 +483,30 @@ void setup()
   // Configuration du CallBack Ping
   setPingCallback ();
   delay(50);
- 
+
+  // Configuration du client tcp
+  remoteRelayRequest.setDebug(false);
+  delay (50);
+  
+  // Démarrage du serveur web
   logMqtt ( F("[ESP]"), F("Démarrage serveur Web") );
   startWeb();
-  delay(50);
+  delay(100);
+
+  // Synchronisation du relais distant
+  if (relaisDistantActive==ON) {
+    relaisDistantPreviousState = (ecoPVStats[STATUS_BYTE].toInt() & B00000100) >> 2;
+    remoteRelay (relaisDistantPreviousState);
+    delay (200);
+  }
+
+  // Démarrage mDNS
+  if (MDNS.begin(MAXPV_MDNS)) {
+    delay (10);
+    MDNS.addService("http", "tcp", HTTP_PORT);
+    logMqtt ( F("[ESP]"), F("mDNS démarré") );
+    delay (100);
+  }
 
   // Transmission des informations de fonctionnement
   espTransmitInfos (); 
@@ -508,7 +550,6 @@ void loop()
   ftpSrv.handleFTP();
   yield(); 
 #endif
-
 
   // ***   Actions sur Flag   ***
 
@@ -618,25 +659,30 @@ bool configRead(const String& configString)
     DeserializationError error = deserializeJson(jsonConfig, configString);
     if (!error)
     {
-      if (jsonConfig["ip"])   // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
+      if (jsonConfig.containsKey("ip"))   // Il faut au moins que l'IP soit présente pour que le fichier soit considéré comme valide
       {
-                                          static_ip = jsonConfig["ip"].as<String>();
-        if (jsonConfig["gateway"])        static_gw = jsonConfig["gateway"].as<String>();
-        if (jsonConfig["subnet"])         static_sn = jsonConfig["subnet"].as<String>();
-        if (jsonConfig["dns1"])           static_dns1 = jsonConfig["dns1"].as<String>();
-        if (jsonConfig["dns2"])           static_dns2 = jsonConfig["dns2"].as<String>();
-        if (jsonConfig["http_port"])      httpPort = jsonConfig["http_port"];
-        if (jsonConfig["boost_duration"]) boostDuration = jsonConfig["boost_duration"];
-        if (jsonConfig["boost_ratio"])    boostRatio = jsonConfig["boost_ratio"];
-        if (jsonConfig["mqtt_ip"])        mqttIP = jsonConfig["mqtt_ip"].as<String>();
-        if (jsonConfig["mqtt_port"])      mqttPort = jsonConfig["mqtt_port"];
-        if (jsonConfig["mqtt_period"])    mqttPeriod = jsonConfig["mqtt_period"];
-        if (jsonConfig["mqtt_user"])      mqttUser = jsonConfig["mqtt_user"].as<String>();
-        if (jsonConfig["mqtt_user"])      mqttPass = jsonConfig["mqtt_pass"].as<String>();
-        if (jsonConfig["mqtt_active"])    mqttActive = jsonConfig["mqtt_active"];
-        if (jsonConfig["boost_timer_hour"]) boostTimerHour = jsonConfig["boost_timer_hour"];
-        if (jsonConfig["boost_timer_minute"]) boostTimerMinute = jsonConfig["boost_timer_minute"];
-        if (jsonConfig["boost_timer_active"]) boostTimerActive = jsonConfig["boost_timer_active"];
+                                                          static_ip = jsonConfig["ip"].as<String>();
+        if (jsonConfig.containsKey("gateway"))            static_gw = jsonConfig["gateway"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("subnet"))             static_sn = jsonConfig["subnet"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("dns1"))               static_dns1 = jsonConfig["dns1"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("dns2"))               static_dns2 = jsonConfig["dns2"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("http_port"))          httpPort = jsonConfig["http_port"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("boost_duration"))     boostDuration = jsonConfig["boost_duration"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("boost_ratio"))        boostRatio = jsonConfig["boost_ratio"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_ip"))            mqttIP = jsonConfig["mqtt_ip"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_port"))          mqttPort = jsonConfig["mqtt_port"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_period"))        mqttPeriod = jsonConfig["mqtt_period"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_user"))          mqttUser = jsonConfig["mqtt_user"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_user"))          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_active"))        mqttActive = jsonConfig["mqtt_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("boost_timer_hour"))   boostTimerHour = jsonConfig["boost_timer_hour"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("boost_timer_minute")) boostTimerMinute = jsonConfig["boost_timer_minute"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("boost_timer_active")) boostTimerActive = jsonConfig["boost_timer_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("remoterelay_active")) relaisDistantActive = jsonConfig["remoterelay_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("remoterelay_ip"))     relaisDistantIP = jsonConfig["remoterelay_ip"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("remoterelay_port"))   relaisDistantPort = jsonConfig["remoterelay_port"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("remoterelay_on"))     relaisDistantOn = jsonConfig["remoterelay_on"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("remoterelay_off"))    relaisDistantOff = jsonConfig["remoterelay_off"].as<String>(); else shouldSaveConfig = true;
       }
       else return false;
     }
@@ -673,6 +719,11 @@ void configWrite(void)
   jsonConfig["boost_timer_hour"] = boostTimerHour;
   jsonConfig["boost_timer_minute"] = boostTimerMinute;
   jsonConfig["boost_timer_active"] = boostTimerActive; 
+  jsonConfig["remoterelay_active"] = relaisDistantActive;
+  jsonConfig["remoterelay_ip"] = relaisDistantIP;
+  jsonConfig["remoterelay_port"] = relaisDistantPort;
+  jsonConfig["remoterelay_on"] = relaisDistantOn;
+  jsonConfig["remoterelay_off"] = relaisDistantOff;
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -1178,6 +1229,20 @@ void eachSecondTasks(void)
 {  
   generalCounterSecond++;
 
+  // Update de mDNS 
+  MDNS.update();
+
+  yield();
+
+  // Toutes les secondes, si activé, on recopie l'état du relais physique MaxPV vers le relais miroir
+  if (relaisDistantActive==ON) {
+    int state_tmp = (ecoPVStats[STATUS_BYTE].toInt() & B00000100) >> 2;
+    if ( relaisDistantPreviousState != state_tmp) {
+          remoteRelay (state_tmp);
+          relaisDistantPreviousState = state_tmp;
+    }
+  }
+
   yield();
 
   // Transmission des infos ESP toutes les 2 secondes
@@ -1477,6 +1542,20 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#UNIT#"), "kWh");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
+  // MQTT_INDEX_RELAY
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("TempsFonctionnementRelais"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("TempsFonctionnementRelais"));
+  payload.replace(F("#SENSORNAME#"), F("Temps de fonctionnement relais"));
+  payload.replace(F("#DEVICECLASS#"), F("duration"));
+  payload.replace(F("#STATECLASS#"), F("total_increasing"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_INDEX_RELAY));
+  payload.replace(F("#UNIT#"), "min");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
   // MQTT_TRIAC_MODE
   topic = configTopicTemplate;
   topic.replace(F("#COMPONENT#"), F("select"));
@@ -1588,6 +1667,8 @@ void mqttTransmit(void)
     yield();
     mqttClient.publish(MQTT_INDEX_IMPULSION, 0, true, ecoPVStats[INDEX_IMPULSION].c_str());
     yield();
+    mqttClient.publish(MQTT_INDEX_RELAY, 0, true, ecoPVStats[INDEX_RELAY].c_str());
+    yield();
     mqttClient.publish(MQTT_TRIAC_MODE, 0, true, ecoPVStats[TRIAC_MODE].c_str());
     yield();
     mqttClient.publish(MQTT_RELAY_MODE, 0, true, ecoPVStats[RELAY_MODE].c_str());
@@ -1654,6 +1735,37 @@ void watchDogWifi ( void )
   logMqtt ( F("[ESP]"), F("Fin WTD Wifi") ); 
 }
 
+
+
+///////////////////////////////////////////////////////////////////
+// Fonction de pilotage du relais distant                        //
+///////////////////////////////////////////////////////////////////
+
+void remoteRelay ( int state )
+{
+  bool requestOpenResult;
+  String urlCommand;
+  urlCommand.reserve(128);
+
+  urlCommand = F("http://");
+  urlCommand += relaisDistantIP;
+  urlCommand += F(":");
+  urlCommand += relaisDistantPort;
+  if (state==1)   urlCommand += relaisDistantOn;
+  else urlCommand += relaisDistantOff;
+  
+  logMqtt ( F("[ESP]"), F("Synchronisation du relais distant") );
+  
+  if (remoteRelayRequest.readyState() == readyStateUnsent || remoteRelayRequest.readyState() == readyStateDone)
+  {
+    requestOpenResult = remoteRelayRequest.open("GET", urlCommand.c_str());
+    if (requestOpenResult)  {
+      remoteRelayRequest.send();
+    }
+    else  logMqtt ( F("[ESP]"), F("Erreur envoi requête Remote Relay") ); 
+  }
+  else  logMqtt ( F("[ESP]"), F("Erreur envoi requête Remote Relay") ); 
+}
 
 
 ///////////////////////////////////////////////////////////////////
