@@ -71,7 +71,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 .
 ## Premier démarrage
 * Vérifiez que votre ordinateur / téléphone est bien connecté à votre réseau local.
-* Connectez-vous à l'adresse IP statique que vous avez attribuée au Wemos au cours de l'installation.
+* Connectez-vous à l'adresse IP statique que vous avez attribuée au Wemos au cours de l'installation (ou à l'adresse http://maxpv.local depuis la version 3.52).
 * La page d'accueil de MaxPV! s'ouvre. Vous pouvez vérifiez que l'Arduino Nano fonctionne correctement par l'indication **Routeur running** en haut de la page.
 * Si vous êtes nouvel utilisateur de MaxPV!, rendez-vous sur la page **Assistant de configuration** et laissez-vous guider.
 * Si vous voulez entrer manuellement les paramètres du routeur que vous utilisiez précédemment :
@@ -114,6 +114,9 @@ L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système d
 ## MQTT
 Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... Le service MQTT supporte l'autodiscovery au format Home Assistant. Des informations de fonctionnement du Wemos sont également fournies sur le canal 'maxpv/SYS'.
 
+## Relais distant en mode miroir
+Vous pouvez configurer un relais distant accessible sur votre réseau local via une requête HTTP GET. La configuration s'effectue dans l'onglet administration (adresse IP, port, chemins pour mettre le relais à ON et à OFF). Lorsqu'il est activé, l'état du relais physique de MaxPV! (relais secondaire de délestage situé sur le PCB) est recopié sur le relais distant. C'est un fonctionnement en miroir qui vous permet de bénéficier de la fonctionnalité "relais secondaire" à distance sans avoir à tirer de cable. Cela peut servir par exemple pour piloter une pompe de piscine dont l'alimentation est éloignée de MaxPV!. Note : MaxPV! ne gère pas le retour d'état du relais distant, seules des commandes HTTP de pilotage sont émises. 
+
 ## Accès au système de fichiers par FTP
 Vous pouvez accéder au système de fichiers du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence. Depuis la version 3.5, l'accès FTP est disponible en option de compilation du firmware du Wemos.
 
@@ -127,6 +130,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.52** - 29/01/2023
+* Ajout de l'index de comptage en temps du relais secondaire à l'autodiscovery HomeAssitant.
+* Ajout mDNS pour accéder à MaxPV! par l'URL : http://maxpv.local
+* Ajout du pilotage d'un relais distant par requête HTTP, en fonctionnement miroir du relais de délestage secondaire.
 ### **V 3.51** - 21/01/2023
 * Prise en compte de l'énergie routée en mode FORCE selon une option de compilation du programme Arduino Nano
 * Amélioration de la gestion de l'écran Oled.
