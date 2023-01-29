@@ -47,6 +47,7 @@
 
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <DNSServer.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
@@ -461,10 +462,19 @@ void setup()
   // Configuration du CallBack Ping
   setPingCallback ();
   delay(50);
- 
+
+  // Démarrage du serveur web
   logMqtt ( F("[ESP]"), F("Démarrage serveur Web") );
   startWeb();
   delay(50);
+
+  // Démarrage mDNS
+  if (MDNS.begin(MAXPV_MDNS)) {
+    delay (10);
+    MDNS.addService("http", "tcp", HTTP_PORT);
+    logMqtt ( F("[ESP]"), F("mDNS démarré") );
+    delay (50);
+  }
 
   // Transmission des informations de fonctionnement
   espTransmitInfos (); 
@@ -1177,6 +1187,9 @@ void eachSecondTasks(void)
   // Fonction appelée uniquement par la loop. On peut utiliser yield()
 {  
   generalCounterSecond++;
+
+  // Update de mDNS 
+  MDNS.update();
 
   yield();
 

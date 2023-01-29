@@ -43,7 +43,7 @@
 #define END_OF_TRANSMIT '#'    // Caractère de fin de transmission de l'Arduino
 
 // Communications TCP, ports 
-#define TELNET_PORT     23              // Port Telnet
+#define MAXPV_MDNS      "maxpv"         // mDNS pour accès local
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
