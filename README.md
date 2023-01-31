@@ -134,6 +134,7 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 * Ajout de l'index de comptage en temps du relais secondaire à l'autodiscovery HomeAssitant.
 * Ajout mDNS pour accéder à MaxPV! par l'URL : http://maxpv.local
 * Ajout du pilotage d'un relais distant par requête HTTP, en fonctionnement miroir du relais de délestage secondaire.
+* Versions : MaxPV! 3.52, site Web 3.52, EcoPV 3.51.
 ### **V 3.51** - 21/01/2023
 * Prise en compte de l'énergie routée en mode FORCE selon une option de compilation du programme Arduino Nano
 * Amélioration de la gestion de l'écran Oled.
