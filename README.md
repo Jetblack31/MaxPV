@@ -115,7 +115,7 @@ L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système d
 Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... Le service MQTT supporte l'autodiscovery au format Home Assistant. Des informations de fonctionnement du Wemos sont également fournies sur le canal 'maxpv/SYS'.
 
 ## Relais distant en mode miroir
-Vous pouvez configurer un relais distant accessible sur votre réseau local via une requête HTTP GET. La configuration s'effectue dans l'onglet administration (adresse IP, port, chemins pour mettre le relais à ON et à OFF). Lorsqu'il est activé, l'état du relais physique de MaxPV! (relais secondaire de délestage situé sur le PCB) est recopié sur le relais distant. C'est un fonctionnement en miroir qui vous permet de bénéficier de la fonctionnalité "relais secondaire" à distance sans avoir à tirer de cable. Cela peut servir par exemple pour piloter une pompe de piscine dont l'alimentation est éloignée de MaxPV!. Note 1 : MaxPV! ne gère pas le retour d'état du relais distant, seules des commandes HTTP de pilotage sont émises. Note 2 : Veillez à ce que l'appel HTTP au relais distant ne génère pas en retour une réponse trop longue. Si la réponse contient quelques dizaines de caractères, ce qui est généralement le cas pour une API distante, il n'y a aucun souci. Si la réponse est une page WEB lourde de plusieurs kilo-octets, cela peut provoquer un dysfonctionnement du Wemos et son redémarrage. 
+Vous pouvez configurer un relais distant accessible sur votre réseau local via une requête HTTP GET. La configuration s'effectue dans l'onglet administration (adresse IP, port, chemins pour mettre le relais à ON et à OFF). Lorsqu'il est activé, l'état du relais physique de MaxPV! (relais secondaire de délestage situé sur le PCB) est recopié sur le relais distant. C'est un fonctionnement en miroir qui vous permet de bénéficier de la fonctionnalité "relais secondaire" à distance sans avoir à tirer de cable. Cela peut servir par exemple pour piloter une pompe de piscine dont l'alimentation est éloignée de MaxPV!. Note 1 : MaxPV! ne gère pas le retour d'état du relais distant, seules des commandes HTTP de pilotage sont émises. Note 2 : Veillez à ce que l'appel HTTP au relais distant ne génère pas en retour une réponse trop longue. Si la réponse contient quelques dizaines de caractères, ce qui est généralement le cas pour une API distante, il n'y a aucun souci. Si la réponse est une page WEB lourde de plusieurs kilo-octets, cela peut provoquer un dysfonctionnement du Wemos et son redémarrage. Note 3 : depuis la version 3.53, l'état du relais distant est mis à jour toutes les 20 secondes. Il peut donc s'écouler jusqu'à 20 secondes pour que l'état du relais physique soit recopié sur le relais distant.
 
 ## Accès au système de fichiers par FTP
 Vous pouvez accéder au système de fichiers du Wemos par connexion FTP sur le port 21. L'identifiant est *maxpv*, mot de passe *maxpv*. ATTENTION : le serveur ne supporte qu'une seule connexion simultanée, veillez à configurer votre client FTP en conséquence. Depuis la version 3.5, l'accès FTP est disponible en option de compilation du firmware du Wemos.
@@ -130,6 +130,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.53** - 11/02/2023
+* Amélioration du WatchDog Wifi.
+* Ajout d'une temporisation pour le changement d'état du relais distant.
+* Versions : MaxPV! 3.53, site Web 3.52, EcoPV 3.51.
 ### **V 3.52** - 29/01/2023
 * Ajout de l'index de comptage en temps du relais secondaire à l'autodiscovery HomeAssitant.
 * Ajout mDNS pour accéder à MaxPV! par l'URL : http://maxpv.local

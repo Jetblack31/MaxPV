@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.51",
-  "maxpvver" : "3.52",
+  "maxpvver" : "3.53",
   "webver" : "3.52",
-  "whatsnew" : "Nouveautés : Ajout de l'index de durée de fonctionnement du relais dans l'autodiscovery Home Asssitant.<br>Ajout mDNS. Accès à MaxPV! par http://maxpv.local<br>Pilotage d'un relais distant par requête HTTP, miroir du relais de délestage secondaire.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "whatsnew" : "Nouveautés : Amélioration du WatchDog Wifi.<br>Ajout d'une temporisation pour le changement d'état du relais distant.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }

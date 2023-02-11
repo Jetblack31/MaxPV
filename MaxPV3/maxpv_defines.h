@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.52"
-#define MAXPV_VERSION_FULL "MaxPV! 3.52"
+#define MAXPV_VERSION      "3.53"
+#define MAXPV_VERSION_FULL "MaxPV! 3.53"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -56,7 +56,7 @@
 #define DEFAULT_DNS1        "192.168.1.1"
 #define DEFAULT_DNS2        "8.8.8.8"
 
-#define PING_WIFI_TIMEOUT    7000       // Délai en ms où on considère un problème de 
+#define PING_WIFI_TIMEOUT    600000     // Délai en ms où on considère un problème de 
                                         // connexion wifi qui active le watchdog wifi
 
 // Login et password pour le service FTP si activé
@@ -79,7 +79,8 @@
 #define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant
 #define DEFAULT_REMOTE_RELAY_CMD_ON     "/relay0/cmd/1"   // Chemin de requête pour relais on
 #define DEFAULT_REMOTE_RELAY_CMD_OFF    "/relay0/cmd/0"   // Chemin de requête pour relais off
-
+#define REMOTE_RELAY_MIRRORING_PERIOD   20                // Période de vérification de l'état du relais et de recopie de l'état
+                                                          // minimum 15 secondes
 
 #define DEFAUT_EMPTY_USER  ""
 #define DEFAUT_EMPTY_PWD   ""

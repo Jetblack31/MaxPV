@@ -199,7 +199,9 @@ int relaisDistantPreviousState = OFF;
 // ********************** Déclaration des serveurs et des clients ********************
 // ***********************************************************************************
 
+DNSServer         dnsServer;
 AsyncWebServer    webServer(HTTP_PORT);
+AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
 AsyncMqttClient   mqttClient;
 AsyncHTTPRequest  remoteRelayRequest;
 WiFiUDP           ntpUDP;
@@ -232,8 +234,6 @@ FtpServer         ftpSrv;
 void setup()
 {
 // Déclaration des variables locales
-  DNSServer         dnsServer;
-  AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   IPAddress         _ip, _gw, _sn, _dns1, _dns2;
   File              configFile;
   boolean           APmode = true;
@@ -1234,8 +1234,8 @@ void eachSecondTasks(void)
 
   yield();
 
-  // Toutes les secondes, si activé, on recopie l'état du relais physique MaxPV vers le relais miroir
-  if (relaisDistantActive==ON) {
+  // Toutes les REMOTE_RELAY_MIRRORING_PERIOD secondes, si activé, on recopie l'état du relais physique MaxPV vers le relais miroir
+  if ( ( generalCounterSecond % REMOTE_RELAY_MIRRORING_PERIOD == 13 ) && (relaisDistantActive==ON) ) {
     int state_tmp = (ecoPVStats[STATUS_BYTE].toInt() & B00000100) >> 2;
     if ( relaisDistantPreviousState != state_tmp) {
           remoteRelay (state_tmp);
@@ -1271,11 +1271,11 @@ void eachSecondTasks(void)
 
   yield();
 
-  // On ping la Gateway périodiquement, ici tous les 10 secondes, 2 fois maxi, timeout 500 ms
-  if (generalCounterSecond % 10 == 7) {
+  // On ping la Gateway périodiquement, ici tous les 30 secondes, 2 fois maxi, timeout 1000 ms
+  if (generalCounterSecond % 30 == 7) {
     IPAddress _gw;
     _gw.fromString(static_gw);
-    ping.begin (_gw, 2, 500);
+    ping.begin (_gw, 2, 1000);
     // Si le Wifi est déconnecté, on lance également la procédure de vérification
     if (!WiFi.isConnected()) shouldCheckWifi = true;  
   }
@@ -1710,20 +1710,15 @@ void setPingCallback ( void )
 
 void watchDogWifi ( void )
 {
-  logMqtt ( F("[ESP]"), F("Début WTD Wifi") ); 
-  if ( ( millis() - refTimePingWifi ) > PING_WIFI_TIMEOUT ) {
-    logMqtt ( F("[ESP]"), F("Perte longue de connexion avec la gateway") ); 
-    if ( WiFi.isConnected() ) logMqtt ( F("[ESP]"), F("Connecté au Wifi") );
-    else logMqtt ( F("[ESP]"), F("Déconnecté du Wifi") );
-    delay(10);
-    
+  if ( ( millis() - refTimePingWifi ) > PING_WIFI_TIMEOUT ) {    
     // On force la déconnexion du service MQTT
     // Si les services sont déjà déconnectés, soit ils n'ont pas été configurés
     // soit les tentatives de reconnexion sont déjà en cours
-    if (mqttClient.connected ()) mqttClient.disconnect(true);
 
-    WiFi.begin ();
- 
+    if (mqttClient.connected ()) mqttClient.disconnect(true);
+    delay (50);
+
+    wifiManager.autoConnect(SSID_CP);
     delay (50);
 
     if (mqttActive == ON) startMqtt();
@@ -1731,8 +1726,7 @@ void watchDogWifi ( void )
     yield ( );
 
     refTimePingWifi = millis();
-    }   
-  logMqtt ( F("[ESP]"), F("Fin WTD Wifi") ); 
+  }   
 }
 
 
