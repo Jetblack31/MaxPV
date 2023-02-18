@@ -1,6 +1,6 @@
 {
-  "ecopvver" : "3.51",
-  "maxpvver" : "3.53",
-  "webver" : "3.52",
-  "whatsnew" : "Nouveautés : Amélioration du WatchDog Wifi.<br>Ajout d'une temporisation pour le changement d'état du relais distant.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "ecopvver" : "3.54",
+  "maxpvver" : "3.54",
+  "webver" : "3.54",
+  "whatsnew" : "Nouveautés : Amélioration du WatchDog Wifi.<br>WatchDog Wifi désactivable.<br>Correction affichage écran oLed.<br>Correction affichage version EcoPV.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
