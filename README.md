@@ -111,6 +111,12 @@ Un déclenchement horaire programmé du mode BOOST est également configurable. 
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
+## WatchDog Wifi
+Un WatchDog Wifi est implémenté. L'activation est possible dans la page administration.
+En position OFF, la connexion Wifi et la connexion MQTT utilisent un mode de reconnexion automatique standard. Si le fonctionnement de MaxPV! est satisfaisant en position WatchDog Wifi OFF, conserver ce réglage.
+Si MaxPV! est régulièrement inacessible, soit par les pages Web, soit par MQTT, activer alors le WatchDog Wifi. 
+En position ON, MaxPV! interrogera régulièrement le serveur DNS1 que vous avez configuré. Celui-ci doit être accessible et répondre au ping. Dans la situation où MaxPV! ne parvient plus à accéder à ce serveur pendant 10 minutes, alors MaxPV! ré-initialisera la connexion Wifi pour tenter de résoudre le problème.
+
 ## MQTT
 Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... Le service MQTT supporte l'autodiscovery au format Home Assistant. Des informations de fonctionnement du Wemos sont également fournies sur le canal 'maxpv/SYS'.
 
@@ -130,6 +136,12 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.54** - 18/02/2023
+* Amélioration du WatchDog Wifi.
+* WatchDog Wifi désactivable.
+* Correction affichage écran oLed.
+* Correction affichage version EcoPV.
+* Versions : MaxPV! 3.54, site Web 3.54, EcoPV 3.54.
 ### **V 3.53** - 11/02/2023
 * Amélioration du WatchDog Wifi.
 * Ajout d'une temporisation pour le changement d'état du relais distant.

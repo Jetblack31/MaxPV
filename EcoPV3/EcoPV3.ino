@@ -84,7 +84,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.51"       // Version logicielle
+#define VERSION          "3.54"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -1001,6 +1001,7 @@ void serialRequest ( void ) {
       noInterrupts ( );
       indexImpulsion = 0;
       interrupts ( );
+      indexRelayOn = 0;
       indexWrite ( );
       Serial.print ( F("DONE:INDX0,OK,") );
     }
@@ -1505,7 +1506,7 @@ void oLedPrint ( int page ) {
         oled.print ( F("MaxPV! ") );
         oled.println ( F(VERSION) );
         oled.println ( );
-        oled.println ( F(" Démarrage") );
+        oled.println ( F(" Demarrage") );
         oled.println ( F("en cours...") );
         break;
       }
@@ -1514,7 +1515,7 @@ void oLedPrint ( int page ) {
         oled.print ( F("MaxPV! ") );
         oled.println ( F(VERSION) );
         oled.println ( );
-        oled.println ( F(" Démarré !") );
+        oled.println ( F("En fonction") );
         break;
       }
 

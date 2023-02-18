@@ -108,6 +108,17 @@
                 </div>
                 <br>
 
+                <h4>WatchDog de connexion Wifi</h4>
+                <br>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="watchdogwifi_active">
+                            <label class="form-check-label" for="watchdogwifi_active">Activation WatchDog Wifi</label>
+                        </div>
+                    </div>
+                </div>    
+
                 <h4>Service MQTT (optionnel)</h4>
                 <br>
                 <div class="row mb-3">
@@ -298,6 +309,8 @@
                     document.getElementById("dns1").value = doc["dns1"];
                     document.getElementById("dns2").value = doc["dns2"];
                     document.getElementById("http_port").value = doc["http_port"];
+                    if (doc["watchdogwifi_active"] == "1") watchdogwifi_active.checked = true;
+                    else watchdogwifi_active.checked = false;
                     document.getElementById("boost_duration").value = doc["boost_duration"];
                     document.getElementById("boost_ratio").value = doc["boost_ratio"];
                     document.getElementById("mqtt_ip").value = doc["mqtt_ip"];
@@ -333,6 +346,8 @@
             doc["dns1"] = document.getElementById("dns1").value;
             doc["dns2"] = document.getElementById("dns2").value;
             doc["http_port"] = document.getElementById("http_port").value;
+            if(watchdogwifi_active.checked == true) doc["watchdogwifi_active"] = "1";
+            else doc["watchdogwifi_active"] = "0";
             doc["boost_duration"] = document.getElementById("boost_duration").value;
             doc["boost_ratio"] = document.getElementById("boost_ratio").value;
             doc["mqtt_ip"] = document.getElementById("mqtt_ip").value;
@@ -370,6 +385,8 @@
                 document.getElementById("dns1").value = doc["dns1"] ?? "";
                 document.getElementById("dns2").value = doc["dns2"] ?? "";
                 document.getElementById("http_port").value = doc["http_port"] ?? "";
+                if (doc["watchdogwifi_active"] == "1") watchdogwifi_active.checked = true;
+                else watchdogwifi_active.checked = false;
                 document.getElementById("boost_duration").value = doc["boost_duration"] ?? "";
                 document.getElementById("boost_ratio").value = doc["boost_ratio"] ?? "";
                 document.getElementById("mqtt_ip").value = doc["mqtt_ip"] ?? "";

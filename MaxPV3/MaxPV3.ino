@@ -111,6 +111,8 @@ String static_dns2;
 // Attention, le choix du port dans l'interface Web est inopérant dans cette version
 uint16_t httpPort    = HTTP_PORT;
 
+int wtdWifiActive    = OFF;                       // WatchDog actif (= ON) ou non (= OFF)
+
 // Définition des paramètres du mode BOOST
 byte boostRatio      = DEFAULT_BOOST_RATIO;       // En % de la puissance max
 int boostDuration    = DEFAULT_BOOST_DURATION;    // En minutes
@@ -199,9 +201,7 @@ int relaisDistantPreviousState = OFF;
 // ********************** Déclaration des serveurs et des clients ********************
 // ***********************************************************************************
 
-DNSServer         dnsServer;
 AsyncWebServer    webServer(HTTP_PORT);
-AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
 AsyncMqttClient   mqttClient;
 AsyncHTTPRequest  remoteRelayRequest;
 WiFiUDP           ntpUDP;
@@ -233,6 +233,9 @@ FtpServer         ftpSrv;
 
 void setup()
 {
+DNSServer         dnsServer;
+AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
+
 // Déclaration des variables locales
   IPAddress         _ip, _gw, _sn, _dns1, _dns2;
   File              configFile;
@@ -567,7 +570,7 @@ void loop()
 
   yield();
   
-  if (shouldCheckWifi) {
+  if ((shouldCheckWifi) && (wtdWifiActive==ON)) {
     watchDogWifi();
     shouldCheckWifi = false;
   }
@@ -667,6 +670,7 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("dns1"))               static_dns1 = jsonConfig["dns1"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("dns2"))               static_dns2 = jsonConfig["dns2"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("http_port"))          httpPort = jsonConfig["http_port"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("watchdogwifi_active"))  wtdWifiActive = jsonConfig["watchdogwifi_active"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_duration"))     boostDuration = jsonConfig["boost_duration"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_ratio"))        boostRatio = jsonConfig["boost_ratio"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_ip"))            mqttIP = jsonConfig["mqtt_ip"].as<String>(); else shouldSaveConfig = true;
@@ -708,6 +712,7 @@ void configWrite(void)
   jsonConfig["dns1"] = static_dns1;
   jsonConfig["dns2"] = static_dns2;
   jsonConfig["http_port"] = httpPort;
+  jsonConfig["watchdogwifi_active"] = wtdWifiActive;
   jsonConfig["boost_duration"] = boostDuration;
   jsonConfig["boost_ratio"] = boostRatio;
   jsonConfig["mqtt_ip"] = mqttIP;
@@ -1261,6 +1266,11 @@ void eachSecondTasks(void)
   
   yield();
 
+  // Toutes les 119 secondes on demande la version ecoPV
+  if ( generalCounterSecond % 119 == 63 )  getVersionEcoPV();
+  
+  yield();
+
   // Enregistrement des historiques
   if (generalCounterSecond % (HISTORY_INTERVAL * 60) == 0) recordHistoricData();;
 
@@ -1271,13 +1281,11 @@ void eachSecondTasks(void)
 
   yield();
 
-  // On ping la Gateway périodiquement, ici tous les 30 secondes, 2 fois maxi, timeout 1000 ms
-  if (generalCounterSecond % 30 == 7) {
-    IPAddress _gw;
-    _gw.fromString(static_gw);
-    ping.begin (_gw, 2, 1000);
-    // Si le Wifi est déconnecté, on lance également la procédure de vérification
-    if (!WiFi.isConnected()) shouldCheckWifi = true;  
+  // On ping le dns1 périodiquement, ici tous les 30 secondes, 2 fois maxi, timeout 1000 ms, sir le watchdog wifi est actif
+  if ((generalCounterSecond % 30 == 7) && (wtdWifiActive==ON)) {
+    IPAddress _dns1;
+    _dns1.fromString(static_dns1);
+    ping.begin (_dns1, 2, 1000);
   }
 
   yield();
@@ -1691,12 +1699,13 @@ void setPingCallback ( void )
   ping.on(true,[](const AsyncPingResponse& response){
     if (response.answer) {
       // le ping est revenu valide, on ré-initialise le WD
+      logMqtt ( F("[ESP]"), F("Succès ping DNS1") );
       refTimePingWifi = millis();
       return true; // on s'arrête
     }
     else {
       // le ping n'est pas revenu
-      logMqtt ( F("[ESP]"), F("Pas de réponse au ping") ); 
+      logMqtt ( F("[ESP]"), F("Echec ping DNS1") );
       shouldCheckWifi = true;
       return false; 
     }
@@ -1711,21 +1720,15 @@ void setPingCallback ( void )
 void watchDogWifi ( void )
 {
   if ( ( millis() - refTimePingWifi ) > PING_WIFI_TIMEOUT ) {    
-    // On force la déconnexion du service MQTT
-    // Si les services sont déjà déconnectés, soit ils n'ont pas été configurés
-    // soit les tentatives de reconnexion sont déjà en cours
-
-    if (mqttClient.connected ()) mqttClient.disconnect(true);
-    delay (50);
-
-    wifiManager.autoConnect(SSID_CP);
-    delay (50);
-
-    if (mqttActive == ON) startMqtt();
-
-    yield ( );
-
+    logMqtt ( F("[ESP]"), F("Watchdog Wifi activé") );
+    WiFi.mode(WIFI_OFF);
+    delay(20);
+    WiFi.mode(WIFI_STA);
+    delay(20);
+    WiFi.reconnect();
+    delay(50);
     refTimePingWifi = millis();
+    logMqtt ( F("[ESP]"), F("Connexion Wifi redémarrée") );
   }   
 }
 
