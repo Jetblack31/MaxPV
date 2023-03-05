@@ -84,7 +84,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.54"       // Version logicielle
+#define VERSION          "3.55"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -107,6 +107,14 @@
 #define FORCE                 1
 #define AUTOM                 9
 
+// ***********************************************************************************
+// *********************   Définition des modes au démarrage   ***********************
+// ***********************************************************************************
+
+//                ***   Mode de fonctionnement au démarrage du SSR / TRIAC   ***
+#define triacModePowerON      AUTOM    // AUTOM, STOP, FORCE
+//             ***   Mode de fonctionnement au démarrage du relais secondaire   ***
+#define relayModePowerON      AUTOM    // AUTOM, STOP, FORCE
 
 // ***********************************************************************************
 // ********************   Définition des pins d'entrée/sortie    *********************
@@ -378,8 +386,8 @@ byte                   ledBlink         = 0;        // séquenceur de clignoteme
 // bit 6 (64)  : T = 2560 ms
 // bit 7 (128) : T = 5120 ms
 
-byte                   triacMode        = AUTOM;    // mode de fonctionnement du triac/SSR
-byte                   relayMode        = AUTOM;    // mode de fonctionnement du relais secondaire de délestage
+byte                   triacMode        = triacModePowerON;    // mode de fonctionnement du triac/SSR
+byte                   relayMode        = relayModePowerON;    // mode de fonctionnement du relais secondaire de délestage
 
 bool                   hasRestarted     = false;    // flag indiquant que le routeur a redémarré                
 
@@ -549,6 +557,7 @@ void loop ( ) {
   float                inv_stats_samples;
 
   float                Filter_param;
+  float                Psurplus = 0;
   static float         Pact_filtered = 0;
   static float         Prouted_filtered = 0;
   static unsigned int  Div2_On_cnt = 0;
@@ -632,21 +641,23 @@ void loop ( ) {
 
     // *** Calcul des valeurs filtrées de Pact et Prouted                 ***
     // *** Usage : déclenchement du relais secondaire de délestage        ***
-    // *** Uniquement en mode Triac AUTO                                  ***
-    // *** Pour éviter le déclenchement du relais en mode Triac FORCE     ***
+    Filter_param = 1 / float ( 1 + ( int ( T_DIV2_TC ) * 60 ) );
+    Pact_filtered = Pact_filtered + Filter_param * ( Pact - Pact_filtered );
+    Prouted_filtered = Prouted_filtered + Filter_param * ( Prouted - Prouted_filtered );
+
+    // En mode TRIAC/SSR AUTOM, le surplus PV correspond à la puissance routée
     if ( triacMode == AUTOM ) {
-      Filter_param = 1 / float ( 1 + ( int ( T_DIV2_TC ) * 60 ) );
-      Pact_filtered = Pact_filtered + Filter_param * ( Pact - Pact_filtered );
-      Prouted_filtered = Prouted_filtered + Filter_param * ( Prouted - Prouted_filtered );
+      Psurplus = Prouted_filtered;
     }
+    // En mode TRIAC/SSR ON ou OFF, le surplus PV correspond à - la puissance active
     else {
-      Pact_filtered = 0;
+      Psurplus = -Pact_filtered;
       Prouted_filtered = 0;
     }
 
     // *** Déclenchement et gestion du relais secondaire de délestage     ***
-    if ( ( relayMode == AUTOM ) && ( triacMode == AUTOM ) ) {
-      if ( ( Prouted_filtered >= float ( P_DIV2_ACTIVE ) ) && ( Div2_Off_cnt == 0 ) ) {
+    if ( relayMode == AUTOM ) {
+      if ( ( Psurplus >= float ( P_DIV2_ACTIVE ) ) && ( Div2_Off_cnt == 0 ) && ( digitalRead ( relayPin ) == OFF ) ) {
         digitalWrite ( relayPin, ON );    // Activation du relais de délestage
         Div2_On_cnt = 60 * T_DIV2_ON;     // Initialisation de la durée de fonctionnement minimale en sevondes
       }
@@ -660,14 +671,12 @@ void loop ( ) {
       else if ( Div2_Off_cnt > 0 ) {
         Div2_Off_cnt --;                  // décrément d'une seconde
       }
-      else digitalWrite ( relayPin, OFF );
     }
     else {
       Div2_On_cnt = 0;
       Div2_Off_cnt = 0;
-      if ( relayMode != AUTOM ) digitalWrite ( relayPin, relayMode ); // Cas où le relais est en mode forcé STOP ou FORCE
-      else digitalWrite ( relayPin, OFF );                            // Cas où le SSR est en mode forcé et le relais en mode AUTO :
-    }                                                                 // le relais ne peut être activé (OFF)
+      digitalWrite ( relayPin, relayMode ); // Cas où le relais est en mode forcé STOP ou FORCE
+    }                                                          
 
     // *** Vérification de l'état du relais de délestage                  ***
     if ( digitalRead ( relayPin ) == ON ) {
