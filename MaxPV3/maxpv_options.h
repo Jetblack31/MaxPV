@@ -47,4 +47,4 @@
 
 
 // Permet l'utilisation de connexions TCP sécurisées
-#define ASYNC_TCP_SSL_ENABLED       true
+#define ASYNC_TCP_SSL_ENABLED       false
