@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.55",
-  "maxpvver" : "3.54",
-  "webver" : "3.54",
-  "whatsnew" : "Nouveautés : Correction d'un bug dans la gestion du relais secondaire.<br>Possibilité de définir les modes SSR et relais par défaut.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "maxpvver" : "3.56",
+  "webver" : "3.56",
+  "whatsnew" : "Nouveautés : Ajout du graphe historique de fonctionnement du relais.<br>Mise à jour API HTTP.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
