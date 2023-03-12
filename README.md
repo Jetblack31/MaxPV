@@ -139,6 +139,10 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 
 # Versions
+### **V 3.56** - 12/03/2023
+* Ajout du graphe historique de fonctionnement du relais en % de temps de fonctionnement.
+* Update API HTTP.
+* Versions : MaxPV! 3.56, site Web 3.56, EcoPV 3.55.
 ### **V 3.55** - 05/03/2023
 * Corrections d'un bug dans la gestion du relais secondaire.
 * Possiblité de définir les modes par défaut du SSR et du relais.

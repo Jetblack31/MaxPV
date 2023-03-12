@@ -173,6 +173,7 @@
             <div class="accordion-body">
               <figure class="highcharts-figure">
                 <div id="container-puisshistorique"></div><br><br>
+                <div id="container-relayhistorique"></div><br><br>
                 <p class="highcharts-description"></p>
               </figure>
             </div>
@@ -197,6 +198,7 @@
   <script>
 
     var urlPuissHistory = window.location.origin + '/api/history?power';
+    var urlRelayHistory = window.location.origin + '/api/history?relay';
 
     Highcharts.chart('container-puisshistorique', {
       chart: {
@@ -274,6 +276,84 @@
       },
       caption: {
         text: 'Les valeurs tracées sont moyennées par intervalle de 30 minutes.<br>Le graphique est mis à zéro au (re)démarrage de MaxPV!.<br>La résolution des données est de 10W.'
+      },
+      credits: {
+        enabled: false
+      }
+    });
+
+    Highcharts.chart('container-relayhistorique', {
+      chart: {
+        type: 'column',
+        marginRight: 10
+      },
+      title: {
+        text: 'Historique du relais secondaire'
+      },
+      accessibility: {
+        announceNewData: {
+          enabled: true,
+          minAnnounceInterval: 15000,
+          announcementFormatter: function (allSeries, newSeries, newPoint) {
+            if (newPoint) {
+              return 'New point added. Value: ' + newPoint.y;
+            }
+            return false;
+          }
+        }
+      },
+      xAxis: {
+        type: 'datetime',
+        tickPixelInterval: 150
+      },
+      legend: {
+        enabled: true
+      },
+      yAxis: {
+        title: {
+          text: '%',
+          min: 0,
+          max: 100
+        },
+        plotLines: [{
+          value: 0,
+          width: 1,
+          color: '#808080'
+        }]
+      },
+      plotOptions: {
+        series: {
+            borderWidth: 0,
+            dataLabels: {
+                enabled: true,
+                format: '{point.y:.1f}%'
+            }
+        }
+      },
+      data: {
+        csvURL: urlRelayHistory,
+        enablePolling: true,
+        dataRefreshRate: 60
+      },
+      series: [
+        {
+          name: 'Fonctionnement Relais',
+          color: '#E74C3C',
+          fillOpacity: 0
+        }
+      ],
+      tooltip: {
+        headerFormat: '<b>{series.name}</b><br/>',
+        pointFormat: '{point.x:%H:%M:%S %d/%m/%Y}<br/>{point.y:.1f} %'
+      },
+      exporting: {
+        enabled: true
+      },
+      time: {
+        useUTC: false
+      },
+      caption: {
+        text: 'La valeur correspond au % de temps passé en fonctionnement relais ON par intervalle de 30 minutes.<br>Le graphique est mis à zéro au (re)démarrage de MaxPV!.'
       },
       credits: {
         enabled: false

@@ -2004,10 +2004,13 @@ void setWebHandlers (void) {
     float pImport;
     float pExport;
     float pImpuls;
+    float perCentRelay;
     int localCounter;
     int lastLocalCounter;
-    unsigned long timePowerFactor = 60000UL / HISTORY_INTERVAL;   // attention : HISTORY_INTERVAL sous-multiple de 60000
+    unsigned long timePowerFactor = 60000UL / HISTORY_INTERVAL;   // attention : HISTORY_INTERVAL sous-multiple de 60 en minutes
     // 60000 = 60 minutes par heure * 1000 Wh par kWh
+    float timeRelayFactor = 100.0 / HISTORY_INTERVAL;   // attention : HISTORY_INTERVAL sous-multiple de 60 en minutes
+    // 100 = 100% de temps de fonctionnement
 
     if ( request->hasParam ( F("power") ) )
     {
@@ -2023,6 +2026,21 @@ void setWebHandlers (void) {
           pExport = -(energyIndexHistoric[localCounter].eExport - energyIndexHistoric[lastLocalCounter].eExport) * timePowerFactor;
           pImpuls = (energyIndexHistoric[localCounter].eImpulsion - energyIndexHistoric[lastLocalCounter].eImpulsion) * timePowerFactor;
           response->printf("%s,%.0f,%.0f,%.0f,%.0f\r\n", timeStamp.c_str(), pImport, pExport, pImpuls, pRouted);
+        }
+      }
+      request->send(response);
+    }
+    else if ( request->hasParam ( F("relay") ) )
+    {
+      response->print(F("Time,Relais secondaire\r\n"));
+      for (int i = 1; i < HISTORY_RECORD; i++) {
+        localCounter = (historyCounter + i) % HISTORY_RECORD;
+        lastLocalCounter = ((localCounter + HISTORY_RECORD - 1) % HISTORY_RECORD);
+        if ( ( energyIndexHistoric[localCounter].time != 0 ) && ( (energyIndexHistoric[lastLocalCounter].time) != 0 ) ) {
+          timeStamp = String (energyIndexHistoric[localCounter].time);
+          timeStamp += F("000");
+          perCentRelay = (energyIndexHistoric[localCounter].tRelayOn - energyIndexHistoric[lastLocalCounter].tRelayOn) * timeRelayFactor;
+          response->printf("%s,%.1f\r\n", timeStamp.c_str(), perCentRelay);
         }
       }
       request->send(response);
