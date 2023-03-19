@@ -112,7 +112,7 @@
 // ***********************************************************************************
 
 //                ***   Mode de fonctionnement au démarrage du SSR / TRIAC   ***
-#define triacModePowerON      AUTOM    // AUTOM, STOP, FORCE
+#define triacModePowerON      AUTOM     // AUTOM, STOP, FORCE
 //             ***   Mode de fonctionnement au démarrage du relais secondaire   ***
 #define relayModePowerON      AUTOM    // AUTOM, STOP, FORCE
 
@@ -871,9 +871,9 @@ void startPVR ( void ) {
   // arrêt du relais secondaire de délestage  par sécurité
   digitalWrite ( relayPin, OFF );
   // Configuration du triac/SSR en automatique
-  triacMode = AUTOM;
+  triacMode = triacModePowerON;
   // Configuration du relais de délestage secondaire en automatique
-  relayMode = AUTOM;
+  relayMode = relayModePowerON;
 
   // Configuration du convertisseur ADC pour travailler sur interruptions
   configADC ( );
