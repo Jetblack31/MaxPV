@@ -1,6 +1,6 @@
 {
-  "ecopvver" : "3.55",
-  "maxpvver" : "3.56",
-  "webver" : "3.56",
-  "whatsnew" : "Nouveautés : Ajout du graphe historique de fonctionnement du relais.<br>Mise à jour API HTTP.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "ecopvver" : "3.57",
+  "maxpvver" : "3.57",
+  "webver" : "3.57",
+  "whatsnew" : "Nouveautés : Ajout de la fonctionnalité RelayPlus.<br>Correction bug affichage année 1970.<br>Amélioration de la détection de la déconnexion de la charge SSR (Merci Djeje !).<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }

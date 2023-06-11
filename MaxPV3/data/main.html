@@ -58,7 +58,6 @@
             <h4></h4>
             <span id="livemsg"><br></span>
             <span class="text-warning" id="ecopvstate">Connexion à l'Arduino Nano...<br></span>
-            <span class="text-primary" id="relayplusstate">Fonction RelayPlus, état inconnu...<br><br></span>
 
             <div>
                 <button class="btn btn-dark col-3" id="btnboost" type="submit" disabled onclick="this.blur()">Boost</button>
@@ -186,7 +185,6 @@
             var xhttp1 = new XMLHttpRequest();
             var xhttp2 = new XMLHttpRequest();
             var xhttp3 = new XMLHttpRequest();
-            var xhttp4 = new XMLHttpRequest();
             var xhttp5 = new XMLHttpRequest();
             var resultSSR;
             var resultRelay;
@@ -229,21 +227,6 @@
             };
             xhttp3.open("GET", "api/get?relaystate", true);
             xhttp3.send();
-
-            xhttp4.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    var result = this.responseText;
-                    if (result == "ON") {
-                        document.getElementById("relayplusstate").innerHTML = "Fonction RelayPlus active.<br><br>";
-                    }
-                    else {
-                        document.getElementById("relayplusstate").innerHTML = "Fonction RelayPlus inactive.<br><br>";
-                    }
-                }
-            };
-            xhttp4.open("GET", "api/get?relayplusstate", true);
-            xhttp4.send();
-
 
             xhttp5.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
