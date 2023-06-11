@@ -57,7 +57,8 @@
             <p class="lead">
             <h4></h4>
             <span id="livemsg"><br></span>
-            <span class="text-warning" id="ecopvstate">Connexion à l'Arduino Nano...<br><br></span>
+            <span class="text-warning" id="ecopvstate">Connexion à l'Arduino Nano...<br></span>
+            <br>
 
             <div>
                 <button class="btn btn-dark col-3" id="btnboost" type="submit" disabled onclick="this.blur()">Boost</button>
@@ -194,11 +195,11 @@
                 if (this.readyState == 4 && this.status == 200) {
                     var result = this.responseText;
                     if (result == "running") {
-                        document.getElementById("ecopvstate").innerHTML = "Routeur en fonctionnement<br><br>";
+                        document.getElementById("ecopvstate").innerHTML = "Routeur en fonctionnement<br>";
                         document.getElementById("ecopvstate").className = "text-success";
                     }
                     else {
-                        document.getElementById("ecopvstate").innerHTML = "Arduino Nano injoignable, état de fonctionnement inconnu<br><br>";
+                        document.getElementById("ecopvstate").innerHTML = "Arduino Nano injoignable, état de fonctionnement inconnu<br>";
                         document.getElementById("ecopvstate").className = "text-danger";
                     }
                 }

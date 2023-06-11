@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.56"
-#define MAXPV_VERSION_FULL "MaxPV! 3.56"
+#define MAXPV_VERSION      "3.57"
+#define MAXPV_VERSION_FULL "MaxPV! 3.57"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -47,7 +47,7 @@
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    1024        // en caractères
+#define JSON_CONFIG_SIZE    1100        // en caractères
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
@@ -92,7 +92,12 @@
 #define DEFAULT_BOOST_RATIO      100 // Ratio des burst 0..100
 #define DEFAULT_BOOST_DURATION   120 // Durée mode boost en minutes
 #define DEFAULT_BOOST_HOUR       4   // Heure de déclenchement mode boost programmé
-#define DEFAULT_BOOST_MINUTE     0   // Minute
+#define DEFAULT_BOOST_MINUTE     0   // Minute de déclenchement mode boost programmé
+
+// Fonction RelayPlus
+#define DEFAULT_RELAYPLUS_MIN     60  // Temps minimum de fonctionnement
+#define DEFAULT_RELAYPLUS_MAX    480  // Temps maximum de fonctionnement
+#define DEFAULT_RELAYPLUS_HOUR    21  // Heure de référence pour les calculs
 
 // Historisation des index
 #define HISTORY_INTERVAL  30  // Périodicité en minutes de l'enregistrement des index d'énergie pour l'historisation

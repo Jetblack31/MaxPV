@@ -135,6 +135,11 @@ String relaisDistantOn;                                     // Chemin pour relai
 String relaisDistantOff;                                    // Chemin pour relais OFF
 int relaisDistantActive      = OFF;                         // Relais distant actif (= ON) ou non (= OFF)
 
+// Définition des paramètres RelayPlus
+int relayPlusMin    = DEFAULT_RELAYPLUS_MIN;         // Temps minimum de fonctionnement journalier
+int relayPlusMax    = DEFAULT_RELAYPLUS_MAX;         // Temps maximum de fonctionnement journalier
+int relayPlusHour   = DEFAULT_RELAYPLUS_HOUR;        // Heure de référence pour les calculs
+int relayPlusActive = OFF;                           // RelayPlus actif (= ON) ou non (= OFF)
 
 
 // ***********************************************************************************
@@ -196,6 +201,10 @@ long boostTime = -1;         // Temps restant pour le mode BOOST, en secondes (-
 // Variables pour la gestion du relais distant
 int relaisDistantPreviousState = OFF;
 
+// Variables pour la gestion du mode relayPlus
+long relaisPlusIndex = -1;      // Index du temps de fontionnement du relais comme référence journalière
+                                // -1 : non initialisé
+int relaisPlusCountDown = -1;   // compte à rebours de la durée d'une journée moins 10 minutes
 
 // ***********************************************************************************
 // ********************** Déclaration des serveurs et des clients ********************
@@ -687,6 +696,14 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("remoterelay_port"))   relaisDistantPort = jsonConfig["remoterelay_port"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("remoterelay_on"))     relaisDistantOn = jsonConfig["remoterelay_on"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("remoterelay_off"))    relaisDistantOff = jsonConfig["remoterelay_off"].as<String>(); else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("RelayPlus_min"))      relayPlusMin = jsonConfig["RelayPlus_min"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("RelayPlus_max"))      relayPlusMax = jsonConfig["RelayPlus_max"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("RelayPlus_hour"))     relayPlusHour = jsonConfig["RelayPlus_hour"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("RelayPlus_active"))   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
+
+        // traitement des durées min et max du mode RelayPlus
+        if ( relayPlusMin <= 5)  relayPlusMin = 5;
+        if ( relayPlusMax <= relayPlusMin)  relayPlusMax = relayPlusMin + 5;
       }
       else return false;
     }
@@ -729,6 +746,10 @@ void configWrite(void)
   jsonConfig["remoterelay_port"] = relaisDistantPort;
   jsonConfig["remoterelay_on"] = relaisDistantOn;
   jsonConfig["remoterelay_off"] = relaisDistantOff;
+  jsonConfig["RelayPlus_min"] = relayPlusMin;
+  jsonConfig["RelayPlus_max"] = relayPlusMax;
+  jsonConfig["RelayPlus_hour"] = relayPlusHour;
+  jsonConfig["RelayPlus_active"] = relayPlusActive;
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -969,6 +990,7 @@ bool serialProcess(void)
       incomingData.replace(F("BOOSTTIME,"), "");
       boostTime = incomingData.toInt();
     }
+
     return true;
   }
   else
@@ -1100,6 +1122,10 @@ void relayModeEcoPV(byte opMode)
   // Envoi du status via MQTT
   str = String(opMode);
   if (mqttClient.connected ()) mqttClient.publish(MQTT_RELAY_MODE, 0, true, str.c_str());
+
+  // Desactivation de la fonction RelayPlus pour la journée dès que l'on envoie un ordre manuel au relais
+  // réalisé en mettant relaisPlusIndex à -1, ca bloque l'entrée dans les fonctions à la minute
+  // relaisPlusIndex = -1;
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -1144,6 +1170,21 @@ void boostModeEcoPV(long bT, int bR)
   Serial.print(command);
 }
 
+
+///////////////////////////////////////////////////////////////////
+// Active ou arrête le mode Relay+ dans EcoPV                    //
+// qui est en fait un Timer sur le relais                        //
+///////////////////////////////////////////////////////////////////
+
+void relayPlusEcoPV(long bT)
+{
+  String command;
+  command.reserve(32);
+  command = F("SETRELPLUS,");
+  command += bT;
+  command += F(",END#");
+  Serial.print(command);
+}
 
 ///////////////////////////////////////////////////////////////////
 // WatchDog de surveillance de fonctionnement du routeur         //
@@ -1211,15 +1252,18 @@ void initHistoric(void)
 
 void recordHistoricData(void)
 {
-  energyIndexHistoric[historyCounter].time      = timeClient.getEpochTime();
-  energyIndexHistoric[historyCounter].eRouted   = ecoPVStats[INDEX_ROUTED].toFloat();
-  energyIndexHistoric[historyCounter].eImport   = ecoPVStats[INDEX_IMPORT].toFloat();
-  energyIndexHistoric[historyCounter].eExport   = ecoPVStats[INDEX_EXPORT].toFloat();
-  energyIndexHistoric[historyCounter].eImpulsion = ecoPVStats[INDEX_IMPULSION].toFloat();
-  energyIndexHistoric[historyCounter].tRelayOn  = ecoPVStats[INDEX_RELAY].toInt();
-  historyCounter++;
-  historyCounter %= HISTORY_RECORD;   // Création d'un tableau circulaire
-  logMqtt ( F("[ESP]"), F("Relève des index effectuée") ); 
+  if (timeClient.isTimeSet()) {
+    energyIndexHistoric[historyCounter].time      = timeClient.getEpochTime();
+    energyIndexHistoric[historyCounter].eRouted   = ecoPVStats[INDEX_ROUTED].toFloat();
+    energyIndexHistoric[historyCounter].eImport   = ecoPVStats[INDEX_IMPORT].toFloat();
+    energyIndexHistoric[historyCounter].eExport   = ecoPVStats[INDEX_EXPORT].toFloat();
+    energyIndexHistoric[historyCounter].eImpulsion = ecoPVStats[INDEX_IMPULSION].toFloat();
+    energyIndexHistoric[historyCounter].tRelayOn  = long (ecoPVStats[INDEX_RELAY].toInt());
+    historyCounter++;
+    historyCounter %= HISTORY_RECORD;   // Création d'un tableau circulaire
+    logMqtt ( F("[ESP]"), F("Relève des index effectuée") ); 
+  }
+  else logMqtt ( F("[ESP]"), F("Index non relevés, heure NTP incorrecte") ); 
 }
 
 
@@ -1289,7 +1333,22 @@ void eachSecondTasks(void)
   }
 
   yield();
-  
+
+  // Traitement RelaisPlus toutes les minutes
+  if ( ( relayPlusActive == ON ) && ( generalCounterSecond % 60 == 43 ) && ( relaisPlusIndex >=0 ) && ( relaisPlusCountDown >=0 ) )  {
+    relaisPlusCountDown--;
+    if ( ( long (ecoPVStats[INDEX_RELAY].toInt()) - relaisPlusIndex ) >= relayPlusMax ) {
+      logMqtt ( F("[RelayPlus]"), F("Temps journalier maximum atteint") ); 
+      relayModeEcoPV(STOP);
+      relaisPlusCountDown = -1;
+    }
+    else if ( relaisPlusCountDown <= ( relayPlusMin - ( long (ecoPVStats[INDEX_RELAY].toInt()) - relaisPlusIndex ) ) ) {
+      logMqtt ( F("[RelayPlus]"), F("Relais ON pour atteindre la durée minimale") ); 
+      relayPlusEcoPV( 60 * (relayPlusMin - ( long (ecoPVStats[INDEX_RELAY].toInt()) - relaisPlusIndex )) );
+      relaisPlusCountDown = -1;
+    }
+  }
+  yield();  
 }
 
 
@@ -1311,6 +1370,14 @@ void timeScheduler(void)
 
   // Mise à jour NTP toutes les heures
   if ( minute == 47 ) shouldExecuteTimeClientUpdate = true;
+
+  // Initialisation du mode RelayPlus pour la nouvelle journée
+  if ( ( hour == relayPlusHour ) && ( minute == 1 ) && ( relayPlusActive == ON ) )  {
+    logMqtt ( F("[RelayPlus]"), F("Initialisation du jour") ); 
+    relaisPlusIndex = long (ecoPVStats[INDEX_RELAY].toInt());
+    relaisPlusCountDown = 1430; // correspond à 23h50min
+    relayModeEcoPV(AUTOM);      // on met le relais en mode automatique
+  }
 }
 
 
@@ -1636,6 +1703,8 @@ void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessagePrope
     if ( String(payload).startsWith(F("stop")) )        relayModeEcoPV ( STOP );
     else if ( String(payload).startsWith(F("force")) )  relayModeEcoPV ( FORCE );
     else if ( String(payload).startsWith(F("auto")) )   relayModeEcoPV ( AUTOM );
+    // on déacive relay+ s'il était activé
+    relaisPlusIndex = -1;
   }
   else if (String(topic).startsWith(F(MQTT_SET_TRIAC_MODE))) {
     if ( String(payload).startsWith(F("stop")) )        SSRModeEcoPV ( STOP );
@@ -1686,6 +1755,23 @@ void mqttTransmit(void)
     if (boostTime == -1) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
     else mqttClient.publish(MQTT_BOOST_MODE, 0, true, "on");
     yield();
+
+
+/*
+    // test pour le fonctionnement relaisPlus
+    mqttClient.publish("maxpv/relaisPlusIndex", 0, true, String(relaisPlusIndex).c_str());
+    yield();
+    mqttClient.publish("maxpv/relayPlusMin", 0, true, String(relayPlusMin).c_str());
+    yield();
+    mqttClient.publish("maxpv/relayPlusMax", 0, true, String(relayPlusMax).c_str());
+    yield();
+    mqttClient.publish("maxpv/relayPlusCountDown", 0, true, String(relaisPlusCountDown).c_str());
+    yield();
+    long condition = ( relayPlusMin - ( long (ecoPVStats[INDEX_RELAY].toInt()) - relaisPlusIndex ) );
+    mqttClient.publish("maxpv/relaisPlusCondition", 0, true, String(condition).c_str());
+    yield();
+*/
+
   }
 }
 
@@ -1943,6 +2029,10 @@ void setWebHandlers (void) {
         if (boostTime == -1) response = F("OFF");
           else response = F("ON");
       }
+      else if ( request->hasParam ( F("relayplusstate") ) ) {
+        if (relaisPlusIndex == -1) response = F("OFF");
+          else response = F("ON");
+      }
       else if ( request->hasParam ( F("ping") ) )
         if ( contactEcoPV ) response = F("running");
         else response = F("offline");
@@ -1973,6 +2063,8 @@ void setWebHandlers (void) {
       else if ( mystring == F("force") )  relayModeEcoPV ( FORCE );
       else if ( mystring == F("auto") )   relayModeEcoPV ( AUTOM );
       else response = F("Bad request");
+      // on déacive relay+ s'il était activé
+      relaisPlusIndex = -1;
     }
     else if ( ( request->hasParam ( F("ssrmode") ) ) && ( request->hasParam ( F("value") ) ) ) {
       mystring = request->getParam(F("value"))->value();

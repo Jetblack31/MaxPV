@@ -84,7 +84,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.55"       // Version logicielle
+#define VERSION          "3.57"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -112,7 +112,7 @@
 // ***********************************************************************************
 
 //                ***   Mode de fonctionnement au démarrage du SSR / TRIAC   ***
-#define triacModePowerON      AUTOM    // AUTOM, STOP, FORCE
+#define triacModePowerON      AUTOM     // AUTOM, STOP, FORCE
 //             ***   Mode de fonctionnement au démarrage du relais secondaire   ***
 #define relayModePowerON      AUTOM    // AUTOM, STOP, FORCE
 
@@ -558,6 +558,7 @@ void loop ( ) {
 
   float                Filter_param;
   float                Psurplus = 0;
+  float                PestimatedProd = 0;
   static float         Pact_filtered = 0;
   static float         Prouted_filtered = 0;
   static unsigned int  Div2_On_cnt = 0;
@@ -608,8 +609,8 @@ void loop ( ) {
       stats_error_status &= B11111110;
 
     // *** Vérification du routage pleine puissance                       ***
-    if ( ( stats_routed_power / ( 2 * NB_CYCLES ) ) >= 254 )
-      // Note : on teste la pleine puissance si on atteint 254 alors que le max possible est 255.
+    if ( ( stats_routed_power / ( 2 * NB_CYCLES ) ) >= 245 )
+      // Note : on teste la pleine puissance si on atteint 245 alors que le max possible est 255.
       // Ceci pour plus de fiabilité de la détection de la pleine puissance routée.
       stats_error_status |= B00000010;
     else
@@ -692,8 +693,12 @@ void loop ( ) {
     // *** Remarque 1, Ca ne couvre pas tous les cas de figure.           ***
     // *** Remarque 2, on ne fait pas la correction pour le pilotage du   ***
     // *** relais de délestage pour éviter l'exportation.                 ***
+    
+    if (Pimpulsion > 0) PestimatedProd = Pimpulsion * CNT_CALIB;
+    else                PestimatedProd = P_INSTALLPV;
+ 
     if ( ( stats_error_status & B00000010 )            // Routage maximum vers la résistance
-         && ( P_INSTALLPV + Pact <= P_RESISTANCE ) )   // Cas impossible : charge déconnectée
+      && ( PestimatedProd + Pact <= P_RESISTANCE ) )   // Cas impossible : charge déconnectée
       Prouted = 0;
 
     // *** Accumulation des énergies routée, importée, exportée           ***
@@ -871,9 +876,9 @@ void startPVR ( void ) {
   // arrêt du relais secondaire de délestage  par sécurité
   digitalWrite ( relayPin, OFF );
   // Configuration du triac/SSR en automatique
-  triacMode = AUTOM;
+  triacMode = triacModePowerON;
   // Configuration du relais de délestage secondaire en automatique
-  relayMode = AUTOM;
+  relayMode = relayModePowerON;
 
   // Configuration du convertisseur ADC pour travailler sur interruptions
   configADC ( );
@@ -1133,15 +1138,15 @@ void serialRequest ( void ) {
       Serial.print ( F("DONE:SETBOOST,OK,") );
     }
 
-    else if ( incomingCommand.startsWith ( F("SETRELAY+") ) ) {
+    else if ( incomingCommand.startsWith ( F("SETRELPLUS") ) ) {
       long rT = 0;
 
-      incomingCommand.replace ( F("SETRELAY+,"), "" );
+      incomingCommand.replace ( F("SETRELPLUS,"), "" );
       incomingCommand.replace ( F(",END"), "" );
 
       rT = incomingCommand.toInt ( );
       relayplusTime = constrain ( rT, 0, 86400 );
-      Serial.print ( F("DONE:SETRELAY+,OK,") );
+      Serial.print ( F("DONE:SETRELPLUS,OK,") );
     }
 
     else Serial.print ( F("UNKNOWN COMMAND,") );
@@ -1375,7 +1380,7 @@ void PVRScheduler ( void ) {
   //*** Toutes les secondes : Traitement du mode relayPlus
   if (relayplusTime == 0) {
     relayplusTime--;
-    relayMode = AUTOM;
+    relayMode = STOP;
     // Envoi immédiat de la fin du mode relayPlus
     Serial.print ( F("RELAYPLUSTIME,-1,END") );
   }

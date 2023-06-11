@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "cstddef": "cpp"
+    },
+    "cmake.sourceDirectory": "/Users/bernard/Documents/GitHub/MaxPV/.pio/libdeps/d1_mini/ArduinoJson"
+}
