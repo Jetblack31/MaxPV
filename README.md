@@ -17,7 +17,7 @@ La lecture de ces fils de discussion est plus que recommandée pour la mise en o
 Les programmes et les schémas proposés ont une vocation informative et pédagogique. Ils ont été testés avec succès par les auteurs. Cependant les auteurs de ces programmes et de ces schémas déclinent toute responsabilité. Les auteurs ne pourraient être tenus pour responsables du fonctionnement et des conséquences de l'utilisation des programmes et des schémas mis à disposition.  
 Intervenir sur des circuits électriques est dangereux et nécessite le recours à une personne qualifiée et le respect strict des normes de sécurité et de protection en vigueur.
 
-## Caractérisitiques de MaxPV!
+## Caractéristiques de MaxPV!
 * Même qualité de routage du surplus photovoltaïque que EcoPV.
 * Interface web responsive avec visualisation graphique des données.
 * Support pour MQTT et autodiscovery Home Assistant.
