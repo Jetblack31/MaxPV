@@ -32,6 +32,8 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
 
+# Schémas électroniques 
+Les schémas électroniques et la liste des composants nécessaires à la réalisation de MaxPV! sont disponibles [ici](SchemasMaxPV/). 
 
 # Installation
 ## Pré-requis
