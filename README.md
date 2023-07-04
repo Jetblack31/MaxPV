@@ -32,12 +32,12 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 ## Synoptique
 ![MaxPV! synoptique](images/synoptique.png)
 
-# Schémas électroniques 
-Les schémas électroniques et la liste des composants nécessaires à la réalisation de MaxPV! sont disponibles [ici](SchemasMaxPV/). 
+# Schémas pour la réalisation du circuit électronique
+Les schémas électroniques et la liste des composants nécessaires à la réalisation de la carte MaxPV! sont disponibles [ici](SchemasMaxPV/). 
 
-# Installation
+# Installation des firmwares
 ## Pré-requis
-L'installation de MaxPV! se fait par programmation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266.
+L'installation de MaxPV! se fait par programmation de l'Arduino Nano et du Wemos/ESP8266 par USB. Vous aurez besoin d'utiliser l'IDE Arduino avec le support pour les cartes ESP8266 (version conseillée : IDE Arduino 1.8.x).
 Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en Wifi avec une adresse IP statique. En cours d'installation, vous aurez besoin de vous connecter temporairement en Wifi au Wemos à l'aide d'un ordinateur portable ou d'un téléphone.
 
 ## Programmation de l'Arduino Nano
