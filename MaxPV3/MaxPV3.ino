@@ -1513,10 +1513,10 @@ void onMqttConnect(bool sessionPresent)
   payload = configPayloadTemplate;
   payload.replace(F("#SENSORID#"), F("FacteurPuissance"));
   payload.replace(F("#SENSORNAME#"), F("Facteur de puissance"));
-  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("#DEVICECLASS#"), F("power_factor"));
   payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_COS_PHI));
-  payload.replace(F("#UNIT#"), "");
+  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""), "");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
   // MQTT_P_ACT
@@ -1544,6 +1544,34 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#DEVICECLASS#"), F("power"));
   payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_ROUTED));
+  payload.replace(F("#UNIT#"), "W");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_P_IMP
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceImportee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceImportee"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance importée"));
+  payload.replace(F("#DEVICECLASS#"), F("power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_IMP));
+  payload.replace(F("#UNIT#"), "W");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+  
+  // MQTT_P_EXP
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("PuissanceExportee"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("PuissanceExportee"));
+  payload.replace(F("#SENSORNAME#"), F("Puissance exportée"));
+  payload.replace(F("#DEVICECLASS#"), F("power"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_P_EXP));
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
   
@@ -1733,6 +1761,10 @@ void mqttTransmit(void)
     mqttClient.publish(MQTT_P_ACT, 0, true, ecoPVStats[P_ACT].c_str());
     yield();
     mqttClient.publish(MQTT_P_ROUTED, 0, true, ecoPVStats[P_ROUTED].c_str());
+    yield();
+    mqttClient.publish(MQTT_P_IMP, 0, true, ecoPVStats[P_IMP].c_str());
+    yield();
+    mqttClient.publish(MQTT_P_EXP, 0, true, ecoPVStats[P_EXP].c_str());
     yield();
     mqttClient.publish(MQTT_P_IMPULSION, 0, true, ecoPVStats[P_IMPULSION].c_str());
     yield();

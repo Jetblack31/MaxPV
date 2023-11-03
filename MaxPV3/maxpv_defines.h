@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.57"
-#define MAXPV_VERSION_FULL "MaxPV! 3.57"
+#define MAXPV_VERSION      "3.58"
+#define MAXPV_VERSION_FULL "MaxPV! 3.58"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -180,6 +180,8 @@
 #define MQTT_P_ACT          "maxpv/pact"
 #define MQTT_P_APP          "maxpv/papp"
 #define MQTT_P_ROUTED       "maxpv/prouted"
+#define MQTT_P_IMP          "maxpv/pimp"
+#define MQTT_P_EXP          "maxpv/pexp"
 #define MQTT_P_IMPULSION    "maxpv/pimpulsion"
 #define MQTT_COS_PHI        "maxpv/cosphi"
 #define MQTT_INDEX_ROUTED   "maxpv/indexrouted"

@@ -152,6 +152,9 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 # Versions
 ### **V 3.57** - 11/06/2023
+* Ajout des topics Puissance importée et Puissance exportée à MQTT.
+* Versions : MaxPV! 3.58, site Web 3.57, EcoPV 3.57.
+### **V 3.57** - 11/06/2023
 * Ajout de la fonctionnalité RelayPlus.
 * Correction bug affichage "année 1970" dans les graphes.
 * Amélioration de la détection de la déconnexion de la charge SSR (Merci Djeje !).
