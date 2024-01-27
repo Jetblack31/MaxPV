@@ -266,6 +266,21 @@
                             required min="0" max="59" step ="1">
                     </div>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-9">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="temp_limit_active">
+                            <label class="form-check-label" for="temp_limit_active">Limitation en température</label>
+                        </div>
+                    </div>
+                </div>    
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="max_temp" class="form-label">Température maximale (°C)</label>
+                        <input type="number" class="form-control text-center" id="max_temp" placeholder="xx"
+                            required min="15" max="90" step ="1">
+                    </div>
+                </div>
                 <br>
                 
                 <div class="row mb-3">
@@ -367,6 +382,9 @@
                     document.getElementById("RelayPlus_hour").value = doc["RelayPlus_hour"];
                     if (doc["RelayPlus_active"] == "1") RelayPlus_active.checked = true;
                     else RelayPlus_active.checked = false;
+                    document.getElementById("max_temp").value = doc["max_temp"];
+                    if (doc["temp_limit_active"] == "1") temp_limit_active.checked = true;
+                    else temp_limit_active.checked = false;
                 }
             }
             xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
@@ -407,8 +425,11 @@
             doc["RelayPlus_min"] = document.getElementById("RelayPlus_min").value;
             doc["RelayPlus_max"] = document.getElementById("RelayPlus_max").value;
             doc["RelayPlus_hour"] = document.getElementById("RelayPlus_hour").value;
-            if(RelayPlus_active.checked == true) doc["RelayPlus_active"] = "1";
+            if (RelayPlus_active.checked == true) doc["RelayPlus_active"] = "1";
             else doc["RelayPlus_active"] = "0";
+            doc["max_temp"] = document.getElementById("max_temp").value;
+            if (temp_limit_active.checked == true) doc["temp_limit_active"] = "1";
+            else doc["temp_limit_active"] = "0";
 
             var value_param = JSON.stringify(doc);
             args += value_param;
@@ -453,6 +474,9 @@
                 document.getElementById("RelayPlus_hour").value = doc["RelayPlus_hour"] ?? "";
                 if (doc["RelayPlus_active"] == "1") RelayPlus_active.checked = true;
                 else RelayPlus_active.checked = false;
+                document.getElementById("max_temp").value = doc["max_temp"] ?? "";
+                if (doc["temp_limit_active"] == "1") temp_limit_active.checked = true;
+                else temp_limit_active.checked = false;
                 
                 saveConfigMaxPV();
                 sendAction ( 'rebootesp' ); 

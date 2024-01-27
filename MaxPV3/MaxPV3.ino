@@ -49,7 +49,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <DNSServer.h>
-#include <NTPClient.h>
+#include <TZ.h>
 #include <WiFiUdp.h>
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
@@ -113,6 +113,8 @@ uint16_t httpPort    = HTTP_PORT;
 
 int wtdWifiActive    = OFF;                       // WatchDog actif (= ON) ou non (= OFF)
 
+bool isTimeTrue      = false;
+
 // Définition des paramètres du mode BOOST
 byte boostRatio      = DEFAULT_BOOST_RATIO;       // En % de la puissance max
 int boostDuration    = DEFAULT_BOOST_DURATION;    // En minutes
@@ -140,6 +142,10 @@ int relayPlusMin    = DEFAULT_RELAYPLUS_MIN;         // Temps minimum de fonctio
 int relayPlusMax    = DEFAULT_RELAYPLUS_MAX;         // Temps maximum de fonctionnement journalier
 int relayPlusHour   = DEFAULT_RELAYPLUS_HOUR;        // Heure de référence pour les calculs
 int relayPlusActive = OFF;                           // RelayPlus actif (= ON) ou non (= OFF)
+
+// Définition des paramètres de contrôle de température
+int maxTemp         = DEFAULT_MAX_TEMP;
+int tempLimitActive = OFF;
 
 
 // ***********************************************************************************
@@ -172,8 +178,6 @@ bool shouldCheckWifi = false;
 bool shouldExecuteEachSecondTasks = false;
 // Flag indiquant la nécessité d'exécuter le Time Scheduler
 bool shouldExecuteTimeScheduler = false;
-// Flag indiquant la nécessité d'updater le timeClient
-bool shouldExecuteTimeClientUpdate = false;
 
 unsigned long refTimePingWifi = millis();
 unsigned long refTimeContactEcoPV = millis();
@@ -213,8 +217,6 @@ int relaisPlusCountDown = -1;   // compte à rebours de la durée d'une journée
 AsyncWebServer    webServer(HTTP_PORT);
 AsyncMqttClient   mqttClient;
 AsyncHTTPRequest  remoteRelayRequest;
-WiFiUDP           ntpUDP;
-NTPClient         timeClient(ntpUDP, NTP_SERVER, 3600 * GMT_OFFSET, NTP_UPDATE_INTERVAL);
 AsyncPing ping;
 
 #if defined (MAXPV_FTP_SERVER)
@@ -392,9 +394,8 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   logSerial ( F("[ESP]"), F("Initialisation") );
 
   // Démarrage du client NTP
-  logSerial ( F("[ESP]"), F("Démarrage client NTP") ); 
-  timeClient.begin();
-  timeClient.update();
+  logSerial ( F("[ESP]"), F("Configuration client NTP") ); 
+  configTzTime(TIME_ZONE, NTP_SERVER);
   delay(200);
 
 #if defined (MAXPV_FTP_SERVER)
@@ -586,13 +587,6 @@ void loop()
   
   yield();
 
-  if (shouldExecuteTimeClientUpdate) {
-    timeClient.update();
-    shouldExecuteTimeClientUpdate = false;
-  }
-
-  yield();
-
   if (shouldExecuteEachSecondTasks) {
     eachSecondTasks();
     shouldExecuteEachSecondTasks = false;
@@ -700,6 +694,8 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("RelayPlus_max"))      relayPlusMax = jsonConfig["RelayPlus_max"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("RelayPlus_hour"))     relayPlusHour = jsonConfig["RelayPlus_hour"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("RelayPlus_active"))   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("max_temp"))           maxTemp = jsonConfig["max_temp"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("temp_limit_active"))  tempLimitActive = jsonConfig["temp_limit_active"]; else shouldSaveConfig = true;
 
         // traitement des durées min et max du mode RelayPlus
         if ( relayPlusMin <= 5)  relayPlusMin = 5;
@@ -750,6 +746,9 @@ void configWrite(void)
   jsonConfig["RelayPlus_max"] = relayPlusMax;
   jsonConfig["RelayPlus_hour"] = relayPlusHour;
   jsonConfig["RelayPlus_active"] = relayPlusActive;
+  jsonConfig["max_temp"] = maxTemp;
+  jsonConfig["temp_limit_active"] = tempLimitActive;
+
 
   File configFile = LittleFS.open(F("/config.json"), "w");
   serializeJson(jsonConfig, configFile);
@@ -847,7 +846,11 @@ void logSerial ( const String& logger, const String& message )
   if ( SERIAL_LOG_ENABLE ) {
     String msg;
     msg.reserve(128);
-    msg = timeClient.getFormattedTime ( );
+    time_t timestamp = time(NULL);
+    char buffer[32];
+    struct tm *pTime = localtime(&timestamp );
+    strftime(buffer, 32, "%H:%M:%S", pTime);
+    msg = String(buffer);
     msg += F("  ");
     msg += logger;
     msg += F("  ");
@@ -867,7 +870,13 @@ void logMqtt ( const String& logger, const String& message )
   if ( (mqttClient.connected ()) && (MQTT_LOG_ENABLE) ) {          // On vérifie si on est connecté à un serveur mqtt
     String msg;
     msg.reserve(128);
-    msg = timeClient.getFormattedTime ( );
+
+    time_t timestamp = time(NULL);
+    char buffer[32];
+    struct tm *pTime = localtime(&timestamp );
+    strftime(buffer, 32, "%d/%m/%Y %H:%M", pTime);
+
+    msg = String(buffer);;
     msg += F("  ");
     msg += logger;
     msg += F("  ");
@@ -1252,8 +1261,9 @@ void initHistoric(void)
 
 void recordHistoricData(void)
 {
-  if (timeClient.isTimeSet()) {
-    energyIndexHistoric[historyCounter].time      = timeClient.getEpochTime();
+  if (isTimeTrue) {
+    time_t timestamp = time(NULL);
+    energyIndexHistoric[historyCounter].time      = long (timestamp);
     energyIndexHistoric[historyCounter].eRouted   = ecoPVStats[INDEX_ROUTED].toFloat();
     energyIndexHistoric[historyCounter].eImport   = ecoPVStats[INDEX_IMPORT].toFloat();
     energyIndexHistoric[historyCounter].eExport   = ecoPVStats[INDEX_EXPORT].toFloat();
@@ -1315,6 +1325,11 @@ void eachSecondTasks(void)
   
   yield();
 
+  // Toutes les 273 secondes on vérifie la validité de l'heure NTP
+  if ( generalCounterSecond % 273 == 17 )  checkTimeSet();
+  
+  yield();
+
   // Enregistrement des historiques
   if (generalCounterSecond % (HISTORY_INTERVAL * 60) == 0) recordHistoricData();;
 
@@ -1355,9 +1370,12 @@ void eachSecondTasks(void)
 void timeScheduler(void)
 {
   // Le scheduler est exécuté toutes les minutes
-  int day     = timeClient.getDay();
-  int hour    = timeClient.getHours();
-  int minute  = timeClient.getMinutes();
+  time_t timestamp = time(NULL);
+  struct tm *pTime = localtime(&timestamp );
+  
+  int day     = pTime->tm_mday;
+  int hour    = pTime->tm_hour;
+  int minute  = pTime->tm_min;
 
   // Mise à jour des index de début de journée en début de journée solaire à 00H00
   if ( ( hour == 0 ) && ( minute == 0 ) ) {
@@ -1367,9 +1385,6 @@ void timeScheduler(void)
 
   // Déclenchement du mode BOOST sur Timer
   if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute ) && ( boostTimerActive == ON ) )  boostON ( );
-
-  // Mise à jour NTP toutes les heures
-  if ( minute == 47 ) shouldExecuteTimeClientUpdate = true;
 
   // Initialisation du mode RelayPlus pour la nouvelle journée
   if ( ( hour == relayPlusHour ) && ( minute == 1 ) && ( relayPlusActive == ON ) )  {
@@ -1516,7 +1531,7 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#DEVICECLASS#"), F("power_factor"));
   payload.replace(F("#STATECLASS#"), F("measurement"));
   payload.replace(F("#STATETOPIC#"), F(MQTT_COS_PHI));
-  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""), "");
+  payload.replace(F(",\"unit_of_meas\":\"#UNIT#\""), "");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
   // MQTT_P_ACT
@@ -1898,6 +1913,16 @@ void startWeb (void) {
 }
 
 
+///////////////////////////////////////////////////////////////////
+// Vérification de la validité de l'heure                        //
+///////////////////////////////////////////////////////////////////
+
+void checkTimeSet (void) {
+  time_t timestamp = time( NULL );
+  isTimeTrue = (timestamp > TIME_REF) ? true : false;
+}
+
+
 void setWebHandlers (void) {
 
   // ***********************************************************************
@@ -2068,8 +2093,13 @@ void setWebHandlers (void) {
       else if ( request->hasParam ( F("ping") ) )
         if ( contactEcoPV ) response = F("running");
         else response = F("offline");
-      else if ( request->hasParam ( F("time") ) )
-        response = timeClient.getFormattedTime ( );
+      else if ( request->hasParam ( F("time") ) ) {
+        time_t timestamp = time(NULL);
+        char buffer[32];
+        struct tm *pTime = localtime(&timestamp );
+        strftime(buffer, 32, "%H:%M:%S", pTime);
+        response = String(buffer);
+      }
       else response = F("Unknown request");
       request->send ( 200, "text/plain", response );
     }

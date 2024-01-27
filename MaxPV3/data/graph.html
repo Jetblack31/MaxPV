@@ -202,8 +202,17 @@
 
     Highcharts.chart('container-puisshistorique', {
       chart: {
-        type: 'areaspline',
-        marginRight: 10
+       type: 'areaspline',
+       zoomType: 'x',
+       panning: true,
+       panKey: 'shift',     
+       resetZoomButton: {
+        position: {
+          x: -45,
+          y: -38
+        }
+       },
+       marginRight: 10
       },
       title: {
         text: 'Historique des puissances'

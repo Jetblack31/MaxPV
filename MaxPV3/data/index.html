@@ -114,6 +114,11 @@
             <td class="text-center"><span id="pimpulsion">-----</span></td>
             <td class="text-center">W</td>
           </tr>
+          <tr>
+            <th scope="row">Température ECS</th>
+            <td class="text-center"><span id="temperature">-----</span></td>
+            <td class="text-center">°C</td>
+          </tr>
         </tbody>
 
         <thead>
@@ -196,7 +201,7 @@
 
         <tbody>
           <tr>
-            <th scope="row">Heure solaire</th>
+            <th scope="row">Heure</th>
             <td class="text-center"><span id="time">-----</span></td>
             <td class="text-center">H:M:S</td>
           </tr>
@@ -278,6 +283,7 @@
           document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[25]) ).toFixed(3).toString();
           document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[26]) ).toFixed(3).toString();
           document.getElementById("indexrelayJ").innerHTML = (parseInt( config[22], 10 ) - parseInt( config[27], 10 ) ).toString();
+          document.getElementById("temperature").innerHTML = config[28];
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);

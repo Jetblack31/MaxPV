@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.58"
-#define MAXPV_VERSION_FULL "MaxPV! 3.58"
+#define MAXPV_VERSION      "3.59"
+#define MAXPV_VERSION_FULL "MaxPV! 3.59"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -66,10 +66,9 @@
 #define WELCOME_MESSAGE     "MaxPV! par Bernard Legrand (2022)"
 
 // NTP
-// Décalage de fuseau horaire par rapport à UTC / GMT. 0 = heure solaire française
-#define GMT_OFFSET          0 
-#define NTP_SERVER          "europe.pool.ntp.org"
-#define NTP_UPDATE_INTERVAL 1800000
+#define TIME_ZONE              TZ_Europe_Paris
+#define NTP_SERVER             "europe.pool.ntp.org"
+#define TIME_REF               1680343200     // 1er avril 2023
 
 #define DEFAULT_MQTT_SERVER     "192.168.1.100" // Serveur MQTT par défaut
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
@@ -98,6 +97,8 @@
 #define DEFAULT_RELAYPLUS_MIN     60  // Temps minimum de fonctionnement
 #define DEFAULT_RELAYPLUS_MAX    480  // Temps maximum de fonctionnement
 #define DEFAULT_RELAYPLUS_HOUR    21  // Heure de référence pour les calculs
+
+#define DEFAULT_MAX_TEMP          45
 
 // Historisation des index
 #define HISTORY_INTERVAL  30  // Périodicité en minutes de l'enregistrement des index d'énergie pour l'historisation
