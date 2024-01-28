@@ -151,8 +151,6 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 # Versions
 
-Nouveautés : Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique. Zoom dans le graphe historique. Correction bug mineur MQTT. Préparation de l'interface pour le support de la sonde de température ECS (pas encore fonctionnel).<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
-}
 ### **V 3.59** - 27/01/2024
 * Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique.
 * Zoom dans le graphe historique.
