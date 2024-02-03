@@ -112,7 +112,7 @@ A partir de la version 3.55, le relais secondaire fonctionne en mode AUTO même 
 
 ## Mode BOOST
 Le mode BOOST permet de déclencher le fonctionnement du SSR (résistance du chauffe-eau) pour une durée déterminée et avec une puissance déterminée par configuration dans le menu Administration. Le mode BOOST se déclenche à partir de la page principale. Si une nouvelle demande BOOST est effectuée pendant que le mode BOOST est déjà actif, la durée de fonctionnement est ré-initialisée à la valeur de configuration. Le mode BOOST peut être interrompu en cliquant sur le bouton correspondant. A l'arrêt du mode BOOST, la gestion du SSR passe en mode AUTO. Le pilotage de la résistance du chauffe-eau en mode BOOST est de type 'burst PWM' ou modulation de largeur d'impulsion, sur une période de 5 minutes. Ce n'est donc pas un pilotage proportionnel de type gradateur piloté en phase afin de limiter l'échauffement du SSR.
-Un déclenchement horaire programmé du mode BOOST est également configurable. La référence horaire pour cette programmation est l'heure solaire de France (= UTC) !
+Un déclenchement horaire programmé du mode BOOST est également configurable.
 **ATTENTION** : la modification du mode de fonctionnement du SSR est prioritaire sur le mode BOOST. Toute modification du mode de fonctionnement du SSR entraine l'arrêt automatique du mode BOOST si celui-ci était actif.
 
 ## Limitation en température
@@ -120,9 +120,8 @@ Si une sonde 1-Wire est installée, la température est indiquée dans le monite
 
 ## Mode RelayPlus
 Le mode RelayPlus permet de fixer un temps mininum et un temps maximum journaliers de fonctionnement du relais secondaire. La configuration se fait dans le menu Administration. La fonctionnalité s'active à chaque passage à l'heure de référence définie. A cette heure de référence, le relais passe en mode AUTO et la fonctionnalité RelayPlus monitore le temps de fonctionnement du relais liée à l'utilisation du surplus PV. Lorsque la durée maximale de fonctionnement est atteinte, le relais secondaire passe en mode STOP jusqu'au jour suivant. Par contre, si RelayPlus constate que la durée minimale de fonctionnement ne sera pas atteinte dans la journée, le mode FORCE sera engagé pour garantir la durée minimale de fonctionnement avant la fin de la journée (= avant le passage suivant à l'heure de référence). Une fois que le temps de fonctionnement est complété, le mode relais passe à STOP jusqu'au jour suivant.
-La référence horaire pour cette programmation est l'heure solaire de France (= UTC) !
 
-Utilisation typique : le relais secondaire pilote une pompe de piscine. On peut alors fixer un temps minimum de fonctionnement par jour (par exemple 6h = 360 min) et un temps maximal (600 min). Idéalement, l'heure de référence est choisie pour correspondre à la fin de la production PV, par exemple 20 heures (en heure solaire).
+Utilisation typique : le relais secondaire pilote une pompe de piscine. On peut alors fixer un temps minimum de fonctionnement par jour (par exemple 6h = 360 min) et un temps maximal (600 min). Idéalement, l'heure de référence est choisie pour correspondre à la fin de la production PV, par exemple 20 heures.
 **ATTENTION** : la modification du mode de fonctionnement du relais secondaire est prioritaire sur la fonctionnalité RelayPlus. Toute modification du mode de fonctionnement du relais entraine l'arrêt automatique de la fonctionnalité RelayPlus (si active) jusqu'au prochain passage à l'heure de référence.
 
 
@@ -159,11 +158,6 @@ La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.
 
 Nouveautés : Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique. Zoom dans le graphe historique. Correction bug mineur MQTT. Préparation de l'interface pour le support de la sonde de température ECS (pas encore fonctionnel).<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
-
-### **V 3.59** - 03/02/2024
-* Prise en charge de la sonde de température ECS 1-Wire sur pin D9 par défaut.
-* Possibilité d'arrêter le BOOST SSR sur température maximale atteinte.
-* Versions : MaxPV! 3.60, site Web 3.60, EcoPV 3.60.
 ### **V 3.59** - 27/01/2024
 * Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique.
 * Zoom dans le graphe historique.
