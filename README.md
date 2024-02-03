@@ -25,7 +25,8 @@ Intervenir sur des circuits électriques est dangereux et nécessite le recours 
 * Mise à jour du Wemos en OTA.
 * Assistant de configuration des paramètres du routeur.
 * Le SSR et le relais secondaire de délestage peuvent être forcés sur arrêt permanent, marche permanente, en plus du mode automatique (par défaut).
-* Mode Boost sur SSR pour complément de chauffe
+* Mode Boost sur SSR pour complément de chauffe, manuel ou programmé.
+* Sonde de température 1-Wire pour le contrôle de la température ECS.
 * Fonction RelayPlus pour fixer des minimum et maximum de fonctionnement du relais secondaire.
 * API pour communiquer avec un serveur domotique : [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
@@ -43,6 +44,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 ## Programmation de l'Arduino Nano
 * **ATTENTION** : si vous migrez un système EcoPV existant, prenez note des paramètres du routeur ! Ceux-ci seront effacés et devront être ré-introduits à la fin de l'installation !
 * Ouvrez le programme *EcoPV3.ino* dans l'IDE de l'Arduino configuré pour la programmation de l'Arduino Nano.
+* Installez le cas échéant les bibliothèques OneWire.h et DallasTemperature.
 * Si vous utilisez l'écran oLed, dé-commentez la ligne 47 du code et vérifiez que la bibliothèque SSD1306Ascii est bien installée.
 * Si vous voulez que l'énergie délivrée en mode FORCE et en mode BOOST ne soit pas prise en compte dans l'index d'énergie routée, modifiez la ligne 65.
 * Téléchargez le programme dans l'Arduino Nano.
@@ -103,7 +105,7 @@ Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser 
 ## Explication du mode de fonctionnement des sorties SSR et du relais secondaire
 Le mode de fonctionnement normal des sorties SSR et relais secondaire est le **mode AUTO**. Dans ce mode, le routeur s'occupe de diriger le surplus de production photovoltaïque vers la résistance du chauffe-eau et la charge secondaire de délestage éventuellement connectée au relais.
 Toutefois, vous pouvez forcer la marche du SSR et/ou du relais, il vous suffit de sélectionner le mode FORCE dans l'onglet Moniteur de MaxPV! ou via une requête API. De même, vous pouvez empêcher le fonctionnement du SSR et/ou du relais en sélectionnant le mode STOP.
-Le mode par défaut des sorties SSR et relais secondaire à la mise sous tension peut être modifié dans le fichier EcoPV3.ino en lignes 115 et 117.
+Le mode par défaut des sorties SSR et relais secondaire à la mise sous tension peut être modifié dans le fichier EcoPV3.ino en lignes 118 et 120.
 
 **ATTENTION** : il y a une limitation au fonctionnement jusqu'à la version 3.54 : Le mode AUTO du relais ne peut fonctionner que si le SSR est en mode AUTO. Si le SSR n'est pas en mode AUTO et si le relais est en mode AUTO, alors le relais sera desactivé en permanence.
 A partir de la version 3.55, le relais secondaire fonctionne en mode AUTO même si le SSR n'est pas en mode AUTO. Dans ce cas, le surplus PV correspond à la puissance exportée (injectée) vers le réseau, et non plus la puissance routée par le SSR.
@@ -113,6 +115,8 @@ Le mode BOOST permet de déclencher le fonctionnement du SSR (résistance du cha
 Un déclenchement horaire programmé du mode BOOST est également configurable. La référence horaire pour cette programmation est l'heure solaire de France (= UTC) !
 **ATTENTION** : la modification du mode de fonctionnement du SSR est prioritaire sur le mode BOOST. Toute modification du mode de fonctionnement du SSR entraine l'arrêt automatique du mode BOOST si celui-ci était actif.
 
+## Limitation en température
+Si une sonde 1-Wire est installée, la température est indiquée dans le moniteur. Une limite en température est configurable dans l'onglet Administration. Si la limitation est activée, alors le BOOST (manuel ou programmé) s'arrêtera automatiquement lorsque la température est atteinte, dans la limite de la durée de fonctionnement définie.
 
 ## Mode RelayPlus
 Le mode RelayPlus permet de fixer un temps mininum et un temps maximum journaliers de fonctionnement du relais secondaire. La configuration se fait dans le menu Administration. La fonctionnalité s'active à chaque passage à l'heure de référence définie. A cette heure de référence, le relais passe en mode AUTO et la fonctionnalité RelayPlus monitore le temps de fonctionnement du relais liée à l'utilisation du surplus PV. Lorsque la durée maximale de fonctionnement est atteinte, le relais secondaire passe en mode STOP jusqu'au jour suivant. Par contre, si RelayPlus constate que la durée minimale de fonctionnement ne sera pas atteinte dans la journée, le mode FORCE sera engagé pour garantir la durée minimale de fonctionnement avant la fin de la journée (= avant le passage suivant à l'heure de référence). Une fois que le temps de fonctionnement est complété, le mode relais passe à STOP jusqu'au jour suivant.
@@ -149,11 +153,17 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 
 ![Pins EcoPV3](images/Pin_allocation.png)
 
+La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
 
 Nouveautés : Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique. Zoom dans le graphe historique. Correction bug mineur MQTT. Préparation de l'interface pour le support de la sonde de température ECS (pas encore fonctionnel).<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
+
+### **V 3.59** - 03/02/2024
+* Prise en charge de la sonde de température ECS 1-Wire sur pin D9 par défaut.
+* Possibilité d'arrêter le BOOST SSR sur température maximale atteinte.
+* Versions : MaxPV! 3.60, site Web 3.60, EcoPV 3.60.
 ### **V 3.59** - 27/01/2024
 * Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique.
 * Zoom dans le graphe historique.

@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.59"
-#define MAXPV_VERSION_FULL "MaxPV! 3.59"
+#define MAXPV_VERSION      "3.60"
+#define MAXPV_VERSION_FULL "MaxPV! 3.60"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -137,7 +137,7 @@
 // ATTENTION : dans le reste du programme les 4 index de début de journée sont ajoutés à la suite
 // pour les informations disponibles par l'API
 // ils doivent toujours être situés en toute fin de tableau
-#define NB_STATS        24     // Nombre d'informations statistiques transmis par EcoPV (23 = 22 + VERSION)
+#define NB_STATS        25     // Nombre d'informations statistiques transmis par EcoPV (25 = 24 + VERSION)
 #define NB_STATS_SUPP   5      // Nombre d'informations statistiques supplémentaires
 //#define ECOPV_VERSION 0
 #define V_RMS           1
@@ -163,12 +163,13 @@
 #define ONTIME          21
 #define SAMPLES         22
 #define INDEX_RELAY     23
+#define TEMP_ECS        24
 // Informations supplémentaires ajoutées
-#define INDEX_ROUTED_J  24
-#define INDEX_IMPORT_J  25
-#define INDEX_EXPORT_J  26
-#define INDEX_IMPULSION_J 27
-#define INDEX_RELAY_J     28
+#define INDEX_ROUTED_J  25
+#define INDEX_IMPORT_J  26
+#define INDEX_EXPORT_J  27
+#define INDEX_IMPULSION_J 28
+#define INDEX_RELAY_J     29
 
 
 // Définition des topics MQTT

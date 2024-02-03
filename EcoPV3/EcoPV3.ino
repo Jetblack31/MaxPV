@@ -84,7 +84,7 @@
 // ****************************   Définitions générales   ****************************
 // ***********************************************************************************
 
-#define VERSION          "3.57"       // Version logicielle
+#define VERSION          "3.60"       // Version logicielle
 #define SERIAL_BAUD      500000       // Vitesse de la liaison port série
 #define SERIALTIMEOUT       100       // Timeout pour les interrogations sur liaison série en ms
 
@@ -95,6 +95,9 @@
 #define WH_PER_INC            5       // Nombre de Wh par incrément pour le stockage 3 compteurs d'énergie (Rout, Imp, Exp)
 
 #define BOOST_BURST_PERIOD  300       // Durée de la période du cycle PWM mode BOOST en secondes
+
+#define ONEWIRE_PERIOD       60       // Période de raffraichissement OneWire. Minimum : 10s.
+#define TEMPERATURE_RESOLUTION 9      // Résolution en bit pour la lecture de la température
 
 // ***********************************************************************************
 // ***************************   Définitions utilitaires   ***************************
@@ -139,6 +142,8 @@
 #define ledPinStatus           6    // OUT DIGITAL = PIN D6, LED de signalisation fonctionnement / erreur
 #define ledPinRouting          7    // OUT DIGITAL = PIN D7, LED de signalisation routage de puissance
 #define relayPin               8    // OUT DIGITAL = PIN D8, commande On/Off du relais de délestage secondaire
+
+#define temperatureSensorPin   9    // I/O DIGITAL = PIN D9, sonde de température OneWire
 
 //                   **************************************************
 //                   **********   A  T  T  E  N  T  I  O  N   *********
@@ -447,6 +452,18 @@ struct indexEeprom {
   // taille totale : 20 bytes
 };
 
+
+// ***********************************************************************************
+// **************** Définitions pour la mesure de température OneWire    *************
+// ***********************************************************************************
+// *** La pin utilisée est définie au début du programme : temperatureSensorPin
+#include "OneWire.h"
+#include "DallasTemperature.h"
+OneWire oneWire ( temperatureSensorPin );
+DallasTemperature dallas ( &oneWire );
+int  temperatureECS             = -99;     // température ECS (valide entre 5 et 95 °C / -99 = invalide)
+bool isTemperatureSensorPresent = false;
+
 // ***********************************************************************************
 // ****************** Définitions pour la communication OLED_128X64    ***************
 // ***********************************************************************************
@@ -522,6 +539,12 @@ void setup ( ) {
 
   // Chargement des l'index d'énergie kWh
   indexRead ( );
+
+  // Activation OneWire/Dallas
+  dallas.begin(); 
+  dallas.setResolution ( TEMPERATURE_RESOLUTION );
+  // On teste si une sonde de température OneWire au moins est présente
+  isTemperatureSensorPresent = ( dallas.getDeviceCount() != 0 ) ? true : false;
 
   // Activation de la liaison série
   Serial.begin ( SERIAL_BAUD );
@@ -807,6 +830,8 @@ void loop ( ) {
     Serial.print ( stats_samples );
     Serial.print ( F(",") );
     Serial.print ( indexRelayOn );
+    Serial.print ( F(",") );
+    Serial.print ( temperatureECS );
     Serial.print ( F(",END#") );
 
     // *** Reset du Flag pour indiquer que les données ont été traitées   ***
@@ -1328,18 +1353,23 @@ void PVRScheduler ( void ) {
   }
 #endif
 
-  //*** Toutes les 30 secondes , envoi du temps BOOST restant                            ***
+  //*** Toutes les 30 secondes, envoi du temps BOOST restant                            ***
   if ( ( secondsOnline % 30 )  == 17 ) {
     Serial.print ( F("BOOSTTIME,") );
     Serial.print ( boostTime );
     Serial.print ( F(",END#") );
   }
 
-  //*** Toutes les 30 secondes , envoi du temps relayPlus restant                        ***
+  //*** Toutes les 30 secondes, envoi du temps relayPlus restant                        ***
   if ( ( secondsOnline % 30 )  == 19 ) {
     Serial.print ( F("RELAYPLUSTIME,") );
     Serial.print ( relayplusTime );
     Serial.print ( F(",END#") );
+  }
+
+  //*** Toutes les ONEWIRE_PERIOD secondes, lecture sonde de température                ***
+  if ( ( ( secondsOnline % ONEWIRE_PERIOD )  == 7 ) && ( isTemperatureSensorPresent) ) {
+    temperatureRead ( );
   }
 
   //*** Toutes les 2 secondes : Calcul de la puissance relative à la mesure d'impulsion  ***
@@ -1464,6 +1494,21 @@ unsigned int analogReadReference ( void ) {
     avec   VCC_1BIT = ( 1.1 / analogReadReference ( ) )
   */
 }
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+// temperatureRead                                                                   //
+// Fonction de lecture de la température sur sonde OneWire                           //
+///////////////////////////////////////////////////////////////////////////////////////
+void temperatureRead ( void ) {
+  dallas.requestTemperatures ( );
+  int temp = dallas.getTempCByIndex ( 0 );
+  if ( ( temp > 0 ) && ( temp < 95 ) )  {   // Température valide
+    temperatureECS = temp;
+  }
+  else temperatureECS = -99;                // Température invalide
+}
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////

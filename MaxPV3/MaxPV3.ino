@@ -756,7 +756,6 @@ void configWrite(void)
 }
 
 
-
 ///////////////////////////////////////////////////////////////////
 // Fonctions Callback du portail AP de configuration Wifi        //
 // void configModeCallback(AsyncWiFiManager *myWiFiManager)      //
@@ -789,7 +788,6 @@ void saveConfigCallback(void)
 {
   shouldSaveConfig = true;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////
@@ -886,7 +884,6 @@ void logMqtt ( const String& logger, const String& message )
 }
 
 
-
 ///////////////////////////////////////////////////////////////////
 // Fonctions de communication avec l'Arduino Nano                //
 // par liaison série                                             //
@@ -960,6 +957,9 @@ bool serialProcess(void)
         if (i < (NB_STATS + NB_STATS_SUPP - 1))
           ecoPVStatsAll += F(",");
       }
+
+      // Arrêt du Boost si la température ECS est atteinte
+      if ( ( tempLimitActive == ON ) && ( ecoPVStats[TEMP_ECS].toInt() > maxTemp ) && ( boostTime > 0 ) ) boostOFF ( );
     }
 
     else if (incomingData.startsWith(F("PARAM")))
@@ -995,7 +995,7 @@ bool serialProcess(void)
     }
 
     else if (incomingData.startsWith(F("BOOSTTIME")))
-      {
+    {
       incomingData.replace(F("BOOSTTIME,"), "");
       boostTime = incomingData.toInt();
     }
@@ -1384,7 +1384,15 @@ void timeScheduler(void)
   };
 
   // Déclenchement du mode BOOST sur Timer
-  if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute ) && ( boostTimerActive == ON ) )  boostON ( );
+  if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute )
+        && ( boostTimerActive == ON ) 
+        && ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) )
+        )  boostON ( );
+
+// Définition des paramètres de contrôle de température
+int maxTemp         = DEFAULT_MAX_TEMP;
+int tempLimitActive = OFF;
+
 
   // Initialisation du mode RelayPlus pour la nouvelle journée
   if ( ( hour == relayPlusHour ) && ( minute == 1 ) && ( relayPlusActive == ON ) )  {
@@ -1402,7 +1410,8 @@ void timeScheduler(void)
 // et de l'autodiscovery Home Assisant                           //
 ///////////////////////////////////////////////////////////////////
 
-void startMqtt (void) {
+void startMqtt (void) 
+{
   IPAddress _ipmqtt;
   mqttClient.onConnect(onMqttConnect);        // Appel de la fonction lors d'une connexion MQTT établie
   mqttClient.onDisconnect(onMqttDisconnect);  // Appel de la fonction lors d'une déconnexion MQTT
@@ -1755,7 +1764,7 @@ void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessagePrope
     else if ( String(payload).startsWith(F("auto")) )   SSRModeEcoPV ( AUTOM );
   }
   else if (String(topic).startsWith(F(MQTT_SET_BOOST_MODE))) {
-    if ( String(payload).startsWith(F("on")) )          boostON ( );
+    if ( String(payload).startsWith(F("on")) && ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) ) )          boostON ( );
     else if ( String(payload).startsWith(F("off")) )    boostOFF ( );
   }
 }
@@ -1902,7 +1911,8 @@ void remoteRelay ( int state )
 // Fonctions de gestion du serveur Web                           //
 ///////////////////////////////////////////////////////////////////
 
-void startWeb (void) {
+void startWeb (void) 
+{
   AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
   AsyncElegantOTA.begin(&webServer);
   delay(100);
@@ -1917,7 +1927,8 @@ void startWeb (void) {
 // Vérification de la validité de l'heure                        //
 ///////////////////////////////////////////////////////////////////
 
-void checkTimeSet (void) {
+void checkTimeSet (void) 
+{
   time_t timestamp = time( NULL );
   isTimeTrue = (timestamp > TIME_REF) ? true : false;
 }
@@ -2039,10 +2050,10 @@ void setWebHandlers (void) {
       LittleFS.remove ( F("/config.json") );
     else if ( request->hasParam ( F("rebootesp") ) )
       shouldReboot = true;
-    else if ( request->hasParam ( F("booston") ) )
-      boostON ( );
-    else if ( request->hasParam ( F("boostoff") ) )
-      boostOFF ( );
+    else if ( request->hasParam ( F("booston") ) ) {
+      if ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) ) boostON ( );
+    }
+    else if ( request->hasParam ( F("boostoff") ) ) boostOFF ( );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });

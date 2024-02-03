@@ -278,12 +278,12 @@
           document.getElementById("status").innerHTML = config[19];
           document.getElementById("ontime").innerHTML = config[20];
           document.getElementById("sample").innerHTML = config[21];
-          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[23]) ).toFixed(3).toString();
-          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[24]) ).toFixed(3).toString();
-          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[25]) ).toFixed(3).toString();
-          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[26]) ).toFixed(3).toString();
-          document.getElementById("indexrelayJ").innerHTML = (parseInt( config[22], 10 ) - parseInt( config[27], 10 ) ).toString();
-          document.getElementById("temperature").innerHTML = config[28];
+          document.getElementById("indexroutedJ").innerHTML = (parseFloat( config[8] ) - parseFloat( config[24]) ).toFixed(3).toString();
+          document.getElementById("indeximportJ").innerHTML = (parseFloat( config[9] ) - parseFloat( config[25]) ).toFixed(3).toString();
+          document.getElementById("indexexportJ").innerHTML = (parseFloat( config[10] ) - parseFloat( config[26]) ).toFixed(3).toString();
+          document.getElementById("indeximpulsionJ").innerHTML = (parseFloat( config[11] ) - parseFloat( config[27]) ).toFixed(3).toString();
+          document.getElementById("indexrelayJ").innerHTML = (parseInt( config[22], 10 ) - parseInt( config[28], 10 ) ).toString();
+          document.getElementById("temperature").innerHTML = config[23];
         }
       };
       xhttp1.open("GET", "api/get?alldata", true);
