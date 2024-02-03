@@ -156,8 +156,10 @@ La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.
 
 # Versions
 
-Nouveautés : Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique. Zoom dans le graphe historique. Correction bug mineur MQTT. Préparation de l'interface pour le support de la sonde de température ECS (pas encore fonctionnel).<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
-}
+### **V 3.60** - 27/01/2024
+* Prise en charge de la sonde de température ECS.
+* Fonction BOOST limitée en température maximale.
+* Versions : MaxPV! 3.60, site Web 3.60, EcoPV 3.60.
 ### **V 3.59** - 27/01/2024
 * Utilisation de l'heure de Paris au lieu de l'heure solaire. Passage heure été / hiver automatique.
 * Zoom dans le graphe historique.
