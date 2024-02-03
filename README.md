@@ -156,7 +156,7 @@ La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.
 
 # Versions
 
-### **V 3.60** - 27/01/2024
+### **V 3.60** - 03/02/2024
 * Prise en charge de la sonde de température ECS.
 * Fonction BOOST limitée en température maximale.
 * Versions : MaxPV! 3.60, site Web 3.60, EcoPV 3.60.
