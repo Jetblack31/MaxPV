@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.60"
-#define MAXPV_VERSION_FULL "MaxPV! 3.60"
+#define MAXPV_VERSION      "3.61"
+#define MAXPV_VERSION_FULL "MaxPV! 3.61"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -198,6 +198,7 @@
 #define MQTT_BOOST_MODE     "maxpv/boost"
 #define MQTT_SET_BOOST_MODE "maxpv/boost/set"
 #define MQTT_STATUS_BYTE    "maxpv/statusbyte"
+#define MQTT_TEMP_ECS       "maxpv/temperature"
 
 // Topics utilisés pour la transmission des informations du système et le debug en fonctionnement
 #define MQTT_SYS_FREE_HEAP      "maxpv/SYS/freeHeap"

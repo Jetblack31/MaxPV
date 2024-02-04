@@ -1598,7 +1598,7 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#STATETOPIC#"), F(MQTT_P_EXP));
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
-  
+
   // MQTT_P_IMPULSION
   topic = configTopicTemplate;
   topic.replace(F("#COMPONENT#"), F("sensor"));
@@ -1613,6 +1613,20 @@ void onMqttConnect(bool sessionPresent)
   payload.replace(F("#UNIT#"), "W");
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 
+  // MQTT_TEMP_ECS
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("Temperature"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Temperature"));
+  payload.replace(F("#SENSORNAME#"), F("Température ECS"));
+  payload.replace(F("#DEVICECLASS#"), F("temperature"));
+  payload.replace(F("#STATECLASS#"), F("measurement"));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_TEMP_ECS));
+  payload.replace(F("#UNIT#"), "°C");
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+  
   // MQTT_INDEX_ROUTED
   topic = configTopicTemplate;
   topic.replace(F("#COMPONENT#"), F("sensor"));
@@ -1807,6 +1821,8 @@ void mqttTransmit(void)
     mqttClient.publish(MQTT_RELAY_MODE, 0, true, ecoPVStats[RELAY_MODE].c_str());
     yield();
     mqttClient.publish(MQTT_STATUS_BYTE, 0, true, ecoPVStats[STATUS_BYTE].c_str());
+    yield();
+    mqttClient.publish(MQTT_TEMP_ECS, 0, true, ecoPVStats[TEMP_ECS].c_str());
     yield();
     if (boostTime == -1) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
     else mqttClient.publish(MQTT_BOOST_MODE, 0, true, "on");

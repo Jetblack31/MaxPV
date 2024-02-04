@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.60",
+  "maxpvver" : "3.61",
   "webver" : "3.60",
-  "whatsnew" : "Nouveautés : Prise en charge d'une sonde 1-wire de mesure de température. Affichage dans le moniteur.<br>Possibilité de limiter le mode BOOST (manuel ou programmé) en température.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "whatsnew" : "Nouveautés : Prise en charge d'une sonde 1-wire de mesure de température. Affichage dans le moniteur.<br>Température ECS disponible en MQTT.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }
