@@ -55,11 +55,11 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
   * **Erase Flash: All Flash Contents**
 
 ![IDE Config ESP](images/configIDEESP.png)
-* Installez la librairie **AsyncElegantOTA** à partir du gestionnaire de librairies.
+* Installez la librairie **ElegantOTA** à partir du gestionnaire de librairies.
 * Installez les 2 librairies disponibles dans le répertoire **"Librairies IDE"**.
 * Ouvrez le programme *amorceESP.ino* et téléchargez le dans le Wemos.
 * A l'aide d'un ordinateur connectez-vous au réseau Wifi MaxPV créé par le Wemos et allez à la page http://192.168.4.1
-* Une page intitulée elegantOTA s'ouvre à l'écran.
+* Une page intitulée ElegantOTA s'ouvre à l'écran.
 * Téléchargez d'abord le **Filesystem** *MaxPV3_filesystem.bin* disponible dans le répertoire **"Binaires MaxPV"**.
 
 ![OTA Filesystem](images/OTAFS.png)
