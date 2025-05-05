@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
   "maxpvver" : "3.61",
-  "webver" : "3.61",
-  "whatsnew" : "Nouveautés : Modification de la longueur des champs de saisie des url pour le relais distant.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "webver" : "3.62",
+  "whatsnew" : "Nouveautés : Modification des échelles des jauges.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }

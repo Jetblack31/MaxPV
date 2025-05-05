@@ -155,6 +155,10 @@ La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.
 
 # Versions
 
+### **V 3.62** - 05/05/2025
+* Changement des échelles des jauges.
+* Changement taille des champs URL relais distant.
+* Versions : MaxPV! 3.61, site Web 3.62, EcoPV 3.60.
 ### **V 3.61** - 04/02/2024
 * Prise en charge de la sonde de température ECS.
 * Information de température disponible en MQTT.
