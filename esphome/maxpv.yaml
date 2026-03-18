@@ -1,0 +1,378 @@
+esphome:
+  name: maxpv
+  friendly_name: MaxPV3 - Solar Router
+  platform: ESP8266
+  board: d1_mini
+  includes:
+    - ecopv/ecopv.h
+  libraries:
+    - Wire
+    
+# External components
+external_components:
+  - source: local
+    components: [ecopv]
+
+# WiFi Configuration
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+      priority: 1
+  
+  # Enable fallback hotspot if WiFi connection fails
+  ap:
+    ssid: MaxPV_Fallback
+    password: MaxPV_2024
+
+# Enable logging (remove serial to avoid conflicts with UART communication)
+logger:
+  baud_rate: 0  # Disable serial logging as serial is used for EcoPV communication
+  level: DEBUG
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !secret api_encryption_key
+  services:
+    - service: ecopv_send_ssr_mode
+      variables:
+        mode: string
+      then:
+        - logger.log: "Setting SSR mode to ${mode}"
+        
+    - service: ecopv_send_relay_mode
+      variables:
+        mode: string
+      then:
+        - logger.log: "Setting Relay mode to ${mode}"
+
+# Enable OTA updates
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# Enable Web Server (optional, for local diagnostic UI)
+web_server:
+  port: 80
+  version: 2
+  js_url: https://esphomechartsjs.jschin.repl.co/index.js
+
+# Time source for HA
+time:
+  - platform: homeassistant
+    timezone: Europe/Paris
+
+# Captive Portal (for initial WiFi setup)
+captive_portal:
+
+# UART1 Communication with Arduino Nano at 500000 baud
+uart:
+  - id: ecopv_serial
+    tx_pin: GPIO1    # TX (D4 on D1 mini)
+    rx_pin: GPIO3    # RX (D9 on D1 mini) 
+    baud_rate: 500000
+    rx_buffer_size: 256
+    stop_bits: 1
+    parity: NONE
+
+# Custom EcoPV component for serial protocol handling
+ecopv:
+  uart_id: ecopv_serial
+  scan_interval: 1000ms
+
+# Text sensor for firmware version
+text_sensor:
+  - platform: template
+    name: "EcoPV Firmware Version"
+    id: ecopv_version
+    icon: mdi:information
+    update_interval: 3600s
+  
+  - platform: template
+    name: "MaxPV System Status"
+    id: system_status
+    icon: mdi:heart-pulse
+    update_interval: 10s
+    lambda: |-
+      if (id(ecopv_contact_established).state) {
+        return std::string("Connected to EcoPV");
+      } else {
+        return std::string("Disconnected from EcoPV");
+      }
+
+# Binary sensors
+binary_sensor:
+  - platform: template
+    name: "EcoPV Contact"
+    id: ecopv_contact_established
+    icon: mdi:connection
+    
+  - platform: template
+    name: "EcoPV Router Running"
+    id: ecopv_router_running
+    icon: mdi:run
+
+# Power Sensors (from STATS message)
+sensor:
+  # Voltage (RMS)
+  - platform: template
+    name: "Grid Voltage RMS"
+    id: grid_voltage_rms
+    unit_of_measurement: "V"
+    device_class: voltage
+    accuracy_decimals: 1
+    icon: mdi:sine-wave
+    
+  # Current (RMS)
+  - platform: template
+    name: "Grid Current RMS"
+    id: grid_current_rms
+    unit_of_measurement: "A"
+    device_class: current
+    accuracy_decimals: 3
+    icon: mdi:current-ac
+    
+  # Active Power
+  - platform: template
+    name: "Grid Power Active"
+    id: grid_power_active
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: mdi:flash
+    
+  # Apparent Power
+  - platform: template
+    name: "Grid Power Apparent"
+    id: grid_power_apparent
+    unit_of_measurement: "VA"
+    accuracy_decimals: 1
+    icon: mdi:flash-outline
+    
+  # Routed Power
+  - platform: template
+    name: "Routed Power"
+    id: routed_power
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: mdi:lightning-bolt
+    
+  # Export Power
+  - platform: template
+    name: "Export Power"
+    id: export_power
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: mdi:lightning-bolt-outline
+    
+  # Energy indices
+  - platform: template
+    name: "Total Energy Routed"
+    id: total_energy_routed
+    unit_of_measurement: "kWh"
+    device_class: energy
+    accuracy_decimals: 2
+    state_class: total_increasing
+    icon: mdi:lightning-bolt-circle
+    
+  - platform: template
+    name: "Total Energy Imported"
+    id: total_energy_imported
+    unit_of_measurement: "kWh"
+    device_class: energy
+    accuracy_decimals: 2
+    state_class: total_increasing
+    icon: mdi:import
+    
+  - platform: template
+    name: "Total Energy Exported"
+    id: total_energy_exported
+    unit_of_measurement: "kWh"
+    device_class: energy
+    accuracy_decimals: 2
+    state_class: total_increasing
+    icon: mdi:export
+    
+  - platform: template
+    name: "PV Pulse Counter Energy"
+    id: pv_counter_energy
+    unit_of_measurement: "kWh"
+    device_class: energy
+    accuracy_decimals: 3
+    state_class: total_increasing
+    icon: mdi:solar-panel
+
+  # Temperature (if available)
+  - platform: template
+    name: "Water Tank Temperature"
+    id: water_tank_temperature
+    unit_of_measurement: "°C"
+    device_class: temperature
+    accuracy_decimals: 1
+    icon: mdi:thermometer
+
+  # Power PV (only positive values)
+  - platform: template
+    name: "PV Reference Power"
+    id: pv_reference_power
+    unit_of_measurement: "W"
+    accuracy_decimals: 1
+    icon: mdi:solar-panel
+    
+  # Relay accumulated time
+  - platform: template
+    name: "Relay ON Time Today"
+    id: relay_on_time
+    unit_of_measurement: "min"
+    accuracy_decimals: 0
+    icon: mdi:calendar-clock
+
+# Switch Controls
+switch:
+  # SSR Mode Control (3-way: Stop, Force, Auto)
+  - platform: template
+    name: "SSR Mode"
+    id: ssr_mode_switch
+    optimistic: true
+    restore_state: true
+    turn_on_action:
+      - logger.log: "SSR Mode set to FORCE"
+  
+  - platform: template
+    name: "Relay Mode"
+    id: relay_mode_switch
+    optimistic: true
+    restore_state: true
+    turn_on_action:
+      - logger.log: "Relay Mode set to FORCE"
+  
+  - platform: template
+    name: "Boost Mode"
+    id: boost_mode_switch
+    optimistic: true
+    turn_on_action:
+      - logger.log: "Boost Mode activated"
+    turn_off_action:
+      - logger.log: "Boost Mode deactivated"
+
+# Select entity for mode control (better for 3-state options)
+select:
+  - platform: template
+    name: "SSR Operating Mode"
+    id: ssr_operating_mode
+    options:
+      - "Stop"
+      - "Force"
+      - "Auto"
+    initial_option: "Auto"
+    optimistic: true
+    set_action:
+      - logger.log:
+          format: "SSR Mode set to: %s"
+          args: ["x.c_str()"]
+  
+  - platform: template
+    name: "Relay Operating Mode"
+    id: relay_operating_mode
+    options:
+      - "Stop"
+      - "Force"
+      - "Auto"
+    initial_option: "Auto"
+    optimistic: true
+    set_action:
+      - logger.log:
+          format: "Relay Mode set to: %s"
+          args: ["x.c_str()"]
+
+# Configuration Parameters as Number entities
+number:
+  - platform: template
+    name: "PV Installation Power"
+    id: pv_installation_power
+    unit_of_measurement: "Wc"
+    icon: mdi:solar-panel
+    min_value: 1000
+    max_value: 50000
+    step: 100
+    optimistic: true
+    restore_value: true
+    
+  - platform: template
+    name: "Counter Calibration"
+    id: counter_calibration
+    unit_of_measurement: "Wh/pulse"
+    icon: mdi:pulse
+    min_value: 1
+    max_value: 1000
+    step: 1
+    optimistic: true
+    restore_value: true
+    
+  - platform: template
+    name: "Boost Duration"
+    id: boost_duration
+    unit_of_measurement: "min"
+    icon: mdi:timer
+    min_value: 10
+    max_value: 480
+    step: 10
+    optimistic: true
+    restore_value: true
+    
+  - platform: template
+    name: "Max Water Temperature"
+    id: max_water_temperature
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-high
+    min_value: 30
+    max_value: 90
+    step: 1
+    optimistic: true
+    restore_value: true
+
+# Button controls
+button:
+  - platform: template
+    name: "Request EcoPV Parameters"
+    id: btn_request_params
+    icon: mdi:refresh
+    on_press:
+      - logger.log: "Requesting parameters from EcoPV"
+  
+  - platform: template
+    name: "Save EcoPV Configuration"
+    id: btn_save_ecopv_config
+    icon: mdi:content-save
+    on_press:
+      - logger.log: "Saving EcoPV configuration"
+  
+  - platform: template
+    name: "Reset Energy Indices"
+    id: btn_reset_energy_indices
+    icon: mdi:restart
+    on_press:
+      - logger.log: "Resetting energy indices"
+  
+  - platform: template
+    name: "Soft Restart EcoPV"
+    id: btn_restart_ecopv
+    icon: mdi:restart
+    on_press:
+      - logger.log: "Soft restarting EcoPV"
+
+# Service for manual command sending
+service:
+  - service: maxpv_send_command
+    variables:
+      command: string
+    then:
+      - logger.log:
+          format: "Manual command: %s"
+          args: ["command.c_str()"]

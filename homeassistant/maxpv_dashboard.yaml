@@ -1,0 +1,272 @@
+title: MaxPV3 - Solar Router Dashboard
+path: maxpv
+icon: mdi:lightning-bolt-circle
+badges:
+  - entity: binary_sensor.maxpv_ecopv_contact
+    name: System Status
+  - entity: sensor.maxpv_ecopv_firmware_version
+    name: Firmware
+panels:
+  - cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.grid_voltage_rms
+            min: 200
+            max: 250
+            needle: true
+            name: Grid Voltage
+            unit: V
+            icon: mdi:sine-wave
+          
+          - type: gauge
+            entity: sensor.grid_current_rms
+            min: 0
+            max: 100
+            needle: true
+            name: Grid Current
+            unit: A
+            icon: mdi:current-ac
+          
+          - type: gauge
+            entity: sensor.routed_power
+            min: 0
+            max: 10000
+            needle: true
+            name: Routed Power
+            unit: W
+            icon: mdi:lightning-bolt
+            segments:
+              - from: 0
+                color: '#03a9f4'
+              - from: 2000
+                color: '#8bc34a'
+              - from: 5000
+                color: '#ff9800'
+              - from: 7500
+                color: '#f44336'
+          
+          - type: gauge
+            entity: sensor.grid_power_active
+            min: -5000
+            max: 5000
+            needle: true
+            name: Active Power
+            unit: W
+            icon: mdi:flash
+            segments:
+              - from: -5000
+                color: '#f44336'
+              - from: -1000
+                color: '#ff9800'
+              - from: 0
+                color: '#4caf50'
+              - from: 3000
+                color: '#ff9800'
+              - from: 5000
+                color: '#f44336'
+      
+      - type: horizontal-stack
+        cards:
+          - type: statistic
+            entity: sensor.total_energy_routed
+            period: day
+            stat_type: change
+            name: Today Routed
+          
+          - type: statistic
+            entity: sensor.total_energy_imported
+            period: day
+            stat_type: change
+            name: Today Imported
+          
+          - type: statistic
+            entity: sensor.total_energy_exported
+            period: day
+            stat_type: change
+            name: Today Exported
+
+  - title: System Controls
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: button
+            tap_action:
+              action: call-service
+              service: ecopv.request_parameters
+              target:
+                device_id: DEVICE_ID_HERE
+            entity: binary_sensor.maxpv_ecopv_contact
+            name: Refresh Parameters
+            show_state: true
+            icon: mdi:refresh
+          
+          - type: button
+            tap_action:
+              action: call-service
+              service: ecopv.save_config
+              target:
+                device_id: DEVICE_ID_HERE
+            name: Save Configuration
+            show_state: false
+            icon: mdi:content-save
+          
+          - type: button
+            tap_action:
+              action: call-service
+              service: ecopv.reset_energy_indices
+              target:
+                device_id: DEVICE_ID_HERE
+            name: Reset Energy Indices
+            show_state: false
+            icon: mdi:restart
+          
+          - type: button
+            tap_action:
+              action: call-service
+              service: ecopv.soft_restart
+              target:
+                device_id: DEVICE_ID_HERE
+            name: Restart Router
+            show_state: false
+            icon: mdi:reload
+
+  - title: Operating Modes
+    cards:
+      - type: grid
+        columns: 1
+        square: false
+        cards:
+          - type: entities
+            entities:
+              - entity: select.ssr_operating_mode
+                name: SSR Mode (Heater Element)
+              - entity: select.relay_operating_mode
+                name: Relay Mode (Secondary Load)
+              - entity: switch.boost_mode
+                name: Boost Mode
+            header:
+              title: Router Modes
+
+          - type: markdown
+            content: |
+              ## Operating Modes Explained
+              
+              **SSR Mode**: Controls the main heating element (solid-state relay)
+              - **Stop**: Heating disabled
+              - **Force**: Always heating (manual)
+              - **Auto**: Automatic routing based on excess PV power
+              
+              **Relay Mode**: Controls secondary load (backup heater, pool pump, etc.)
+              - **Stop**: Disabled
+              - **Force**: Always active
+              - **Auto**: Activates when primary output reaches threshold
+              
+              **Boost Mode**: Extra power burst for water heating
+              - Adds 100% of rated power temporarily
+              - Useful on cloudy days when PV production is low
+
+  - title: Energy Statistics
+    cards:
+      - type: history-stats
+        entity: sensor.routed_power
+        name: Routed Power - Today
+        period: day
+        stat_type: mean
+        
+      - type: history-stats
+        entity: sensor.grid_power_active
+        name: Active Power - Today
+        period: day
+        stat_type: mean
+      
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: statistic
+            entity: sensor.total_energy_routed
+            period: week
+            stat_type: change
+            name: Week Routed
+          
+          - type: statistic
+            entity: sensor.total_energy_imported
+            period: week
+            stat_type: change
+            name: Week Imported
+          
+          - type: statistic
+            entity: sensor.total_energy_exported
+            period: week
+            stat_type: change
+            name: Week Exported
+          
+          - type: statistic
+            entity: sensor.total_energy_routed
+            period: month
+            stat_type: change
+            name: Month Routed
+          
+          - type: statistic
+            entity: sensor.total_energy_imported
+            period: month
+            stat_type: change
+            name: Month Imported
+          
+          - type: statistic
+            entity: sensor.total_energy_exported
+            period: month
+            stat_type: change
+            name: Month Exported
+
+  - title: Configuration
+    cards:
+      - type: entities
+        entities:
+          - entity: number.pv_installation_power
+            name: PV Installation Power (Wc)
+          - entity: number.counter_calibration
+            name: Counter Calibration (Wh/pulse)
+          - entity: number.boost_duration
+            name: Boost Duration (minutes)
+          - entity: number.max_water_temperature
+            name: Max Water Temperature (°C)
+        header:
+          title: Configuration Parameters
+
+  - title: System Diagnostics
+    cards:
+      - type: entities
+        entities:
+          - entity: text_sensor.maxpv_system_status
+            name: System Status
+          - entity: text_sensor.ecopv_firmware_version
+            name: EcoPV Firmware
+          - entity: binary_sensor.ecopv_router_running
+            name: Router Running
+          - entity: sensor.water_tank_temperature
+            name: Water Tank Temperature
+        header:
+          title: System Information
+      
+      - type: markdown
+        content: |
+          ## Troubleshooting Tips
+          
+          **No contact with EcoPV?**
+          - Check serial cable connection (RX/TX)
+          - Verify Arduino Nano is powered on
+          - Look for error messages in ESPHome logs
+          
+          **Sensors not updating?**
+          - Ensure EcoPV is sending STATS messages
+          - Check the "Refresh Parameters" button above
+          - Review logs: Settings > System → Logs
+          
+          **Need help?**
+          - See ESPHOME_SETUP_GUIDE.md for detailed troubleshooting
