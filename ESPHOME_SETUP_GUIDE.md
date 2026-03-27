@@ -173,14 +173,35 @@ The sensors are automatically discovered in HA. You can now:
 
 ## Configuration Parameters
 
-The following parameters can be configured via Home Assistant:
+The following parameters can be configured via Home Assistant.
 
-| Parameter | Type | Range | Description |
-|-----------|------|-------|-------------|
-| PV Installation Power | Number | 1000-50000 Wc | Total PV system capacity |
-| Counter Calibration | Number | 1-1000 Wh/pulse | Energy per pulse counter increment |
-| Boost Duration | Number | 10-480 min | How long to run boost mode |
-| Max Water Temperature | Number | 30-90 °C | Temperature limit for water heater |
+EcoPV firmware parameters (SETPARAM 01..16):
+
+| Parameter    | Type   | Range           | Description                                    |
+| ------------ | ------ | --------------- | ---------------------------------------------- |
+| V_CALIB      | Number | 0-2 V/bit       | Voltage calibration factor                     |
+| P_CALIB      | Number | 0-1 VA/bit      | Apparent power calibration factor              |
+| PHASE_CALIB  | Number | -16 to 48       | Phase correction for current/voltage alignment |
+| P_OFFSET     | Number | -100 to 100 W   | Active power offset correction                 |
+| P_RESISTANCE | Number | 100-10000 W     | Main heater rated power                        |
+| P_MARGIN     | Number | -2000 to 2000 W | Target imported power margin                   |
+| GAIN_P       | Number | 0-1000          | Proportional controller gain                   |
+| GAIN_I       | Number | 0-1000          | Integral controller gain                       |
+| E_RESERVE    | Number | 0-200 J         | Energy reserve before regulation               |
+| P_DIV2_ACTIVE| Number | 0-9999 W        | Secondary relay activation threshold           |
+| P_DIV2_IDLE  | Number | 0-9999 W        | Secondary relay deactivation threshold         |
+| T_DIV2_ON    | Number | 0-240 min       | Minimum secondary relay ON time                |
+| T_DIV2_OFF   | Number | 0-240 min       | Minimum secondary relay OFF time               |
+| T_DIV2_TC    | Number | 0-60 min        | Averaging time constant for DIV2 logic         |
+| CNT_CALIB    | Number | 1-1000 Wh/pulse | Pulse counter energy calibration               |
+| P_INSTALLPV  | Number | 100-30000 Wc    | PV installation peak capacity                  |
+
+Additional local ESP controls (not EcoPV SETPARAM values):
+
+|Parameter|Type|Range|Description|
+|---------|----|-----|-----------|
+|Boost Duration|Number|10-480 min|Duration used by Boost mode command|
+|Max Water Temperature|Number|30-90 °C|Local helper value for automations and dashboard|
 
 ## Updating the Firmware
 
@@ -241,13 +262,104 @@ Check logs for memory warnings:
 esphome logs maxpv.yaml | grep -i memory
 ```
 
-## Next Steps
+## Home Assistant Dashboard and Setup Wizard
 
-1. **Create Dashboard**: Build a Home Assistant dashboard showing power flows
-2. **Automations**: Create automations for energy routing modes
-3. **Statistics**: Monitor daily/monthly energy production
-4. **Alerts**: Set up notifications for system issues
-5. **Integration**: Connect with other home automation systems
+Two pre-configured Home Assistant configuration files are included to simplify setup and monitoring:
+
+### MaxPV Dashboard (`homeassistant/maxpv_dashboard.yaml`)
+
+A complete YAML dashboard with multiple panels:
+
+1. **Overview Panel** - Real-time gauges:
+   - Grid voltage, current, and power
+   - Routed power with color segments
+   - Daily energy statistics
+
+2. **System Controls Panel** - Buttons for:
+   - Request EcoPV parameters
+   - Save configuration
+   - Reset energy indices
+   - Soft restart EcoPV
+
+3. **Setup Wizard Panel** - Step-by-step 10-step router configuration:
+   - Live measurements display
+   - Direct parameter controls
+   - Automated wizard step buttons
+   - Instructions for each step
+
+4. **Operating Modes Panel** - Controls and explanations:
+   - SSR mode (Stop/Force/Auto)
+   - Relay mode (Stop/Force/Auto)
+   - Boost mode toggle
+
+5. **Energy Statistics Panel** - Historical data:
+   - Daily, weekly, monthly energy routed/imported/exported
+   - Average power measurements
+
+6. **Configuration Panel** - All 16 EcoPV parameters organized by function:
+   - Calibration (5 parameters)
+   - Regulation (4 parameters)
+   - Secondary Load DIV2 Relay (5 parameters)
+   - Pulse Counter & PV Installation (2 parameters)
+   - Boost & Local Controls (2 parameters)
+
+7. **System Diagnostics Panel** - Status and troubleshooting info
+
+**How to use**:
+```bash
+cp homeassistant/maxpv_dashboard.yaml <HA_CONFIG>/dashboards/
+```
+
+Then in Home Assistant:
+1. Go to **Dashboards**
+2. Select **MaxPV3 - Solar Router**
+3. View real-time power data and control the router
+
+### Setup Wizard Package (`homeassistant/maxpv_wizard_package.yaml`)
+
+Automated helper inputs and scripts that reproduce the 10-step EcoPV configuration process:
+
+**Included components**:
+- **Input helpers** for wizard inputs (Step 5 reference power, Step 8 secondary load power)
+- **Scripts** for automated setup steps:
+  - Step 1: Reset indices, restart, reset calibration
+  - Step 3: Auto-compute proportional and integral gains from heater power
+  - Step 5: Compute power calibration from reference apparent power
+  - Step 6: Correct active power offset with closed clamp
+  - Step 8: Auto-configure DIV2 relay thresholds based on loads
+  - Step 10: Save config and restart EcoPV
+
+**How to use**:
+
+1. **Enable packages in Home Assistant** (`configuration.yaml`):
+   ```yaml
+   homeassistant:
+     packages:
+       maxpv_wizard: !include_dir_named homeassistant/
+   ```
+
+2. **Restart Home Assistant** to load helpers and scripts
+
+3. **Run the wizard** from the Setup Wizard panel in the dashboard:
+   - Read step instructions
+   - Set required helper inputs (Step 5, Step 8)
+   - Click the step button
+   - Wizard script auto-computes and sets EcoPV parameters
+   - Verify results on the next step or in logs
+
+**Example workflow**:
+- Step 1: Initialize (resets energy, restarts router)
+- Step 2: Manually enter PV installation power
+- Step 3: Enter heater power, click button (auto-computes gains)
+- Step 4: Adjust voltage calibration while watching live voltage
+- Step 5: Enter reference apparent power from meter, click button
+- Step 6: Close clamp without wires, click button (corrects offset)
+- Step 7: Manually adjust phase correction while watching live power factor
+- Step 8: Enter secondary load power, click button (auto-configures relay)
+- Step 9: Manually enter pulse counter calibration
+- Step 10: Click to save and restart
+
+All 16 configuration parameters are available as editable number entities in the Configuration panel during or after wizard setup.
 
 ## Support and Resources
 
@@ -263,10 +375,6 @@ esphome/
 ├── maxpv.yaml                    # Main configuration
 ├── secrets.yaml                  # (Create from template)
 ├── secrets.yaml.template         # Template for secrets
-├── ecopv/
-│   ├── __init__.py              # Python component config
-│   ├── ecopv.h                  # C++ header
-│   └── ecopv.cpp                # C++ implementation
 └── packages/                    # Optional: modular configs
     ├── sensors.yaml
     ├── controls.yaml

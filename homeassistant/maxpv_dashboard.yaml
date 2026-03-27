@@ -4,7 +4,7 @@ icon: mdi:lightning-bolt-circle
 badges:
   - entity: binary_sensor.maxpv_ecopv_contact
     name: System Status
-  - entity: sensor.maxpv_ecopv_firmware_version
+  - entity: text_sensor.maxpv_ecopv_firmware_version
     name: Firmware
 panels:
   - cards:
@@ -13,7 +13,7 @@ panels:
         square: false
         cards:
           - type: gauge
-            entity: sensor.grid_voltage_rms
+            entity: sensor.maxpv_grid_voltage_rms
             min: 200
             max: 250
             needle: true
@@ -22,7 +22,7 @@ panels:
             icon: mdi:sine-wave
           
           - type: gauge
-            entity: sensor.grid_current_rms
+            entity: sensor.maxpv_grid_current_rms
             min: 0
             max: 100
             needle: true
@@ -31,7 +31,7 @@ panels:
             icon: mdi:current-ac
           
           - type: gauge
-            entity: sensor.routed_power
+            entity: sensor.maxpv_routed_power
             min: 0
             max: 10000
             needle: true
@@ -49,7 +49,7 @@ panels:
                 color: '#f44336'
           
           - type: gauge
-            entity: sensor.grid_power_active
+            entity: sensor.maxpv_grid_power_active
             min: -5000
             max: 5000
             needle: true
@@ -71,19 +71,19 @@ panels:
       - type: horizontal-stack
         cards:
           - type: statistic
-            entity: sensor.total_energy_routed
+            entity: sensor.maxpv_total_energy_routed
             period: day
             stat_type: change
             name: Today Routed
           
           - type: statistic
-            entity: sensor.total_energy_imported
+            entity: sensor.maxpv_total_energy_imported
             period: day
             stat_type: change
             name: Today Imported
           
           - type: statistic
-            entity: sensor.total_energy_exported
+            entity: sensor.maxpv_total_energy_exported
             period: day
             stat_type: change
             name: Today Exported
@@ -97,9 +97,9 @@ panels:
           - type: button
             tap_action:
               action: call-service
-              service: ecopv.request_parameters
+              service: button.press
               target:
-                device_id: DEVICE_ID_HERE
+                entity_id: button.maxpv_request_ecopv_parameters
             entity: binary_sensor.maxpv_ecopv_contact
             name: Refresh Parameters
             show_state: true
@@ -108,9 +108,9 @@ panels:
           - type: button
             tap_action:
               action: call-service
-              service: ecopv.save_config
+              service: button.press
               target:
-                device_id: DEVICE_ID_HERE
+                entity_id: button.maxpv_save_ecopv_configuration
             name: Save Configuration
             show_state: false
             icon: mdi:content-save
@@ -118,9 +118,9 @@ panels:
           - type: button
             tap_action:
               action: call-service
-              service: ecopv.reset_energy_indices
+              service: button.press
               target:
-                device_id: DEVICE_ID_HERE
+                entity_id: button.maxpv_reset_energy_indices
             name: Reset Energy Indices
             show_state: false
             icon: mdi:restart
@@ -128,12 +128,112 @@ panels:
           - type: button
             tap_action:
               action: call-service
-              service: ecopv.soft_restart
+              service: button.press
               target:
-                device_id: DEVICE_ID_HERE
+                entity_id: button.maxpv_soft_restart_ecopv
             name: Restart Router
             show_state: false
             icon: mdi:reload
+
+  - title: Setup Wizard
+    cards:
+      - type: markdown
+        content: |
+          ## MaxPV Setup Wizard (Home Assistant)
+
+          1. Start/reset workflow
+          2. Set PV installation power
+          3. Set heater power and auto-calculate controller gains
+          4. Adjust voltage calibration using Grid Voltage live value
+          5. Calibrate apparent power gain from a reference
+          6. Correct active power offset with clamp closed and isolated
+          7. Tune phase calibration while watching power factor
+          8. Auto-configure secondary relay thresholds
+          9. Set pulse counter calibration (if used)
+          10. Save config and restart EcoPV
+
+      - type: entities
+        entities:
+          - entity: sensor.maxpv_grid_voltage_rms
+            name: Live Grid Voltage (Vrms)
+          - entity: sensor.maxpv_grid_power_apparent
+            name: Live Apparent Power (Papp)
+          - entity: sensor.maxpv_grid_power_active
+            name: Live Active Power (Pact)
+          - entity: sensor.maxpv_grid_power_factor
+            name: Live Power Factor (cos phi)
+        header:
+          title: Live Measurements
+
+      - type: entities
+        entities:
+          - entity: input_number.maxpv_wizard_apparent_power_reference_va
+            name: Step 5 - Reference Apparent Power (VA)
+          - entity: input_number.maxpv_wizard_secondary_load_power_w
+            name: Step 8 - Secondary Load Power (W)
+        header:
+          title: Wizard Inputs
+
+      - type: entities
+        entities:
+          - entity: number.maxpv_pv_installation_power
+            name: Step 2 - PV Installation Power (Wc)
+          - entity: number.maxpv_p_resistance_heater_power
+            name: Step 3 - Heater Power (W)
+          - entity: number.maxpv_v_calib_voltage_calibration
+            name: Step 4 - V_CALIB (V/bit)
+          - entity: number.maxpv_phase_calib_phase_correction
+            name: Step 7 - PHASE_CALIB
+          - entity: number.maxpv_counter_calibration
+            name: Step 9 - Counter Calibration (Wh/pulse)
+        header:
+          title: Step Parameters
+
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: button
+            name: Step 1 - Start Workflow
+            icon: mdi:numeric-1-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step1_start
+
+          - type: button
+            name: Step 3 - Compute Gains
+            icon: mdi:numeric-3-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step3_compute_gains
+
+          - type: button
+            name: Step 5 - Compute P_CALIB
+            icon: mdi:numeric-5-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step5_compute_p_calib
+
+          - type: button
+            name: Step 6 - Correct P_OFFSET
+            icon: mdi:numeric-6-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step6_correct_offset
+
+          - type: button
+            name: Step 8 - Configure DIV2 Relay
+            icon: mdi:numeric-8-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step8_config_div2
+
+          - type: button
+            name: Step 10 - Save and Restart
+            icon: mdi:numeric-10-circle
+            tap_action:
+              action: call-service
+              service: script.maxpv_wizard_step10_save_and_restart
 
   - title: Operating Modes
     cards:
@@ -143,11 +243,11 @@ panels:
         cards:
           - type: entities
             entities:
-              - entity: select.ssr_operating_mode
+              - entity: select.maxpv_ssr_operating_mode
                 name: SSR Mode (Heater Element)
-              - entity: select.relay_operating_mode
+              - entity: select.maxpv_relay_operating_mode
                 name: Relay Mode (Secondary Load)
-              - entity: switch.boost_mode
+              - entity: switch.maxpv_boost_mode
                 name: Boost Mode
             header:
               title: Router Modes
@@ -173,13 +273,13 @@ panels:
   - title: Energy Statistics
     cards:
       - type: history-stats
-        entity: sensor.routed_power
+        entity: sensor.maxpv_routed_power
         name: Routed Power - Today
         period: day
         stat_type: mean
         
       - type: history-stats
-        entity: sensor.grid_power_active
+        entity: sensor.maxpv_grid_power_active
         name: Active Power - Today
         period: day
         stat_type: mean
@@ -189,37 +289,37 @@ panels:
         square: false
         cards:
           - type: statistic
-            entity: sensor.total_energy_routed
+            entity: sensor.maxpv_total_energy_routed
             period: week
             stat_type: change
             name: Week Routed
           
           - type: statistic
-            entity: sensor.total_energy_imported
+            entity: sensor.maxpv_total_energy_imported
             period: week
             stat_type: change
             name: Week Imported
           
           - type: statistic
-            entity: sensor.total_energy_exported
+            entity: sensor.maxpv_total_energy_exported
             period: week
             stat_type: change
             name: Week Exported
           
           - type: statistic
-            entity: sensor.total_energy_routed
+            entity: sensor.maxpv_total_energy_routed
             period: month
             stat_type: change
             name: Month Routed
           
           - type: statistic
-            entity: sensor.total_energy_imported
+            entity: sensor.maxpv_total_energy_imported
             period: month
             stat_type: change
             name: Month Imported
           
           - type: statistic
-            entity: sensor.total_energy_exported
+            entity: sensor.maxpv_total_energy_exported
             period: month
             stat_type: change
             name: Month Exported
@@ -228,16 +328,64 @@ panels:
     cards:
       - type: entities
         entities:
-          - entity: number.pv_installation_power
-            name: PV Installation Power (Wc)
-          - entity: number.counter_calibration
-            name: Counter Calibration (Wh/pulse)
-          - entity: number.boost_duration
+          - entity: number.maxpv_v_calib_voltage_calibration
+            name: V_CALIB – Voltage calibration (V/bit)
+          - entity: number.maxpv_p_calib_power_calibration
+            name: P_CALIB – Power calibration (VA/bit)
+          - entity: number.maxpv_phase_calib_phase_correction
+            name: PHASE_CALIB – Phase correction (steps, 16=none)
+          - entity: number.maxpv_p_offset_active_power_offset
+            name: P_OFFSET – Active power offset (W)
+          - entity: number.maxpv_p_resistance_heater_power
+            name: P_RESISTANCE – Heater rated power (W)
+        header:
+          title: Calibration
+
+      - type: entities
+        entities:
+          - entity: number.maxpv_p_margin_import_power_target
+            name: P_MARGIN – Import power target (W)
+          - entity: number.maxpv_gain_p_proportional_gain
+            name: GAIN_P – Proportional gain
+          - entity: number.maxpv_gain_i_integral_gain
+            name: GAIN_I – Integral gain
+          - entity: number.maxpv_e_reserve_energy_reserve_before_routing
+            name: E_RESERVE – Energy reserve before routing (J)
+        header:
+          title: Regulation
+
+      - type: entities
+        entities:
+          - entity: number.maxpv_p_div2_active_relay_trigger_power
+            name: P_DIV2_ACTIVE – Relay trigger routed power (W)
+          - entity: number.maxpv_p_div2_idle_relay_off_import_threshold
+            name: P_DIV2_IDLE – Relay off import threshold (W)
+          - entity: number.maxpv_t_div2_on_min_relay_on_time
+            name: T_DIV2_ON – Min relay ON time (min)
+          - entity: number.maxpv_t_div2_off_min_relay_off_time
+            name: T_DIV2_OFF – Min relay OFF time (min)
+          - entity: number.maxpv_t_div2_tc_averaging_time_constant
+            name: T_DIV2_TC – Power averaging time constant (min)
+        header:
+          title: Secondary Load (DIV2 Relay)
+
+      - type: entities
+        entities:
+          - entity: number.maxpv_counter_calibration
+            name: CNT_CALIB – Pulse counter calibration (Wh/pulse)
+          - entity: number.maxpv_pv_installation_power
+            name: P_INSTALLPV – PV installation peak power (Wc)
+        header:
+          title: Pulse Counter & PV Installation
+
+      - type: entities
+        entities:
+          - entity: number.maxpv_boost_duration
             name: Boost Duration (minutes)
-          - entity: number.max_water_temperature
+          - entity: number.maxpv_max_water_temperature
             name: Max Water Temperature (°C)
         header:
-          title: Configuration Parameters
+          title: Boost & Local Controls
 
   - title: System Diagnostics
     cards:
@@ -245,11 +393,11 @@ panels:
         entities:
           - entity: text_sensor.maxpv_system_status
             name: System Status
-          - entity: text_sensor.ecopv_firmware_version
+          - entity: text_sensor.maxpv_ecopv_firmware_version
             name: EcoPV Firmware
-          - entity: binary_sensor.ecopv_router_running
+          - entity: binary_sensor.maxpv_ecopv_router_running
             name: Router Running
-          - entity: sensor.water_tank_temperature
+          - entity: sensor.maxpv_water_tank_temperature
             name: Water Tank Temperature
         header:
           title: System Information

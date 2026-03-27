@@ -1,17 +1,16 @@
 esphome:
   name: maxpv
   friendly_name: MaxPV3 - Solar Router
-  platform: ESP8266
+  on_boot:
+    priority: -10
+    then:
+      - delay: 1s
+      - uart.write: "VERSION,END#"
+      - delay: 200ms
+      - uart.write: "PARAM,END#"
+
+esp8266:
   board: d1_mini
-  includes:
-    - ecopv/ecopv.h
-  libraries:
-    - Wire
-    
-# External components
-external_components:
-  - source: local
-    components: [ecopv]
 
 # WiFi Configuration
 wifi:
@@ -33,19 +32,45 @@ logger:
 # Enable Home Assistant API
 api:
   encryption:
-    key: !secret api_encryption_key
+    key: !secret api_encryption
   services:
-    - service: ecopv_send_ssr_mode
+    - service: maxpv_send_command
       variables:
-        mode: string
+        command: string
       then:
-        - logger.log: "Setting SSR mode to ${mode}"
-        
-    - service: ecopv_send_relay_mode
+        - lambda: |-
+            std::string cmd = command;
+            if (cmd.empty()) {
+              return;
+            }
+            if (cmd.back() != '#') {
+              cmd.push_back('#');
+            }
+            id(ecopv_uart).write_str(cmd.c_str());
+
+    - service: maxpv_set_boost
       variables:
-        mode: string
+        duration_seconds: int
+        ratio: int
       then:
-        - logger.log: "Setting Relay mode to ${mode}"
+        - lambda: |-
+            char command[40];
+            int constrained_ratio = ratio;
+            if (constrained_ratio < 10) {
+              constrained_ratio = 10;
+            }
+            if (constrained_ratio > 100) {
+              constrained_ratio = 100;
+            }
+            int constrained_duration = duration_seconds;
+            if (constrained_duration < 0) {
+              constrained_duration = 0;
+            }
+            if (constrained_duration > 86400) {
+              constrained_duration = 86400;
+            }
+            snprintf(command, sizeof(command), "SETBOOST,%d,%d,END#", constrained_duration, constrained_ratio);
+            id(ecopv_uart).write_str(command);
 
 # Enable OTA updates
 ota:
@@ -66,20 +91,175 @@ time:
 # Captive Portal (for initial WiFi setup)
 captive_portal:
 
-# UART1 Communication with Arduino Nano at 500000 baud
-uart:
-  - id: ecopv_serial
-    tx_pin: GPIO1    # TX (D4 on D1 mini)
-    rx_pin: GPIO3    # RX (D9 on D1 mini) 
-    baud_rate: 500000
-    rx_buffer_size: 256
-    stop_bits: 1
-    parity: NONE
+globals:
+  - id: ecopv_connected
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: ecopv_router_running_state
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: ecopv_last_rx_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+  - id: ecopv_last_frame
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+  - id: ecopv_last_ack
+    type: std::string
+    restore_value: no
+    initial_value: '""'
 
-# Custom EcoPV component for serial protocol handling
-ecopv:
-  uart_id: ecopv_serial
-  scan_interval: 1000ms
+uart:
+  id: ecopv_uart
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 500000
+  rx_buffer_size: 256
+  stop_bits: 1
+  parity: NONE
+  debug:
+    direction: RX
+    dummy_receiver: false
+    after:
+      delimiter: "#"
+    sequence:
+      - lambda: |-
+          std::string frame;
+          frame.reserve(bytes.size());
+          for (auto byte : bytes) {
+            if (byte != '\r' && byte != '\n') {
+              frame.push_back(static_cast<char>(byte));
+            }
+          }
+
+          if (frame.empty()) {
+            return;
+          }
+
+          id(ecopv_last_frame) = frame;
+          id(ecopv_last_rx_ms) = millis();
+
+          if (!id(ecopv_connected)) {
+            id(ecopv_connected) = true;
+            id(ecopv_contact_established).publish_state(true);
+            id(system_status).publish_state("Connected to EcoPV");
+          }
+
+          auto split_csv = [](const std::string &input) {
+            std::vector<std::string> parts;
+            size_t start = 0;
+            while (start <= input.size()) {
+              size_t comma = input.find(',', start);
+              if (comma == std::string::npos) {
+                parts.emplace_back(input.substr(start));
+                break;
+              }
+              parts.emplace_back(input.substr(start, comma - start));
+              start = comma + 1;
+            }
+            return parts;
+          };
+
+          auto to_float = [](const std::string &value) -> float {
+            return static_cast<float>(::atof(value.c_str()));
+          };
+
+          if (frame.rfind("STATS,", 0) == 0) {
+            auto values = split_csv(frame);
+            if (values.size() >= 16) {
+              id(ecopv_router_running_state) = true;
+              id(ecopv_router_running).publish_state(true);
+
+              id(grid_voltage_rms).publish_state(to_float(values[1]));
+              id(grid_current_rms).publish_state(to_float(values[2]));
+              id(grid_power_active).publish_state(to_float(values[3]));
+              id(grid_power_apparent).publish_state(to_float(values[4]));
+              id(routed_power).publish_state(to_float(values[5]));
+              id(import_power).publish_state(to_float(values[6]));
+              id(export_power).publish_state(to_float(values[7]));
+              id(grid_power_factor).publish_state(to_float(values[8]));
+              id(total_energy_routed).publish_state(to_float(values[9]) / 1000.0f);
+              id(total_energy_imported).publish_state(to_float(values[10]) / 1000.0f);
+              id(total_energy_exported).publish_state(to_float(values[11]) / 1000.0f);
+              id(pv_counter_energy).publish_state(to_float(values[12]) / 1000.0f);
+              id(pv_reference_power).publish_state(to_float(values[13]));
+
+              const std::string &ssr_mode = values[14];
+              if (ssr_mode == "0") {
+                id(ssr_operating_mode).publish_state("Stop");
+              } else if (ssr_mode == "1") {
+                id(ssr_operating_mode).publish_state("Force");
+              } else if (ssr_mode == "9") {
+                id(ssr_operating_mode).publish_state("Auto");
+              }
+
+              const std::string &relay_mode = values[15];
+              if (relay_mode == "0") {
+                id(relay_operating_mode).publish_state("Stop");
+              } else if (relay_mode == "1") {
+                id(relay_operating_mode).publish_state("Force");
+              } else if (relay_mode == "9") {
+                id(relay_operating_mode).publish_state("Auto");
+              }
+            }
+          } else if (frame.rfind("PARAM,", 0) == 0) {
+            auto values = split_csv(frame);
+            if (values.size() >= 17) {
+              id(v_calib).publish_state(to_float(values[1]));
+              id(p_calib).publish_state(to_float(values[2]));
+              id(phase_calib).publish_state(to_float(values[3]));
+              id(p_offset).publish_state(to_float(values[4]));
+              id(p_resistance).publish_state(to_float(values[5]));
+              id(p_margin).publish_state(to_float(values[6]));
+              id(gain_p).publish_state(to_float(values[7]));
+              id(gain_i).publish_state(to_float(values[8]));
+              id(e_reserve).publish_state(to_float(values[9]));
+              id(p_div2_active).publish_state(to_float(values[10]));
+              id(p_div2_idle).publish_state(to_float(values[11]));
+              id(t_div2_on).publish_state(to_float(values[12]));
+              id(t_div2_off).publish_state(to_float(values[13]));
+              id(t_div2_tc).publish_state(to_float(values[14]));
+              id(counter_calibration).publish_state(to_float(values[15]));
+              id(pv_installation_power).publish_state(to_float(values[16]));
+            }
+          } else if (frame.rfind("VERSION,", 0) == 0) {
+            id(ecopv_version).publish_state(frame.substr(8));
+          } else if (frame.rfind("BOOSTTIME,", 0) == 0) {
+            auto values = split_csv(frame);
+            if (values.size() >= 2) {
+              float remaining = to_float(values[1]);
+              id(boost_remaining_seconds).publish_state(remaining);
+              id(boost_mode_switch).publish_state(remaining >= 0.0f);
+            }
+          } else if (frame.find("DONE:") == 0 || frame.find("NOK:") == 0) {
+            id(ecopv_last_ack) = frame;
+            id(last_protocol_ack).publish_state(frame);
+          } else if (frame.find("Routeur running") != std::string::npos) {
+            id(ecopv_router_running_state) = true;
+            id(ecopv_router_running).publish_state(true);
+          }
+
+interval:
+  - interval: 30s
+    then:
+      - uart.write: "PARAM,END#"
+  - interval: 10min
+    then:
+      - uart.write: "VERSION,END#"
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(ecopv_connected) && (millis() - id(ecopv_last_rx_ms) > 10000U)) {
+            id(ecopv_connected) = false;
+            id(ecopv_router_running_state) = false;
+            id(ecopv_contact_established).publish_state(false);
+            id(ecopv_router_running).publish_state(false);
+            id(system_status).publish_state("Disconnected from EcoPV");
+          }
 
 # Text sensor for firmware version
 text_sensor:
@@ -87,19 +267,19 @@ text_sensor:
     name: "EcoPV Firmware Version"
     id: ecopv_version
     icon: mdi:information
-    update_interval: 3600s
+    update_interval: never
   
   - platform: template
     name: "MaxPV System Status"
     id: system_status
     icon: mdi:heart-pulse
-    update_interval: 10s
-    lambda: |-
-      if (id(ecopv_contact_established).state) {
-        return std::string("Connected to EcoPV");
-      } else {
-        return std::string("Disconnected from EcoPV");
-      }
+    update_interval: never
+
+  - platform: template
+    name: "Last Protocol ACK"
+    id: last_protocol_ack
+    icon: mdi:message-check-outline
+    update_interval: never
 
 # Binary sensors
 binary_sensor:
@@ -170,6 +350,21 @@ sensor:
     accuracy_decimals: 1
     state_class: measurement
     icon: mdi:lightning-bolt-outline
+
+  - platform: template
+    name: "Import Power"
+    id: import_power
+    unit_of_measurement: "W"
+    device_class: power
+    accuracy_decimals: 1
+    state_class: measurement
+    icon: mdi:transmission-tower-import
+
+  - platform: template
+    name: "Grid Power Factor"
+    id: grid_power_factor
+    accuracy_decimals: 4
+    icon: mdi:angle-acute
     
   # Energy indices
   - platform: template
@@ -233,35 +428,27 @@ sensor:
     accuracy_decimals: 0
     icon: mdi:calendar-clock
 
-# Switch Controls
+  - platform: template
+    name: "Boost Remaining Seconds"
+    id: boost_remaining_seconds
+    unit_of_measurement: "s"
+    accuracy_decimals: 0
+    icon: mdi:timer-sand
+
 switch:
-  # SSR Mode Control (3-way: Stop, Force, Auto)
-  - platform: template
-    name: "SSR Mode"
-    id: ssr_mode_switch
-    optimistic: true
-    restore_state: true
-    turn_on_action:
-      - logger.log: "SSR Mode set to FORCE"
-  
-  - platform: template
-    name: "Relay Mode"
-    id: relay_mode_switch
-    optimistic: true
-    restore_state: true
-    turn_on_action:
-      - logger.log: "Relay Mode set to FORCE"
-  
   - platform: template
     name: "Boost Mode"
     id: boost_mode_switch
-    optimistic: true
+    optimistic: false
     turn_on_action:
-      - logger.log: "Boost Mode activated"
+      - lambda: |-
+          char command[40];
+          const int duration = static_cast<int>(id(boost_duration).state) * 60;
+          snprintf(command, sizeof(command), "SETBOOST,%d,100,END#", duration);
+          id(ecopv_uart).write_str(command);
     turn_off_action:
-      - logger.log: "Boost Mode deactivated"
+      - uart.write: "SETBOOST,0,100,END#"
 
-# Select entity for mode control (better for 3-state options)
 select:
   - platform: template
     name: "SSR Operating Mode"
@@ -271,11 +458,16 @@ select:
       - "Force"
       - "Auto"
     initial_option: "Auto"
-    optimistic: true
+    optimistic: false
     set_action:
-      - logger.log:
-          format: "SSR Mode set to: %s"
-          args: ["x.c_str()"]
+      - lambda: |-
+          if (x == "Stop") {
+            id(ecopv_uart).write_str("SETSSR,STOP,END#");
+          } else if (x == "Force") {
+            id(ecopv_uart).write_str("SETSSR,FORCE,END#");
+          } else {
+            id(ecopv_uart).write_str("SETSSR,AUTO,END#");
+          }
   
   - platform: template
     name: "Relay Operating Mode"
@@ -285,25 +477,244 @@ select:
       - "Force"
       - "Auto"
     initial_option: "Auto"
-    optimistic: true
+    optimistic: false
     set_action:
-      - logger.log:
-          format: "Relay Mode set to: %s"
-          args: ["x.c_str()"]
+      - lambda: |-
+          if (x == "Stop") {
+            id(ecopv_uart).write_str("SETRELAY,STOP,END#");
+          } else if (x == "Force") {
+            id(ecopv_uart).write_str("SETRELAY,FORCE,END#");
+          } else {
+            id(ecopv_uart).write_str("SETRELAY,AUTO,END#");
+          }
 
 # Configuration Parameters as Number entities
 number:
+  # --- Calibration ---
   - platform: template
-    name: "PV Installation Power"
-    id: pv_installation_power
-    unit_of_measurement: "Wc"
-    icon: mdi:solar-panel
-    min_value: 1000
-    max_value: 50000
-    step: 100
-    optimistic: true
-    restore_value: true
-    
+    name: "V Calib (Voltage calibration)"
+    id: v_calib
+    unit_of_measurement: "V/bit"
+    icon: mdi:tune
+    min_value: 0
+    max_value: 2
+    step: 0.001
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,01,%.3f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "P Calib (Power calibration)"
+    id: p_calib
+    unit_of_measurement: "VA/bit"
+    icon: mdi:tune
+    min_value: 0
+    max_value: 1
+    step: 0.001
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,02,%.3f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "Phase Calib (Phase correction)"
+    id: phase_calib
+    icon: mdi:tune
+    min_value: -16
+    max_value: 48
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,03,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "P Offset (Active power offset)"
+    id: p_offset
+    unit_of_measurement: "W"
+    icon: mdi:tune
+    min_value: -100
+    max_value: 100
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,04,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "P Resistance (Heater power)"
+    id: p_resistance
+    unit_of_measurement: "W"
+    icon: mdi:heating-coil
+    min_value: 100
+    max_value: 10000
+    step: 10
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,05,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  # --- Regulation ---
+  - platform: template
+    name: "P Margin (Import power target)"
+    id: p_margin
+    unit_of_measurement: "W"
+    icon: mdi:target
+    min_value: -2000
+    max_value: 2000
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,06,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "Gain P (Proportional gain)"
+    id: gain_p
+    icon: mdi:knob
+    min_value: 0
+    max_value: 1000
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,07,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "Gain I (Integral gain)"
+    id: gain_i
+    icon: mdi:knob
+    min_value: 0
+    max_value: 1000
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,08,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "E Reserve (Energy reserve before routing)"
+    id: e_reserve
+    unit_of_measurement: "J"
+    icon: mdi:battery-charging
+    min_value: 0
+    max_value: 200
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,09,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  # --- Secondary Load (DIV2 relay) ---
+  - platform: template
+    name: "P DIV2 Active (Relay trigger power)"
+    id: p_div2_active
+    unit_of_measurement: "W"
+    icon: mdi:toggle-switch
+    min_value: 0
+    max_value: 9999
+    step: 10
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,10,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "P DIV2 Idle (Relay off import threshold)"
+    id: p_div2_idle
+    unit_of_measurement: "W"
+    icon: mdi:toggle-switch-off
+    min_value: 0
+    max_value: 9999
+    step: 10
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,11,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "T DIV2 ON (Min relay on time)"
+    id: t_div2_on
+    unit_of_measurement: "min"
+    icon: mdi:timer-play
+    min_value: 0
+    max_value: 240
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,12,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "T DIV2 OFF (Min relay off time)"
+    id: t_div2_off
+    unit_of_measurement: "min"
+    icon: mdi:timer-stop
+    min_value: 0
+    max_value: 240
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,13,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "T DIV2 TC (Averaging time constant)"
+    id: t_div2_tc
+    unit_of_measurement: "min"
+    icon: mdi:chart-bell-curve
+    min_value: 0
+    max_value: 60
+    step: 1
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,14,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  # --- Pulse counter & PV installation ---
   - platform: template
     name: "Counter Calibration"
     id: counter_calibration
@@ -312,9 +723,31 @@ number:
     min_value: 1
     max_value: 1000
     step: 1
-    optimistic: true
-    restore_value: true
-    
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,15,%.1f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  - platform: template
+    name: "PV Installation Power"
+    id: pv_installation_power
+    unit_of_measurement: "Wc"
+    icon: mdi:solar-panel
+    min_value: 100
+    max_value: 30000
+    step: 100
+    optimistic: false
+    restore_value: false
+    set_action:
+      - lambda: |-
+          char command[40];
+          snprintf(command, sizeof(command), "SETPARAM,16,%.0f,END#", x);
+          id(ecopv_uart).write_str(command);
+
+  # --- Boost & local controls (ESP-side only, not EcoPV params) ---
   - platform: template
     name: "Boost Duration"
     id: boost_duration
@@ -325,7 +758,7 @@ number:
     step: 10
     optimistic: true
     restore_value: true
-    
+
   - platform: template
     name: "Max Water Temperature"
     id: max_water_temperature
@@ -337,42 +770,33 @@ number:
     optimistic: true
     restore_value: true
 
-# Button controls
 button:
   - platform: template
     name: "Request EcoPV Parameters"
     id: btn_request_params
     icon: mdi:refresh
     on_press:
-      - logger.log: "Requesting parameters from EcoPV"
+      - uart.write: "PARAM,END#"
   
   - platform: template
     name: "Save EcoPV Configuration"
     id: btn_save_ecopv_config
     icon: mdi:content-save
     on_press:
-      - logger.log: "Saving EcoPV configuration"
+      - uart.write: "SAVECFG,END#"
   
   - platform: template
     name: "Reset Energy Indices"
     id: btn_reset_energy_indices
     icon: mdi:restart
     on_press:
-      - logger.log: "Resetting energy indices"
+      - uart.write: "INDX0,END#"
+      - delay: 100ms
+      - uart.write: "SAVEINDX,END#"
   
   - platform: template
     name: "Soft Restart EcoPV"
     id: btn_restart_ecopv
     icon: mdi:restart
     on_press:
-      - logger.log: "Soft restarting EcoPV"
-
-# Service for manual command sending
-service:
-  - service: maxpv_send_command
-    variables:
-      command: string
-    then:
-      - logger.log:
-          format: "Manual command: %s"
-          args: ["command.c_str()"]
+      - uart.write: "RESET,END#"

@@ -1,5 +1,8 @@
 # ESPHome MaxPV - Advanced Configuration Guide
 
+Current status: the active configuration in this repository is now YAML-only and lives in `esphome/maxpv.yaml`.
+The custom-component examples kept below are historical notes from the first migration draft and are no longer used by the build.
+
 ## Parameter Mapping
 
 The Arduino Nano responds with a PARAM message containing configuration values. The format is:
@@ -11,16 +14,29 @@ Each parameter has a specific type and index. The EcoPV firmware defines these i
 
 ### Known Parameters (from EcoPV3)
 
-| Index | Name | Type | Range | Unit | Default |
-|-------|------|------|-------|------|---------|
-| 0 | P_PILOTAGE | int | 0-100 | % | 50 |
-| 1 | P_SEUILBAS | float | 0.0-500.0 | W | 30 |
-| 2 | P_SEUILHAUT | float | 0.0-500.0 | W | 100 |
-| 3 | P_INSTALLPV | int | 100-50000 | Wc | 3000 |
-| 4 | CNT_CALIB | int | 1-1000 | Wh/pulse | 1 |
-| ... | ... | ... | ... | ... | ... |
+All 16 parameters are defined in `EcoPV3/EcoPV3.ino` in the `pvrParamConfig[]` array (`NB_PARAM = 16`).
 
-*Note: Complete parameter list needs to be extracted from the EcoPV3 source code*
+| PARAM index (0-based) | Name | Type | Range | Unit | Default | SETPARAM # |
+|----------------------|------|------|-------|------|---------|------------|
+| 0 | `V_CALIB` | float | 0–2 | V/bit | 0.800 | 01 |
+| 1 | `P_CALIB` | float | 0–1 | VA/bit | 0.111 | 02 |
+| 2 | `PHASE_CALIB` | int | -16 to 48 | steps | 13 | 03 |
+| 3 | `P_OFFSET` | int | -100 to 100 | W | -15 | 04 |
+| 4 | `P_RESISTANCE` | int | 100–10000 | W | 2000 | 05 |
+| 5 | `P_MARGIN` | int | -2000 to 2000 | W | 10 | 06 |
+| 6 | `GAIN_P` | int | 0–1000 | — | 8 | 07 |
+| 7 | `GAIN_I` | int | 0–1000 | — | 45 | 08 |
+| 8 | `E_RESERVE` | byte | 0–200 | J | 5 | 09 |
+| 9 | `P_DIV2_ACTIVE` | int | 0–9999 | W | 1000 | 10 |
+| 10 | `P_DIV2_IDLE` | int | 0–9999 | W | 200 | 11 |
+| 11 | `T_DIV2_ON` | byte | 0–240 | min | 5 | 12 |
+| 12 | `T_DIV2_OFF` | byte | 0–240 | min | 5 | 13 |
+| 13 | `T_DIV2_TC` | byte | 0–60 | min | 1 | 14 |
+| 14 | `CNT_CALIB` | float | 0–1000 | Wh/pulse | 1.0 | 15 |
+| 15 | `P_INSTALLPV` | int | 100–30000 | Wc | 3000 | 16 |
+
+Note: `PARAM` responses are **zero-based** in the payload, but `SETPARAM` commands use **1-based** numbering.
+Types: `float` = dataType 1, `int` = dataType 0, `byte` = dataType 4.
 
 ## Serial Communication Details
 
@@ -110,41 +126,41 @@ RESET,END#         # Soft restart the router
 
 ### Adding New Sensors
 
-To add a new sensor from the STATS message:
+To add a new sensor from the STATS message in the current YAML-only configuration:
 
-1. **In `ecopv/ecopv.h`**, add member variable:
-   ```cpp
-   sensor::Sensor *my_new_sensor_{nullptr};
-   ```
-
-2. **Add setter method**:
-   ```cpp
-   void set_my_new_sensor(sensor::Sensor *sensor) {
-     this->my_new_sensor_ = sensor;
-   }
-   ```
-
-3. **In `ecopv/ecopv.cpp`**, update `parse_stats_()`:
-   ```cpp
-   if (this->my_new_sensor_) {
-     this->my_new_sensor_->publish_state(std::stof(values[10])); // Adjust index
-   }
-   ```
-
-4. **In `ecopv/__init__.py`**, add configuration:
-   ```python
-   CONF_MY_NEW_SENSOR = "my_new_sensor"
-   # Add to CONFIG_SCHEMA
-   cv.Optional(CONF_MY_NEW_SENSOR): cv.use_id(sensor.Sensor),
-   ```
-
-5. **In `maxpv.yaml`**, add sensor and register with component:
+1. **In `esphome/maxpv.yaml`**, add a new template sensor in the `sensor:` section:
    ```yaml
    sensor:
      - platform: template
        name: "My New Sensor"
        id: my_new_sensor
+       unit_of_measurement: "unit"
+       accuracy_decimals: 2
+       icon: mdi:icon-name
    ```
+
+2. **In the UART debug handler lambda** (in the `uart:` section), add a line to publish the value:
+   ```cpp
+   if (values.size() > N) {
+     id(my_new_sensor).publish_state(to_float(values[N]));
+   }
+   ```
+   Replace `N` with the 0-based STATS field index:
+   - `values[0]` = "STATS" label
+   - `values[1]` = Vrms
+   - `values[2]` = Irms
+   - `values[3]` = Pact
+   - `values[4]` = Papp
+   - `values[5]` = Prouted
+   - `values[6]` = Pexport
+   - And so on for additional fields
+
+3. **Verify and deploy**:
+   ```bash
+   esphome compile maxpv.yaml
+   esphome run maxpv.yaml
+   ```
+   The new sensor will appear in Home Assistant with live values from EcoPV.
 
 ## Troubleshooting Serial Communication
 

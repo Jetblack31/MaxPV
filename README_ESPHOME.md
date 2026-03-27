@@ -57,8 +57,7 @@ This project migrates the MaxPV3 system from:
 | [ESPHOME_MIGRATION_PLAN.md](ESPHOME_MIGRATION_PLAN.md) | Detailed migration strategy |
 | [ESPHOME_SETUP_GUIDE.md](ESPHOME_SETUP_GUIDE.md) | Step-by-step installation instructions |
 | [ESPHOME_ADVANCED_CONFIG.md](ESPHOME_ADVANCED_CONFIG.md) | Technical deep-dive and customization |
-| `esphome/maxpv.yaml` | Main ESPHome configuration |
-| `esphome/ecopv/` | Custom component (Python + C++) |
+| `esphome/maxpv.yaml` | Single-file ESPHome configuration with inline UART parsing |
 | `homeassistant/maxpv_dashboard.yaml` | HA dashboard template |
 
 ### 3. Installation (5-10 minutes)
@@ -173,12 +172,8 @@ MaxPV/
 ├── ESPHOME_ADVANCED_CONFIG.md     (technical reference)
 │
 ├── esphome/
-│   ├── maxpv.yaml                 (main config)
-│   ├── secrets.yaml.template      (copy to secrets.yaml)
-│   └── ecopv/
-│       ├── __init__.py            (component config)
-│       ├── ecopv.h                (C++ header)
-│       └── ecopv.cpp              (C++ implementation)
+│   ├── maxpv.yaml                 (main config and inline UART parsing)
+│   └── secrets.yaml.template      (copy to secrets.yaml)
 │
 ├── homeassistant/
 │   └── maxpv_dashboard.yaml       (HA dashboard)
@@ -277,7 +272,7 @@ MaxPV/
 | **Home Assistant ESPHome Integration** | https://www.home-assistant.io/integrations/esphome/ |
 | **MaxPV Original Project** | https://github.com/Jetblack31/MaxPV |
 | **EcoPV Project** | https://github.com/Jetblack31/EcoPV |
-| **ESPHome Custom Components** | https://esphome.io/custom/custom_component.html |
+| **ESPHome UART Docs** | https://esphome.io/components/uart.html |
 
 ## License
 
