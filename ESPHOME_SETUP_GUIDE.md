@@ -310,6 +310,25 @@ A complete YAML dashboard with multiple panels:
 cp homeassistant/maxpv_dashboard.yaml <HA_CONFIG>/dashboards/
 ```
 
+To keep your existing Home Assistant dashboards, do **not** switch global Lovelace mode to YAML.
+Keep default storage mode and register MaxPV as an additional YAML dashboard.
+
+In `configuration.yaml`:
+```yaml
+lovelace:
+   mode: storage  # keep existing UI dashboards
+   dashboards:
+      maxpv-yaml:
+         mode: yaml
+         title: Solar Router
+         icon: mdi:solar-power
+         show_in_sidebar: true
+         filename: dashboards/maxpv_dashboard.yaml
+         require_admin: false
+```
+
+Then restart Home Assistant. Your current dashboards stay unchanged, and MaxPV appears as an extra dashboard in the sidebar.
+
 Then in Home Assistant:
 1. Go to **Dashboards**
 2. Select **MaxPV3 - Solar Router**

@@ -6,8 +6,13 @@ badges:
     name: System Status
   - entity: text_sensor.maxpv_ecopv_firmware_version
     name: Firmware
-panels:
+views:
   - cards:
+      - type: markdown
+        content: |
+          # MaxPV Overview
+
+          Live power and energy metrics for the solar router.
       - type: grid
         columns: 2
         square: false
@@ -87,6 +92,9 @@ panels:
             period: day
             stat_type: change
             name: Today Exported
+    title: Overview
+    path: overview
+    icon: mdi:view-dashboard
 
   - title: System Controls
     cards:
