@@ -5,9 +5,11 @@ esphome:
     priority: -10
     then:
       - delay: 1s
+      - logger.log:
+          level: DEBUG
+          tag: ecopv_uart
+          format: "TX VERSION,END#"
       - uart.write: "VERSION,END#"
-      - delay: 200ms
-      - uart.write: "PARAM,END#"
 
 esp8266:
   board: d1_mini
@@ -126,8 +128,11 @@ uart:
     dummy_receiver: false
     after:
       delimiter: "#"
+      timeout: 50ms
     sequence:
       - lambda: |-
+          UARTDebug::log_string(direction, bytes);
+
           std::string frame;
           frame.reserve(bytes.size());
           for (auto byte : bytes) {
@@ -139,6 +144,8 @@ uart:
           if (frame.empty()) {
             return;
           }
+
+          ESP_LOGD("ecopv_uart", "Frame: %s", frame.c_str());
 
           id(ecopv_last_frame) = frame;
           id(ecopv_last_rx_ms) = millis();
@@ -205,6 +212,8 @@ uart:
               } else if (relay_mode == "9") {
                 id(relay_operating_mode).publish_state("Auto");
               }
+            } else {
+              ESP_LOGW("ecopv_uart", "Short STATS frame (%u fields): %s", static_cast<unsigned>(values.size()), frame.c_str());
             }
           } else if (frame.rfind("PARAM,", 0) == 0) {
             auto values = split_csv(frame);
@@ -225,6 +234,8 @@ uart:
               id(t_div2_tc).publish_state(to_float(values[14]));
               id(counter_calibration).publish_state(to_float(values[15]));
               id(pv_installation_power).publish_state(to_float(values[16]));
+            } else {
+              ESP_LOGW("ecopv_uart", "Short PARAM frame (%u fields): %s", static_cast<unsigned>(values.size()), frame.c_str());
             }
           } else if (frame.rfind("VERSION,", 0) == 0) {
             id(ecopv_version).publish_state(frame.substr(8));
@@ -241,14 +252,17 @@ uart:
           } else if (frame.find("Routeur running") != std::string::npos) {
             id(ecopv_router_running_state) = true;
             id(ecopv_router_running).publish_state(true);
+          } else {
+            ESP_LOGD("ecopv_uart", "Unhandled frame: %s", frame.c_str());
           }
 
 interval:
-  - interval: 30s
-    then:
-      - uart.write: "PARAM,END#"
   - interval: 10min
     then:
+      - logger.log:
+          level: DEBUG
+          tag: ecopv_uart
+          format: "TX VERSION,END#"
       - uart.write: "VERSION,END#"
   - interval: 5s
     then:
@@ -506,6 +520,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,01,%.3f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "P Calib (Power calibration)"
@@ -522,6 +537,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,02,%.3f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "Phase Calib (Phase correction)"
@@ -537,6 +553,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,03,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "P Offset (Active power offset)"
@@ -553,6 +570,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,04,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "P Resistance (Heater power)"
@@ -569,6 +587,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,05,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   # --- Regulation ---
   - platform: template
@@ -586,6 +605,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,06,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "Gain P (Proportional gain)"
@@ -601,6 +621,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,07,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "Gain I (Integral gain)"
@@ -616,6 +637,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,08,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "E Reserve (Energy reserve before routing)"
@@ -632,6 +654,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,09,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   # --- Secondary Load (DIV2 relay) ---
   - platform: template
@@ -649,6 +672,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,10,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "P DIV2 Idle (Relay off import threshold)"
@@ -665,6 +689,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,11,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "T DIV2 ON (Min relay on time)"
@@ -681,6 +706,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,12,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "T DIV2 OFF (Min relay off time)"
@@ -697,6 +723,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,13,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "T DIV2 TC (Averaging time constant)"
@@ -713,6 +740,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,14,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   # --- Pulse counter & PV installation ---
   - platform: template
@@ -730,6 +758,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,15,%.1f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   - platform: template
     name: "PV Installation Power"
@@ -746,6 +775,7 @@ number:
           char command[40];
           snprintf(command, sizeof(command), "SETPARAM,16,%.0f,END#", x);
           id(ecopv_uart).write_str(command);
+          id(ecopv_uart).write_str("PARAM,END#");
 
   # --- Boost & local controls (ESP-side only, not EcoPV params) ---
   - platform: template
