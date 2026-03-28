@@ -1,6 +1,5 @@
 esphome:
   name: maxpv
-  friendly_name: MaxPV3 - Solar Router
   on_boot:
     priority: -10
     then:
