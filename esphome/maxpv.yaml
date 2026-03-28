@@ -5,10 +5,6 @@ esphome:
     priority: -10
     then:
       - delay: 1s
-      - logger.log:
-          level: DEBUG
-          tag: ecopv_uart
-          format: "TX VERSION,END#"
       - uart.write: "VERSION,END#"
 
 esp8266:
@@ -131,8 +127,6 @@ uart:
       timeout: 50ms
     sequence:
       - lambda: |-
-          UARTDebug::log_string(direction, bytes);
-
           std::string frame;
           frame.reserve(bytes.size());
           for (auto byte : bytes) {
@@ -144,8 +138,6 @@ uart:
           if (frame.empty()) {
             return;
           }
-
-          ESP_LOGD("ecopv_uart", "Frame: %s", frame.c_str());
 
           id(ecopv_last_frame) = frame;
           id(ecopv_last_rx_ms) = millis();
@@ -259,17 +251,9 @@ uart:
 interval:
   - interval: 30s
     then:
-      - logger.log:
-          level: DEBUG
-          tag: ecopv_uart
-          format: "TX PARAM,END#"
       - uart.write: "PARAM,END#"
   - interval: 10min
     then:
-      - logger.log:
-          level: DEBUG
-          tag: ecopv_uart
-          format: "TX VERSION,END#"
       - uart.write: "VERSION,END#"
   - interval: 5s
     then:
