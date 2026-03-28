@@ -125,7 +125,7 @@ uart:
   parity: NONE
   debug:
     direction: RX
-    dummy_receiver: false
+    dummy_receiver: true
     after:
       delimiter: "#"
       timeout: 50ms
@@ -257,6 +257,13 @@ uart:
           }
 
 interval:
+  - interval: 30s
+    then:
+      - logger.log:
+          level: DEBUG
+          tag: ecopv_uart
+          format: "TX PARAM,END#"
+      - uart.write: "PARAM,END#"
   - interval: 10min
     then:
       - logger.log:
