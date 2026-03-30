@@ -1,0 +1,409 @@
+title: MaxPV3 - Solar Router Dashboard
+path: maxpv
+icon: mdi:lightning-bolt-circle
+badges:
+  - entity: binary_sensor.maxpv_ecopv_contact
+    name: System Status
+  - entity: text_sensor.maxpv_ecopv_firmware_version
+    name: Firmware
+views:
+  - title: Overview
+    path: overview
+    icon: mdi:view-dashboard
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.maxpv_grid_voltage_rms
+            min: 200
+            max: 250
+            needle: true
+            name: Grid Voltage
+            unit: V
+            icon: mdi:sine-wave
+
+          - type: gauge
+            entity: sensor.maxpv_grid_current_rms
+            min: 0
+            max: 100
+            needle: true
+            name: Grid Current
+            unit: A
+            icon: mdi:current-ac
+
+          - type: gauge
+            entity: sensor.maxpv_routed_power
+            min: 0
+            max: 10000
+            needle: true
+            name: Routed Power
+            unit: W
+            icon: mdi:lightning-bolt
+            segments:
+              - from: 0
+                color: '#03a9f4'
+              - from: 2000
+                color: '#8bc34a'
+              - from: 5000
+                color: '#ff9800'
+              - from: 7500
+                color: '#f44336'
+
+          - type: gauge
+            entity: sensor.maxpv_grid_power_active
+            min: -5000
+            max: 5000
+            needle: true
+            name: Active Power
+            unit: W
+            icon: mdi:flash
+            segments:
+              - from: -5000
+                color: '#f44336'
+              - from: -1000
+                color: '#ff9800'
+              - from: 0
+                color: '#4caf50'
+              - from: 3000
+                color: '#ff9800'
+              - from: 5000
+                color: '#f44336'
+
+      - type: entities
+        title: Router Modes
+        entities:
+          - entity: select.maxpv_ssr_operating_mode
+            name: SSR Mode (Heater)
+          - entity: select.maxpv_relay_operating_mode
+            name: Relay Mode (Secondary)
+          - entity: switch.maxpv_boost_mode
+            name: Boost Mode
+
+      - type: entities
+        title: Informations systeme
+        entities:
+          - entity: sensor.maxpv_maxpv_system_status
+            name: Statut systeme
+          - entity: sensor.maxpv_ecopv_firmware_version
+            name: Firmware EcoPV
+          - entity: binary_sensor.maxpv_ecopv_router_running
+            name: Routeur actif
+          - entity: sensor.maxpv_water_tank_temperature
+            name: Temperature ballon
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: statistic
+            entity: sensor.maxpv_total_energy_routed
+            period: day
+            stat_type: change
+            name: Today Routed
+          - type: statistic
+            entity: sensor.maxpv_total_energy_imported
+            period: day
+            stat_type: change
+            name: Today Imported
+          - type: statistic
+            entity: sensor.maxpv_total_energy_exported
+            period: day
+            stat_type: change
+            name: Today Exported
+          - type: statistic
+            entity: sensor.maxpv_total_energy_routed
+            period: week
+            stat_type: change
+            name: Week Routed
+          - type: statistic
+            entity: sensor.maxpv_total_energy_imported
+            period: week
+            stat_type: change
+            name: Week Imported
+          - type: statistic
+            entity: sensor.maxpv_total_energy_exported
+            period: week
+            stat_type: change
+            name: Week Exported
+          - type: statistic
+            entity: sensor.maxpv_total_energy_routed
+            period: month
+            stat_type: change
+            name: Month Routed
+          - type: statistic
+            entity: sensor.maxpv_total_energy_imported
+            period: month
+            stat_type: change
+            name: Month Imported
+          - type: statistic
+            entity: sensor.maxpv_total_energy_exported
+            period: month
+            stat_type: change
+            name: Month Exported
+
+  - title: Configuration
+    path: configuration
+    icon: mdi:cog
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: entities
+            title: Calibration
+            entities:
+              - entity: number.maxpv_v_calib_voltage_calibration
+                name: V_CALIB (V/bit)
+              - entity: number.maxpv_p_calib_power_calibration
+                name: P_CALIB (VA/bit)
+              - entity: number.maxpv_phase_calib_phase_correction
+                name: PHASE_CALIB (steps)
+              - entity: number.maxpv_p_offset_active_power_offset
+                name: P_OFFSET (W)
+              - entity: number.maxpv_p_resistance_heater_power
+                name: P_RESISTANCE (W)
+
+          - type: entities
+            title: Regulation
+            entities:
+              - entity: number.maxpv_p_margin_import_power_target
+                name: P_MARGIN (W)
+              - entity: number.maxpv_gain_p_proportional_gain
+                name: GAIN_P
+              - entity: number.maxpv_gain_i_integral_gain
+                name: GAIN_I
+              - entity: number.maxpv_e_reserve_energy_reserve_before_routing
+                name: E_RESERVE (J)
+
+          - type: entities
+            title: Secondary Load (DIV2)
+            entities:
+              - entity: number.maxpv_p_div2_active_relay_trigger_power
+                name: P_DIV2_ACTIVE (W)
+              - entity: number.maxpv_p_div2_idle_relay_off_import_threshold
+                name: P_DIV2_IDLE (W)
+              - entity: number.maxpv_t_div2_on_min_relay_on_time
+                name: T_DIV2_ON (min)
+              - entity: number.maxpv_t_div2_off_min_relay_off_time
+                name: T_DIV2_OFF (min)
+              - entity: number.maxpv_t_div2_tc_averaging_time_constant
+                name: T_DIV2_TC (min)
+
+          - type: entities
+            title: Other
+            entities:
+              - entity: number.maxpv_counter_calibration
+                name: CNT_CALIB (Wh/pulse)
+              - entity: number.maxpv_pv_installation_power
+                name: P_INSTALLPV (Wc)
+              - entity: number.maxpv_boost_duration
+                name: Boost Duration (min)
+              - entity: number.maxpv_max_water_temperature
+                name: Max Water Temp (°C)
+
+      - type: grid
+        columns: 4
+        square: false
+        cards:
+          - type: button
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.maxpv_request_ecopv_parameters
+            entity: binary_sensor.maxpv_ecopv_contact
+            name: Refresh
+            show_state: true
+            icon: mdi:refresh
+          - type: button
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.maxpv_save_ecopv_configuration
+            name: Save
+            show_state: false
+            icon: mdi:content-save
+          - type: button
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.maxpv_reset_energy_indices
+            name: Reset Indices
+            show_state: false
+            icon: mdi:restart
+          - type: button
+            tap_action:
+              action: call-service
+              service: button.press
+              target:
+                entity_id: button.maxpv_soft_restart_ecopv
+            name: Restart
+            show_state: false
+            icon: mdi:reload
+
+      - type: markdown
+        content: |
+          ## Depannage
+
+          **Pas de contact avec EcoPV ?** Verifier le cablage serie (RX/TX), l'alimentation de l'Arduino Nano, les logs ESPHome.
+
+          **Capteurs non mis a jour ?** Verifier que EcoPV envoie des messages STATS, utiliser le bouton Rafraichir, consulter Parametres > Systeme > Journaux.
+
+  - title: Assistant & Diagnostics
+    path: setup
+    icon: mdi:wrench
+    cards:
+      - type: markdown
+        content: |
+          # Assistant de configuration
+          Cet assistant permet de parametrer facilement votre routeur.
+          Suivez les etapes les unes apres les autres.
+
+          **A la fin, n'oubliez pas de sauvegarder votre configuration a l'etape 10.**
+
+      - type: markdown
+        content: |
+          ## Etape 1
+          Appuyer sur le bouton pour commencer la configuration du routeur.
+      - type: button
+        name: Commencer
+        icon: mdi:numeric-1-circle
+        tap_action:
+          action: call-service
+          service: script.turn_on
+          target:
+            entity_id: script.maxpv_wizard_step1_start
+
+      - type: markdown
+        content: |
+          ## Etape 2
+          Entrer la puissance de votre installation PV en Wc.
+      - type: entities
+        entities:
+          - entity: number.maxpv_pv_installation_power
+            name: Puissance (Wc)
+
+      - type: markdown
+        content: |
+          ## Etape 3
+          Entrer la puissance de votre chauffe-eau en W.
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            entities:
+              - entity: number.maxpv_p_resistance_heater_power
+                name: Puissance (W)
+          - type: button
+            name: Calculer les gains
+            icon: mdi:calculator
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.maxpv_wizard_step3_compute_gains
+
+      - type: markdown
+        content: |
+          ## Etape 4
+          Ajuster le potentiometre de la carte electronique pour afficher la tension secteur correcte.
+      - type: entities
+        entities:
+          - entity: sensor.maxpv_grid_voltage_rms
+            name: Tension secteur (Vrms)
+
+      - type: markdown
+        content: |
+          ## Etape 5
+          Clipser la pince amperemetrique autour du fil de phase en sortie de votre disjoncteur principal.
+          Allumer quelques appareils pour avoir une consommation de l'ordre de 2000 a 3000 W.
+          Lorsque cela est fait, indiquer la puissance apparente en VA lue sur votre compteur et cliquer sur le bouton.
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            entities:
+              - entity: input_number.maxpv_wizard_apparent_power_reference_va
+                name: Puissance apparente de reference (VA)
+          - type: button
+            name: Calculer P_CALIB
+            icon: mdi:numeric-5-circle
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.maxpv_wizard_step5_compute_p_calib
+
+      - type: markdown
+        content: |
+          ## Etape 6
+          De-clipser la pince amperemetrique et la refermer sans aucun fil a l'interieur.
+          Eloigner la pince de tous fils ou cables electriques.
+          Lorsque cela est fait, cliquer sur le bouton pour corriger l'offset.
+      - type: button
+        name: Correction offset
+        icon: mdi:numeric-6-circle
+        tap_action:
+          action: call-service
+          service: script.turn_on
+          target:
+            entity_id: script.maxpv_wizard_step6_correct_offset
+
+      - type: markdown
+        content: |
+          ## Etape 7
+          Clipser la pince amperemetrique autour du fil de phase d'un appareil resistif (chauffe-eau, radiateur, bouilloire...).
+          Observer l'indicateur puis bouger le curseur pas a pas pour obtenir une valeur maximale (proche de 1).
+      - type: entities
+        entities:
+          - entity: number.maxpv_phase_calib_phase_correction
+            name: PHASE_CALIB
+          - entity: sensor.maxpv_grid_power_factor
+            name: Facteur de puissance (cos phi)
+
+      - type: markdown
+        content: |
+          ## Etape 8
+          Si une charge secondaire est connectee au relais tout ou rien, indiquer sa puissance,
+          sinon passer a l'etape suivante.
+      - type: horizontal-stack
+        cards:
+          - type: entities
+            entities:
+              - entity: input_number.maxpv_wizard_secondary_load_power_w
+                name: Puissance charge secondaire (W)
+          - type: button
+            name: Configurer relais DIV2
+            icon: mdi:numeric-8-circle
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.maxpv_wizard_step8_config_div2
+
+      - type: markdown
+        content: |
+          ## Etape 9
+          Si un compteur a impulsion est employe, indiquer le poids des impulsions en Wh,
+          sinon passer a l'etape suivante.
+      - type: entities
+        entities:
+          - entity: number.maxpv_counter_calibration
+            name: Etalonnage compteur (Wh/imp)
+
+      - type: markdown
+        content: |
+          ## Etape 10
+          Vous avez termine la configuration.
+          Appuyer sur le bouton ci-dessous pour sauvegarder les parametres du routeur.
+      - type: button
+        name: Sauver le parametrage
+        icon: mdi:content-save-check
+        tap_action:
+          action: call-service
+          service: script.turn_on
+          target:
+            entity_id: script.maxpv_wizard_step10_save_and_restart
+
