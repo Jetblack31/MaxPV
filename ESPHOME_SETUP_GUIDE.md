@@ -354,7 +354,7 @@ Automated helper inputs and scripts that reproduce the 10-step EcoPV configurati
    ```yaml
    homeassistant:
      packages:
-       maxpv_wizard: !include_dir_named homeassistant/
+       maxpv_wizard: !include maxpv_wizard_package.yaml
    ```
 
 2. **Restart Home Assistant** to load helpers and scripts
