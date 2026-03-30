@@ -162,12 +162,29 @@ uart:
             return parts;
           };
 
+          auto strip_protocol_suffix = [](std::string input) {
+            while (!input.empty() && (input.back() == '#' || input.back() == '\r' || input.back() == '\n')) {
+              input.pop_back();
+            }
+            if (input.size() >= 4 && input.compare(input.size() - 4, 4, ",END") == 0) {
+              input.erase(input.size() - 4);
+            } else if (input.size() >= 3 && input.compare(input.size() - 3, 3, "END") == 0) {
+              input.erase(input.size() - 3);
+            }
+            while (!input.empty() && (input.back() == ',' || input.back() == ' ')) {
+              input.pop_back();
+            }
+            return input;
+          };
+
           auto to_float = [](const std::string &value) -> float {
             return static_cast<float>(::atof(value.c_str()));
           };
 
-          if (frame.rfind("STATS,", 0) == 0) {
-            auto values = split_csv(frame);
+          const std::string clean_frame = strip_protocol_suffix(frame);
+
+          if (clean_frame.rfind("STATS,", 0) == 0) {
+            auto values = split_csv(clean_frame);
             if (values.size() >= 16) {
               id(ecopv_router_running_state) = true;
               id(ecopv_router_running).publish_state(true);
@@ -203,11 +220,22 @@ uart:
               } else if (relay_mode == "9") {
                 id(relay_operating_mode).publish_state("Auto");
               }
+
+              if (values.size() >= 24) {
+                id(relay_on_time).publish_state(to_float(values[23]));
+              }
+
+              if (values.size() >= 25) {
+                const float water_temp = to_float(values[24]);
+                if (water_temp > -50.0f && water_temp < 150.0f) {
+                  id(water_tank_temperature).publish_state(water_temp);
+                }
+              }
             } else {
-              ESP_LOGW("ecopv_uart", "Short STATS frame (%u fields): %s", static_cast<unsigned>(values.size()), frame.c_str());
+              ESP_LOGW("ecopv_uart", "Short STATS frame (%u fields): %s", static_cast<unsigned>(values.size()), clean_frame.c_str());
             }
-          } else if (frame.rfind("PARAM,", 0) == 0) {
-            auto values = split_csv(frame);
+          } else if (clean_frame.rfind("PARAM,", 0) == 0) {
+            auto values = split_csv(clean_frame);
             if (values.size() >= 17) {
               id(v_calib).publish_state(to_float(values[1]));
               id(p_calib).publish_state(to_float(values[2]));
@@ -226,25 +254,28 @@ uart:
               id(counter_calibration).publish_state(to_float(values[15]));
               id(pv_installation_power).publish_state(to_float(values[16]));
             } else {
-              ESP_LOGW("ecopv_uart", "Short PARAM frame (%u fields): %s", static_cast<unsigned>(values.size()), frame.c_str());
+              ESP_LOGW("ecopv_uart", "Short PARAM frame (%u fields): %s", static_cast<unsigned>(values.size()), clean_frame.c_str());
             }
-          } else if (frame.rfind("VERSION,", 0) == 0) {
-            id(ecopv_version).publish_state(frame.substr(8));
-          } else if (frame.rfind("BOOSTTIME,", 0) == 0) {
-            auto values = split_csv(frame);
+          } else if (clean_frame.rfind("VERSION,", 0) == 0) {
+            auto values = split_csv(clean_frame);
+            if (values.size() >= 2) {
+              id(ecopv_version).publish_state(values[1]);
+            }
+          } else if (clean_frame.rfind("BOOSTTIME,", 0) == 0) {
+            auto values = split_csv(clean_frame);
             if (values.size() >= 2) {
               float remaining = to_float(values[1]);
               id(boost_remaining_seconds).publish_state(remaining);
               id(boost_mode_switch).publish_state(remaining >= 0.0f);
             }
-          } else if (frame.find("DONE:") == 0 || frame.find("NOK:") == 0) {
-            id(ecopv_last_ack) = frame;
-            id(last_protocol_ack).publish_state(frame);
-          } else if (frame.find("Routeur running") != std::string::npos) {
+          } else if (clean_frame.find("DONE:") == 0 || clean_frame.find("NOK:") == 0) {
+            id(ecopv_last_ack) = clean_frame;
+            id(last_protocol_ack).publish_state(clean_frame);
+          } else if (clean_frame.find("Routeur running") != std::string::npos) {
             id(ecopv_router_running_state) = true;
             id(ecopv_router_running).publish_state(true);
           } else {
-            ESP_LOGD("ecopv_uart", "Unhandled frame: %s", frame.c_str());
+            ESP_LOGD("ecopv_uart", "Unhandled frame: %s", clean_frame.c_str());
           }
 
 interval:
