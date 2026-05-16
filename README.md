@@ -154,7 +154,9 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
-
+### **V 3.63** - 16/05/2026
+* Correction des sources script pour affichage des graphiques.
+* Versions : MaxPV! 3.61, site Web 3.63, EcoPV 3.60.
 ### **V 3.62** - 05/05/2025
 * Changement des échelles des jauges.
 * Changement taille des champs URL relais distant.
