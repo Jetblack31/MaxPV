@@ -1,0 +1,162 @@
+input_number:
+  maxpv_wizard_apparent_power_reference_va:
+    name: MaxPV Wizard Apparent Power Reference
+    min: 100
+    max: 10000
+    step: 10
+    mode: box
+    unit_of_measurement: VA
+    icon: mdi:flash-outline
+
+  maxpv_wizard_secondary_load_power_w:
+    name: MaxPV Wizard Secondary Load Power
+    min: 0
+    max: 10000
+    step: 10
+    mode: box
+    unit_of_measurement: W
+    icon: mdi:toggle-switch-variant
+
+script:
+  maxpv_wizard_step1_start:
+    alias: MaxPV Wizard - Step 1 Start
+    mode: single
+    sequence:
+      - service: button.press
+        target:
+          entity_id: button.maxpv_reset_energy_indices
+      - delay: "00:00:01"
+      - service: button.press
+        target:
+          entity_id: button.maxpv_soft_restart_ecopv
+      - delay: "00:00:02"
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_v_calib_voltage_calibration
+        data:
+          value: 0.8
+      - service: button.press
+        target:
+          entity_id: button.maxpv_request_ecopv_parameters
+
+  maxpv_wizard_step3_compute_gains:
+    alias: MaxPV Wizard - Step 3 Compute Gains
+    mode: single
+    variables:
+      resistance: "{{ states('number.maxpv_p_resistance_heater_power') | float(0) }}"
+      gain_p: "{{ ((5 * 3000 / resistance) | int(0) + 1) if resistance > 0 else 1 }}"
+      gain_i: "{{ ((30 * 3000 / resistance) | int(0) + 1) if resistance > 0 else 1 }}"
+    sequence:
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_gain_p_proportional_gain
+        data:
+          value: "{{ gain_p }}"
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_gain_i_integral_gain
+        data:
+          value: "{{ gain_i }}"
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_e_reserve_energy_reserve_before_routing
+        data:
+          value: 5
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_p_margin_import_power_target
+        data:
+          value: 10
+
+  maxpv_wizard_step5_compute_p_calib:
+    alias: MaxPV Wizard - Step 5 Compute P_CALIB
+    mode: single
+    variables:
+      reference_papp: "{{ states('input_number.maxpv_wizard_apparent_power_reference_va') | float(2500) }}"
+      measured_papp: "{{ states('sensor.maxpv_grid_power_apparent') | float(0) }}"
+      current_p_calib: "{{ states('number.maxpv_p_calib_power_calibration') | float(0.1) }}"
+      new_p_calib: "{{ (current_p_calib * reference_papp / measured_papp) | round(3) if measured_papp > 0 else current_p_calib }}"
+    sequence:
+      - condition: template
+        value_template: "{{ measured_papp > 0 }}"
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_p_calib_power_calibration
+        data:
+          value: "{{ new_p_calib }}"
+
+  maxpv_wizard_step6_correct_offset:
+    alias: MaxPV Wizard - Step 6 Correct P_OFFSET
+    mode: single
+    variables:
+      current_offset: "{{ states('number.maxpv_p_offset_active_power_offset') | float(0) }}"
+      measured_pact: "{{ states('sensor.maxpv_grid_power_active') | float(0) }}"
+      new_offset: "{{ (current_offset + measured_pact) | round(0) }}"
+    sequence:
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_p_offset_active_power_offset
+        data:
+          value: "{{ new_offset }}"
+
+  maxpv_wizard_step8_config_div2:
+    alias: MaxPV Wizard - Step 8 Configure DIV2 Relay
+    mode: single
+    variables:
+      resistance: "{{ states('number.maxpv_p_resistance_heater_power') | float(0) }}"
+      secondary: "{{ states('input_number.maxpv_wizard_secondary_load_power_w') | float(0) }}"
+      secondary_non_zero: "{{ 500 if secondary == 0 else secondary }}"
+      p_activation: >-
+        {% if resistance > secondary_non_zero %}
+          {{ (secondary_non_zero * 0.8) | int(0) }}
+        {% else %}
+          {{ (resistance * 0.9) | int(0) }}
+        {% endif %}
+      p_idle: >-
+        {% if resistance > secondary_non_zero %}
+          {{ (secondary_non_zero * 0.3) | int(0) }}
+        {% else %}
+          {{ (secondary_non_zero - (resistance * 0.7)) | int(0) }}
+        {% endif %}
+    sequence:
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_t_div2_on_min_relay_on_time
+        data:
+          value: 5
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_t_div2_off_min_relay_off_time
+        data:
+          value: 5
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_t_div2_tc_averaging_time_constant
+        data:
+          value: 1
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_p_div2_active_relay_trigger_power
+        data:
+          value: "{{ p_activation }}"
+      - service: number.set_value
+        target:
+          entity_id: number.maxpv_p_div2_idle_relay_off_import_threshold
+        data:
+          value: "{{ p_idle }}"
+
+  maxpv_wizard_step10_save_and_restart:
+    alias: MaxPV Wizard - Step 10 Save and Restart
+    mode: single
+    sequence:
+      - service: button.press
+        target:
+          entity_id: button.maxpv_save_ecopv_configuration
+      - delay: "00:00:01"
+      - service: button.press
+        target:
+          entity_id: button.maxpv_soft_restart_ecopv
+      - delay: "00:00:02"
+      - service: button.press
+        target:
+          entity_id: button.maxpv_request_ecopv_parameters
