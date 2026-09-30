@@ -160,7 +160,14 @@ String ecoPVStatsAll;
 
 // Définition des tâches de Ticker
 TickerScheduler ts(2);
-Ticker mqttReconnectTimer;
+// La supervision MQTT est exécutée dans loop(), jamais dans un callback Ticker.
+bool mqttStarted = false;
+bool mqttConnecting = false;
+bool mqttRetryScheduled = false;
+unsigned long mqttAttemptTime = 0;
+unsigned long mqttRetryTime = 0;
+unsigned long mqttRetryDelay = 0;
+unsigned long mqttNextRetryDelay = RECONNECT_TIME * 1000UL;
 Ticker safeBoostOffTimer;
 
 // Compteur général à la seconde
@@ -556,6 +563,10 @@ void loop()
   yield();
 
   ts.update();
+
+  yield();
+
+  mqttMaintainConnection();
 
   yield();
 
@@ -1422,6 +1433,7 @@ void startMqtt (void)
   }
   mqttClient.setServer(_ipmqtt, mqttPort);
   mqttClient.setWill(MQTT_STATE, 0, true, "disconnected");
+  mqttStarted = true;
   mqttConnect();
   delay(3000);  
 }
@@ -1429,12 +1441,58 @@ void startMqtt (void)
 
 void mqttConnect (void)
 { 
-  mqttClient.connect();  
+  if (!mqttStarted || mqttActive != ON || WiFi.status() != WL_CONNECTED ||
+      mqttClient.connected() || mqttConnecting || shouldReboot) return;
+  mqttConnecting = true;
+  mqttRetryScheduled = false;
+  mqttAttemptTime = millis();
+  mqttClient.connect();
 };
+
+// Appelé exclusivement par loop(). Les soustractions supportent le débordement de millis().
+void mqttMaintainConnection (void)
+{
+  if (!mqttStarted || shouldReboot) return;
+
+  if (mqttActive != ON || WiFi.status() != WL_CONNECTED) {
+    if (mqttConnecting || mqttClient.connected()) {
+      mqttClient.disconnect(true);
+      mqttConnecting = false;
+    }
+    return;
+  }
+
+  if (mqttClient.connected()) return;
+
+  if (mqttConnecting) {
+    if (millis() - mqttAttemptTime >= MQTT_CONNECT_TIMEOUT) {
+      mqttClient.disconnect(true);
+      mqttConnecting = false;
+      mqttScheduleRetry();
+    }
+    return;
+  }
+
+  if (millis() - mqttRetryTime >= mqttRetryDelay) mqttConnect();
+}
+
+void mqttScheduleRetry (void)
+{
+  // Une fermeture forcée peut aussi déclencher onMqttDisconnect().
+  if (mqttRetryScheduled) return;
+  mqttRetryScheduled = true;
+  mqttRetryTime = millis();
+  mqttRetryDelay = mqttNextRetryDelay;
+  mqttNextRetryDelay = min(mqttNextRetryDelay * 2UL, MQTT_RECONNECT_MAX_DELAY);
+}
 
 
 void onMqttConnect(bool sessionPresent) 
 {
+  mqttConnecting = false;
+  mqttRetryScheduled = false;
+  mqttRetryDelay = 0;
+  mqttNextRetryDelay = RECONNECT_TIME * 1000UL;
   logMqtt ( F("[ESP]"), F("Service MQTT connecté") ); 
   // Souscriptions aux topics pour gérer les états relais, SSR et boost
   mqttClient.subscribe(MQTT_SET_RELAY_MODE,0);
@@ -1756,7 +1814,8 @@ void onMqttConnect(bool sessionPresent)
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
   mqttClient.clearQueue();
-  mqttReconnectTimer.once(RECONNECT_TIME, mqttConnect);
+  mqttConnecting = false;
+  mqttScheduleRetry();
 }
 
 
