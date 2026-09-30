@@ -73,6 +73,8 @@
 #define DEFAULT_MQTT_SERVER     "192.168.1.100" // Serveur MQTT par défaut
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
 #define RECONNECT_TIME          5               // Délai de reconnexion en secondes suite à perte de connexion du serveur mqtt
+#define MQTT_RECONNECT_MAX_DELAY 60000UL        // Plafond des délais progressifs de reconnexion, en ms
+#define MQTT_CONNECT_TIMEOUT     30000UL        // Durée maximale d'une tentative de connexion, en ms
 
 #define DEFAULT_REMOTE_RELAY_SERVER     "192.168.1.200"   // Serveur du relais distant
 #define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant
