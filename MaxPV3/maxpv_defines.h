@@ -24,8 +24,8 @@
 // ***********************************************************************************
 
 // Version MaxPV!
-#define MAXPV_VERSION      "3.61"
-#define MAXPV_VERSION_FULL "MaxPV! 3.61"
+#define MAXPV_VERSION      "3.64"
+#define MAXPV_VERSION_FULL "MaxPV! 3.64"
 
 // SSID pour le Config Portal
 #define SSID_CP            "MaxPV"
@@ -106,6 +106,16 @@
 #define HISTORY_RECORD    193 // Nombre de points dans l'historique
                               // Attention à la taille totale de l'historique en mémoire
                               // Et la capacité d'export en CSV
+
+// Journal des événements
+#define EVENT_LOG_SIZE    64  // Nombre d'événements conservés en RAM (tampon circulaire)
+                              // Attention : 20 octets par événement
+#define EVENT_MQTT_BURST  3   // Nombre maximum d'événements publiés en MQTT à chaque passage dans loop()
+
+// Mémorisation en mémoire RTC de la cause d'un redémarrage logiciel
+// Les 128 premiers octets de la mémoire RTC utilisateur sont réservés à l'OTA (eboot)
+#define RTC_REBOOT_OFFSET 96          // en blocs de 4 octets
+#define RTC_REBOOT_MAGIC  0x4D505652  // "MPVR"
 
 
 // définition de l'ordre des paramètres de configuration de EcoPV tels que transmis
@@ -199,6 +209,7 @@
 #define MQTT_SET_BOOST_MODE "maxpv/boost/set"
 #define MQTT_STATUS_BYTE    "maxpv/statusbyte"
 #define MQTT_TEMP_ECS       "maxpv/temperature"
+#define MQTT_EVENT          "maxpv/event"
 
 // Topics utilisés pour la transmission des informations du système et le debug en fonctionnement
 #define MQTT_SYS_FREE_HEAP      "maxpv/SYS/freeHeap"

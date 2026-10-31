@@ -22,8 +22,6 @@ jobs:
 
       - name: Run PlatformIO build on selected platforms 🏗️
         run: platformio run -e d1_mini
-      - name: Run PlatformIO buildfs on selected platforms 🏗️
-        run: platformio run --target buildfs -e d1_mini 
 
       - name: Upload build artifacts 💾
         uses: actions/upload-artifact@v3

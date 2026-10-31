@@ -45,6 +45,7 @@
 
 // ***      ATTENTION : NE PAS ACTIVER LE DEBUG SERIAL SUR AUCUNE LIBRAIRIE        ***
 
+#include <memory>
 #include <LittleFS.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
@@ -55,7 +56,7 @@
 #include <ESPAsyncWiFiManager.h>
 #include <AsyncMqtt_Generic.h>
 #include <AsyncHTTPRequest_Generic.h> 
-#include <AsyncElegantOTA.h>
+#include <Updater.h>
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -81,12 +82,43 @@
 // Importation des définitions de configuration générale de MaxPV!
 #include "maxpv_defines.h"
 
+// Importation des fichiers du site Web intégrés au firmware
+// Généré à la compilation par extra_script.py à partir de MaxPV3/data
+#include "web_files.h"
+
 // Définitions utiles pour le programme
 #define OFF         0
 #define ON          1
 #define STOP        0
 #define FORCE       1
 #define AUTOM       9
+
+// Types d'événements du journal
+#define EVT_BOOT           1    // Démarrage de MaxPV!, detail = cause
+#define EVT_BOOST_ON       2    // Démarrage boost, detail = origine, value = durée en minutes
+#define EVT_BOOST_OFF      3    // Arrêt boost, detail = raison, value = durée effective en minutes (-1 = inconnue)
+#define EVT_BOOST_REFUSED  4    // Boost refusé, detail = origine, value = température ECS
+#define EVT_SSR_MODE       5    // Changement de mode SSR, detail = origine, value = nouveau mode
+#define EVT_WIFI_LOST      6    // Perte Wi-Fi, detail = code raison du SDK
+#define EVT_WIFI_OK        7    // Reprise Wi-Fi, value = durée de coupure en secondes
+#define EVT_WIFI_WATCHDOG  8    // Redémarrage de la connexion par le watchdog Wifi
+#define EVT_MQTT_LOST      9    // Perte MQTT, detail = AsyncMqttClientDisconnectReason
+#define EVT_MQTT_OK        10   // Connexion MQTT, value = durée de coupure en secondes (-1 = première connexion)
+
+// Origines et raisons des événements boost et SSR
+#define EVT_SRC_WEB        1    // Interface web ou API HTTP
+#define EVT_SRC_MQTT       2    // Commande MQTT
+#define EVT_SRC_TIMER      3    // Programmation horaire
+#define EVT_SRC_TEMP       4    // Température ECS atteinte
+#define EVT_SRC_END        5    // Durée écoulée
+#define EVT_SRC_ECOPV      6    // Fin signalée par EcoPV sans que la durée soit écoulée
+#define EVT_SRC_SSR        7    // Changement de mode SSR
+
+// Causes de démarrage : 0 à 6 = rst_info.reason du SDK, au-delà redémarrages logiciels demandés par MaxPV!
+#define EVT_BOOT_WEB       10   // Redémarrage demandé via l'API
+#define EVT_BOOT_CONFIG    11   // Fichier de configuration incorrect
+#define EVT_BOOT_FS        12   // Erreur de filesystem
+#define EVT_BOOT_OTA       13   // Mise à jour du firmware
 
 
 // ***********************************************************************************
@@ -168,6 +200,10 @@ unsigned long generalCounterSecond = 0;
 
 // Flag indiquant la nécessité de rebooter MaxPV!
 bool shouldReboot = false;
+// Cause du redémarrage demandé par shouldReboot, mémorisée pour le journal des événements
+byte rebootCause = EVT_BOOT_WEB;
+// Flag indiquant que le firmware reçu par OTA a été écrit avec succès
+bool otaSuccess = false;
 // Flag indiquant la nécessité de sauvegarder la configuration de MaxPV!
 bool shouldSaveConfig = false;
 // Flag indiquant la nécessité de lire les paramètres de routage EcoPV
@@ -201,6 +237,32 @@ int historyCounter = 0; // position courante dans le tableau de l'historique
 
 // Variables pour la gestion du mode BOOST
 long boostTime = -1;         // Temps restant pour le mode BOOST, en secondes (-1 = arrêt)
+long boostStartUptime = -1;  // Instant de démarrage du BOOST en secondes depuis le boot (-1 = inconnu)
+bool boostStopPending = false;  // Arrêt du BOOST demandé par MaxPV!, en attente de la confirmation d'EcoPV
+
+// Variables pour le journal des événements
+// Structure pour le stockage d'un événement
+struct eventRecord
+{
+  uint32_t id;        // numéro d'ordre de l'événement, 0 = emplacement vide
+  uint32_t time;      // epoch Time, 0 si l'heure NTP n'était pas encore valide
+  uint32_t uptime;    // secondes depuis le démarrage
+  int32_t  value;     // valeur associée, dépend du type
+  byte     type;      // type d'événement EVT_xxx
+  byte     detail;    // origine, raison ou cause, dépend du type
+};
+eventRecord eventLog[EVENT_LOG_SIZE];
+uint32_t eventCounter = 0;      // id du dernier événement enregistré
+                                // l'événement d'id n est rangé à la position (n - 1) % EVENT_LOG_SIZE
+uint32_t eventPublishedId = 0;  // id du dernier événement publié en MQTT
+
+// Suivi des connexions Wifi et MQTT pour ne journaliser que les changements d'état
+WiFiEventHandler wifiDisconnectHandler;
+WiFiEventHandler wifiGotIPHandler;
+bool wifiLinkUp = true;
+uint32_t wifiDownSince = 0;
+byte mqttLinkState = 0;         // 0 = jamais connecté, 1 = connecté, 2 = déconnecté
+uint32_t mqttDownSince = 0;
 
 // Variables pour la gestion du relais distant
 int relaisDistantPreviousState = OFF;
@@ -293,7 +355,10 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   logSerial ( F("[ESP]"), F(WELCOME_MESSAGE) ); 
   msg = F("Version : ");
   msg += MAXPV_VERSION_FULL;
-  logSerial ( F("[ESP]"), msg ); 
+  logSerial ( F("[ESP]"), msg );
+
+  // Premier événement du journal : démarrage et sa cause
+  logBootEvent();
 
   delay(5);
 
@@ -307,7 +372,8 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
     if (LittleFS.begin())
       logSerial ( F("[ESP]"), F("Filesystem prêt") ); 
     else {
-      logSerial ( F("[ESP]"), F("Erreur de filesystem, redémarrage") ); 
+      logSerial ( F("[ESP]"), F("Erreur de filesystem, redémarrage") );
+      saveRebootCause(EVT_BOOT_FS);
       delay(100);
       ESP.restart();
     }
@@ -331,6 +397,7 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
     else {
       logSerial ( F("[ESP]"), F("Fichier de configuration incorrect, effacement et redémarrage") );
       LittleFS.remove(F("/config.json"));
+      saveRebootCause(EVT_BOOT_CONFIG);
       delay(50);
       ESP.restart();
     }
@@ -382,6 +449,9 @@ AsyncWiFiManager  wifiManager(&webServer, &dnsServer);
   WiFi.setAutoReconnect(true);
   wifiManager.setDebugOutput(false);
   delay(5);
+
+  // Journalisation des pertes et reprises de la connexion Wifi
+  setWifiEventHandlers();
 
   // Sauvegarde de la configuration MaxPV! si nécessaire
   if (shouldSaveConfig) {
@@ -601,6 +671,10 @@ void loop()
 
   yield();
 
+  publishPendingEvents();
+
+  yield();
+
   if ( (millis() - refTime) >= 100 ) logMqtt ( F("[WARNING LOOP TIME]"), String (millis() - refTime) );
 
 }
@@ -806,6 +880,7 @@ void saveConfigCallback(void)
 void rebootESP(void)
 {
   logMqtt (F("ESP"), F("!! Redémarrage !!"));
+  saveRebootCause(rebootCause);
   delay (50);
   if (mqttClient.connected()) mqttClient.disconnect();
   delay(200);
@@ -885,6 +960,379 @@ void logMqtt ( const String& logger, const String& message )
 
 
 ///////////////////////////////////////////////////////////////////
+// Journal des événements                                        //
+// Tampon circulaire en RAM, consultable en JSON (/api/events)   //
+// et publié événement par événement en MQTT (MQTT_EVENT)        //
+///////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////
+// Temps écoulé depuis le démarrage en secondes                  //
+// micros64() ne reboucle pas, contrairement à millis()          //
+///////////////////////////////////////////////////////////////////
+
+uint32_t uptimeSeconds(void)
+{
+  return uint32_t ( micros64() / 1000000ULL );
+}
+
+///////////////////////////////////////////////////////////////////
+// Enregistrement d'un événement dans le tampon circulaire       //
+// Sans allocation : utilisable dans les callbacks Wifi, MQTT    //
+// et les handlers Web. La publication MQTT est faite par loop() //
+///////////////////////////////////////////////////////////////////
+
+void logEvent(byte type, byte detail, long value)
+{
+  eventRecord& e = eventLog[eventCounter % EVENT_LOG_SIZE];
+  time_t timestamp = time(NULL);
+  eventCounter++;
+  e.id      = eventCounter;
+  e.time    = ( timestamp > TIME_REF ) ? uint32_t (timestamp) : 0;
+  e.uptime  = uptimeSeconds();
+  e.value   = value;
+  e.type    = type;
+  e.detail  = detail;
+}
+
+///////////////////////////////////////////////////////////////////
+// Mémorise en mémoire RTC la cause d'un redémarrage logiciel    //
+// à appeler juste avant ESP.restart()                           //
+///////////////////////////////////////////////////////////////////
+
+void saveRebootCause(byte cause)
+{
+  uint32_t rtcData[2] = { RTC_REBOOT_MAGIC, cause };
+  ESP.rtcUserMemoryWrite(RTC_REBOOT_OFFSET, rtcData, sizeof(rtcData));
+}
+
+///////////////////////////////////////////////////////////////////
+// Journalise le démarrage avec sa cause : raison matérielle     //
+// du SDK, précisée par la cause mémorisée en RTC si le          //
+// redémarrage logiciel a été demandé par MaxPV!                 //
+///////////////////////////////////////////////////////////////////
+
+void logBootEvent(void)
+{
+  uint32_t rtcData[2];
+  const rst_info* resetInfo = ESP.getResetInfoPtr();
+  byte cause = resetInfo->reason;
+  long value = ( cause == REASON_EXCEPTION_RST ) ? long (resetInfo->exccause) : 0;
+
+  if ( ESP.rtcUserMemoryRead(RTC_REBOOT_OFFSET, rtcData, sizeof(rtcData)) && ( rtcData[0] == RTC_REBOOT_MAGIC ) ) {
+    if ( cause == REASON_SOFT_RESTART ) cause = byte (rtcData[1]);
+    rtcData[0] = 0;
+    ESP.rtcUserMemoryWrite(RTC_REBOOT_OFFSET, rtcData, sizeof(rtcData));
+  }
+  logEvent ( EVT_BOOT, cause, value );
+}
+
+///////////////////////////////////////////////////////////////////
+// Callbacks de perte et de reprise de la connexion Wifi         //
+// La perte est signalée à chaque tentative de reconnexion :     //
+// on ne journalise que les changements d'état                   //
+///////////////////////////////////////////////////////////////////
+
+void setWifiEventHandlers(void)
+{
+  wifiLinkUp = WiFi.isConnected();
+  wifiDisconnectHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& evt)
+  {
+    if (wifiLinkUp) {
+      wifiLinkUp = false;
+      wifiDownSince = uptimeSeconds();
+      logEvent ( EVT_WIFI_LOST, byte (evt.reason), 0 );
+    }
+  });
+  wifiGotIPHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP&)
+  {
+    if (!wifiLinkUp) {
+      wifiLinkUp = true;
+      logEvent ( EVT_WIFI_OK, 0, long ( uptimeSeconds() - wifiDownSince ) );
+    }
+  });
+}
+
+///////////////////////////////////////////////////////////////////
+// Libellés des événements                                       //
+///////////////////////////////////////////////////////////////////
+
+const __FlashStringHelper* eventTypeKey(byte type)
+{
+  switch (type) {
+    case EVT_BOOT:          return F("boot");
+    case EVT_BOOST_ON:      return F("boost_on");
+    case EVT_BOOST_OFF:     return F("boost_off");
+    case EVT_BOOST_REFUSED: return F("boost_refused");
+    case EVT_SSR_MODE:      return F("ssr_mode");
+    case EVT_WIFI_LOST:     return F("wifi_lost");
+    case EVT_WIFI_OK:       return F("wifi_ok");
+    case EVT_WIFI_WATCHDOG: return F("wifi_watchdog");
+    case EVT_MQTT_LOST:     return F("mqtt_lost");
+    case EVT_MQTT_OK:       return F("mqtt_ok");
+    default:                return F("unknown");
+  }
+}
+
+const __FlashStringHelper* eventSourceKey(byte source)
+{
+  switch (source) {
+    case EVT_SRC_WEB:   return F("web");
+    case EVT_SRC_MQTT:  return F("mqtt");
+    case EVT_SRC_TIMER: return F("timer");
+    case EVT_SRC_TEMP:  return F("temperature");
+    case EVT_SRC_END:   return F("end");
+    case EVT_SRC_ECOPV: return F("ecopv");
+    case EVT_SRC_SSR:   return F("ssr");
+    default:            return F("unknown");
+  }
+}
+
+const __FlashStringHelper* eventSourceText(byte source)
+{
+  switch (source) {
+    case EVT_SRC_WEB:   return F("web / API");
+    case EVT_SRC_MQTT:  return F("MQTT");
+    case EVT_SRC_TIMER: return F("programmation horaire");
+    case EVT_SRC_TEMP:  return F("température ECS atteinte");
+    case EVT_SRC_END:   return F("durée écoulée");
+    case EVT_SRC_ECOPV: return F("fin signalée par EcoPV");
+    case EVT_SRC_SSR:   return F("changement de mode SSR");
+    default:            return F("inconnue");
+  }
+}
+
+const __FlashStringHelper* bootCauseKey(byte cause)
+{
+  switch (cause) {
+    case REASON_DEFAULT_RST:      return F("power_on");
+    case REASON_WDT_RST:          return F("hw_watchdog");
+    case REASON_EXCEPTION_RST:    return F("exception");
+    case REASON_SOFT_WDT_RST:     return F("soft_watchdog");
+    case REASON_SOFT_RESTART:     return F("soft_restart");
+    case REASON_DEEP_SLEEP_AWAKE: return F("deep_sleep");
+    case REASON_EXT_SYS_RST:      return F("external_reset");
+    case EVT_BOOT_WEB:            return F("web_request");
+    case EVT_BOOT_CONFIG:         return F("config_error");
+    case EVT_BOOT_FS:             return F("filesystem_error");
+    case EVT_BOOT_OTA:            return F("ota_update");
+    default:                      return F("unknown");
+  }
+}
+
+const __FlashStringHelper* bootCauseText(byte cause)
+{
+  switch (cause) {
+    case REASON_DEFAULT_RST:      return F("mise sous tension");
+    case REASON_WDT_RST:          return F("watchdog matériel");
+    case REASON_EXCEPTION_RST:    return F("exception logicielle");
+    case REASON_SOFT_WDT_RST:     return F("watchdog logiciel");
+    case REASON_SOFT_RESTART:     return F("redémarrage logiciel");
+    case REASON_DEEP_SLEEP_AWAKE: return F("réveil de veille profonde");
+    case REASON_EXT_SYS_RST:      return F("reset externe");
+    case EVT_BOOT_WEB:            return F("redémarrage demandé via l'API");
+    case EVT_BOOT_CONFIG:         return F("fichier de configuration incorrect");
+    case EVT_BOOT_FS:             return F("erreur de filesystem");
+    case EVT_BOOT_OTA:            return F("mise à jour du firmware");
+    default:                      return F("inconnue");
+  }
+}
+
+const __FlashStringHelper* mqttReasonKey(byte reason)
+{
+  switch (reason) {
+    case 0:  return F("tcp_disconnected");
+    case 1:  return F("unacceptable_protocol");
+    case 2:  return F("identifier_rejected");
+    case 3:  return F("server_unavailable");
+    case 4:  return F("malformed_credentials");
+    case 5:  return F("not_authorized");
+    case 6:  return F("not_enough_space");
+    case 7:  return F("tls_bad_fingerprint");
+    default: return F("unknown");
+  }
+}
+
+const __FlashStringHelper* mqttReasonText(byte reason)
+{
+  switch (reason) {
+    case 0:  return F("connexion TCP perdue");
+    case 1:  return F("version de protocole refusée");
+    case 2:  return F("identifiant refusé");
+    case 3:  return F("serveur indisponible");
+    case 4:  return F("identifiants mal formés");
+    case 5:  return F("non autorisé");
+    case 6:  return F("mémoire insuffisante");
+    case 7:  return F("empreinte TLS invalide");
+    default: return F("raison inconnue");
+  }
+}
+
+const __FlashStringHelper* wifiReasonText(byte reason)
+{
+  switch (reason) {
+    case WIFI_DISCONNECT_REASON_AUTH_EXPIRE:            return F("authentification expirée");
+    case WIFI_DISCONNECT_REASON_ASSOC_EXPIRE:           return F("association expirée");
+    case WIFI_DISCONNECT_REASON_ASSOC_LEAVE:            return F("déconnexion demandée");
+    case WIFI_DISCONNECT_REASON_4WAY_HANDSHAKE_TIMEOUT: return F("échec de la négociation WPA");
+    case WIFI_DISCONNECT_REASON_BEACON_TIMEOUT:         return F("perte du signal");
+    case WIFI_DISCONNECT_REASON_NO_AP_FOUND:            return F("point d'accès introuvable");
+    case WIFI_DISCONNECT_REASON_AUTH_FAIL:              return F("échec d'authentification");
+    case WIFI_DISCONNECT_REASON_ASSOC_FAIL:             return F("échec d'association");
+    case WIFI_DISCONNECT_REASON_HANDSHAKE_TIMEOUT:      return F("délai de négociation dépassé");
+    default:                                            return nullptr;
+  }
+}
+
+///////////////////////////////////////////////////////////////////
+// Message lisible d'un événement                                //
+///////////////////////////////////////////////////////////////////
+
+String eventMessage(const eventRecord& e)
+{
+  String msg;
+  msg.reserve(96);
+  switch (e.type) {
+    case EVT_BOOT:
+      msg = F("Démarrage de MaxPV! : ");
+      msg += bootCauseText(e.detail);
+      if ( e.detail == REASON_EXCEPTION_RST ) {
+        msg += F(" (exception ");
+        msg += e.value;
+        msg += F(")");
+      }
+      break;
+    case EVT_BOOST_ON:
+      msg = F("Boost démarré (");
+      msg += eventSourceText(e.detail);
+      msg += F(") pour ");
+      msg += e.value;
+      msg += F(" min");
+      break;
+    case EVT_BOOST_OFF:
+      msg = F("Boost arrêté : ");
+      if ( ( e.detail == EVT_SRC_WEB ) || ( e.detail == EVT_SRC_MQTT ) ) msg += F("arrêt manuel ");
+      msg += eventSourceText(e.detail);
+      if ( e.value >= 0 ) {
+        msg += F(", après ");
+        msg += e.value;
+        msg += F(" min");
+      }
+      break;
+    case EVT_BOOST_REFUSED:
+      msg = F("Boost refusé (");
+      msg += eventSourceText(e.detail);
+      msg += F(") : température ECS ");
+      msg += e.value;
+      msg += F(" °C, limite ");
+      msg += maxTemp;
+      msg += F(" °C");
+      break;
+    case EVT_SSR_MODE:
+      msg = F("Mode SSR : ");
+      if ( e.value == STOP )        msg += F("STOP");
+      else if ( e.value == FORCE )  msg += F("FORCE");
+      else                          msg += F("AUTO");
+      msg += F(" (");
+      msg += eventSourceText(e.detail);
+      msg += F(")");
+      break;
+    case EVT_WIFI_LOST:
+      msg = F("Perte de la connexion Wifi : ");
+      if ( wifiReasonText(e.detail) != nullptr ) msg += wifiReasonText(e.detail);
+      else {
+        msg += F("code ");
+        msg += e.detail;
+      }
+      break;
+    case EVT_WIFI_OK:
+      msg = F("Connexion Wifi rétablie après ");
+      msg += e.value;
+      msg += F(" s");
+      break;
+    case EVT_WIFI_WATCHDOG:
+      msg = F("Watchdog Wifi : redémarrage de la connexion");
+      break;
+    case EVT_MQTT_LOST:
+      msg = F("Perte de la connexion MQTT : ");
+      msg += mqttReasonText(e.detail);
+      break;
+    case EVT_MQTT_OK:
+      if ( e.value < 0 ) msg = F("Connexion MQTT établie");
+      else {
+        msg = F("Connexion MQTT rétablie après ");
+        msg += e.value;
+        msg += F(" s");
+      }
+      break;
+    default:
+      msg = F("Evénement inconnu");
+  }
+  return msg;
+}
+
+///////////////////////////////////////////////////////////////////
+// Sérialisation JSON d'un événement                             //
+// Si l'heure NTP n'était pas valide au moment de l'événement,   //
+// l'heure est reconstituée à partir de l'uptime                 //
+///////////////////////////////////////////////////////////////////
+
+String eventToJson(const eventRecord& e)
+{
+  String json;
+  json.reserve(256);
+  uint32_t eventTime = e.time;
+  time_t timestamp = time(NULL);
+  if ( ( eventTime == 0 ) && ( timestamp > TIME_REF ) ) eventTime = uint32_t (timestamp) - ( uptimeSeconds() - e.uptime );
+
+  json = F("{\"id\":");
+  json += e.id;
+  json += F(",\"time\":");
+  json += eventTime;
+  json += F(",\"uptime\":");
+  json += e.uptime;
+  json += F(",\"type\":\"");
+  json += eventTypeKey(e.type);
+  json += F("\",\"detail\":\"");
+  switch (e.type) {
+    case EVT_BOOT:          json += bootCauseKey(e.detail); break;
+    case EVT_BOOST_ON:
+    case EVT_BOOST_OFF:
+    case EVT_BOOST_REFUSED:
+    case EVT_SSR_MODE:      json += eventSourceKey(e.detail); break;
+    case EVT_WIFI_LOST:     json += e.detail; break;
+    case EVT_MQTT_LOST:     json += mqttReasonKey(e.detail); break;
+    default:                break;
+  }
+  json += F("\",\"value\":");
+  json += e.value;
+  json += F(",\"msg\":\"");
+  json += eventMessage(e);
+  json += F("\"}");
+  return json;
+}
+
+///////////////////////////////////////////////////////////////////
+// Publication MQTT des événements pas encore publiés            //
+// Appelé par loop() : les événements survenus pendant une       //
+// coupure Wifi ou MQTT sont publiés à la reconnexion            //
+///////////////////////////////////////////////////////////////////
+
+void publishPendingEvents(void)
+{
+  if ( ( eventPublishedId == eventCounter ) || ( !mqttClient.connected() ) ) return;
+  // Les événements écrasés dans le tampon avant d'avoir été publiés sont perdus
+  if ( ( eventCounter - eventPublishedId ) > EVENT_LOG_SIZE ) eventPublishedId = eventCounter - EVENT_LOG_SIZE;
+  for ( int n = 0; ( n < EVENT_MQTT_BURST ) && ( eventPublishedId < eventCounter ); n++ ) {
+    // l'événement suivant (id = eventPublishedId + 1) est rangé à la position eventPublishedId % EVENT_LOG_SIZE
+    const eventRecord& e = eventLog[eventPublishedId % EVENT_LOG_SIZE];
+    if ( mqttClient.publish(MQTT_EVENT, 0, true, eventToJson(e).c_str()) == 0 ) break;
+    eventPublishedId++;
+    yield();
+  }
+}
+
+
+///////////////////////////////////////////////////////////////////
 // Fonctions de communication avec l'Arduino Nano                //
 // par liaison série                                             //
 // Traitement des données reçues et envoyées                     //
@@ -959,7 +1407,7 @@ bool serialProcess(void)
       }
 
       // Arrêt du Boost si la température ECS est atteinte
-      if ( ( tempLimitActive == ON ) && ( ecoPVStats[TEMP_ECS].toInt() > maxTemp ) && ( boostTime > 0 ) ) boostOFF ( );
+      if ( ( tempLimitActive == ON ) && ( ecoPVStats[TEMP_ECS].toInt() > maxTemp ) && ( boostTime > 0 ) ) boostOFF ( EVT_SRC_TEMP );
     }
 
     else if (incomingData.startsWith(F("PARAM")))
@@ -997,7 +1445,23 @@ bool serialProcess(void)
     else if (incomingData.startsWith(F("BOOSTTIME")))
     {
       incomingData.replace(F("BOOSTTIME,"), "");
-      boostTime = incomingData.toInt();
+      long newBoostTime = incomingData.toInt();
+      // Après un arrêt demandé par MaxPV!, déjà journalisé avec sa raison, le minuteur est désactivé :
+      // EcoPV peut encore transmettre un temps restant (0 ou valeur en transit) avant de confirmer l'arrêt par -1,
+      // ce qui relancerait le suivi du boost et produirait une fausse fin
+      if ( boostStopPending ) {
+        if ( newBoostTime == -1 ) boostStopPending = false;
+        return true;
+      }
+      if ( ( boostTime >= 0 ) && ( newBoostTime == -1 ) ) {
+        // On ignore un -1 émis par EcoPV avant la prise en compte d'un boost tout juste lancé
+        if ( ( boostStartUptime >= 0 ) && ( long (uptimeSeconds()) - boostStartUptime < 3 ) ) return true;
+        // EcoPV transmet le temps restant toutes les 30 secondes :
+        // une fin annoncée alors qu'il restait plus d'une minute n'est pas une fin de durée
+        boostStopped ( ( boostTime <= 60 ) ? EVT_SRC_END : EVT_SRC_ECOPV );
+        if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
+      }
+      boostTime = newBoostTime;
     }
 
     return true;
@@ -1141,12 +1605,23 @@ void relayModeEcoPV(byte opMode)
 // Change le mode de fonctionnement du SSR                       //
 ///////////////////////////////////////////////////////////////////
 
-void SSRModeEcoPV(byte opMode)
+void SSRModeEcoPV(byte opMode, byte source)
 {
   String str;
   String command;
   str.reserve(16);
   command.reserve(32);
+
+  // Pendant un boost, EcoPV alterne FORCE et STOP : toute commande est alors un changement
+  if ( ( boostTime >= 0 ) || ( opMode != ecoPVStats[TRIAC_MODE].toInt() ) ) logEvent ( EVT_SSR_MODE, source, opMode );
+  // EcoPV arrête le boost en cours lors d'un changement de mode SSR
+  if ( boostTime >= 0 ) {
+    boostStopped ( EVT_SRC_SSR );
+    boostTime = -1;
+    boostStopPending = true;
+    if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
+  }
+
   command = F("SETSSR,");
   if (opMode == STOP)
     command += F("STOP");
@@ -1212,25 +1687,45 @@ void watchDogContactEcoPV(void)
 // Mode BOOST, index journaliers, historique                     //
 ///////////////////////////////////////////////////////////////////
 
-void boostON(void)
+void boostON(byte source)
 {
+  // Pas de boost si la température ECS est déjà atteinte
+  if ( ( tempLimitActive == ON ) && ( ecoPVStats[TEMP_ECS].toInt() >= maxTemp ) ) {
+    logEvent ( EVT_BOOST_REFUSED, source, ecoPVStats[TEMP_ECS].toInt() );
+    return;
+  }
   if ( boostRatio != 0 ) {
     long bT = ( 60 * boostDuration );   // conversion en secondes
     //burstCnt = 0;
     boostModeEcoPV(bT,boostRatio);
     boostTime = bT;
-    logMqtt ( F("[ESP]"), F("Mode Boost --> ON") ); 
+    boostStartUptime = uptimeSeconds();
+    boostStopPending = false;
+    logEvent ( EVT_BOOST_ON, source, boostDuration );
+    logMqtt ( F("[ESP]"), F("Mode Boost --> ON") );
     if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "on");
   }
 }
 
 
-void boostOFF(void)
+void boostOFF(byte reason)
 {
   boostModeEcoPV(0,boostRatio);
+  if ( boostTime >= 0 ) boostStopped ( reason );
   boostTime = -1;
-  logMqtt ( F("[ESP]"), F("Mode Boost --> OFF") ); 
+  boostStopPending = true;    // EcoPV confirmera l'arrêt par BOOSTTIME,-1
+  logMqtt ( F("[ESP]"), F("Mode Boost --> OFF") );
   if (mqttClient.connected ()) mqttClient.publish(MQTT_BOOST_MODE, 0, true, "off");
+}
+
+
+// Journalise la fin d'un boost en cours, avec sa durée effective si elle est connue
+void boostStopped(byte reason)
+{
+  long elapsed = -1;
+  if ( boostStartUptime >= 0 ) elapsed = ( long (uptimeSeconds()) - boostStartUptime ) / 60;
+  logEvent ( EVT_BOOST_OFF, reason, elapsed );
+  boostStartUptime = -1;
 }
 
 
@@ -1384,15 +1879,14 @@ void timeScheduler(void)
   };
 
   // Déclenchement du mode BOOST sur Timer
+  // Le scheduler pouvant être appelé 2 fois dans la même minute, on ne déclenche qu'une fois
+  // La limite de température est vérifiée par boostON()
+  static time_t lastBoostTimer = 0;
   if ( ( hour == boostTimerHour ) && ( minute == boostTimerMinute )
-        && ( boostTimerActive == ON ) 
-        && ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) )
-        )  boostON ( );
-
-// Définition des paramètres de contrôle de température
-int maxTemp         = DEFAULT_MAX_TEMP;
-int tempLimitActive = OFF;
-
+        && ( boostTimerActive == ON ) && ( ( timestamp - lastBoostTimer ) > 120 ) ) {
+    lastBoostTimer = timestamp;
+    boostON ( EVT_SRC_TIMER );
+  }
 
   // Initialisation du mode RelayPlus pour la nouvelle journée
   if ( ( hour == relayPlusHour ) && ( minute == 1 ) && ( relayPlusActive == ON ) )  {
@@ -1435,7 +1929,9 @@ void mqttConnect (void)
 
 void onMqttConnect(bool sessionPresent) 
 {
-  logMqtt ( F("[ESP]"), F("Service MQTT connecté") ); 
+  logMqtt ( F("[ESP]"), F("Service MQTT connecté") );
+  logEvent ( EVT_MQTT_OK, 0, ( mqttLinkState == 2 ) ? long ( uptimeSeconds() - mqttDownSince ) : -1 );
+  mqttLinkState = 1;
   // Souscriptions aux topics pour gérer les états relais, SSR et boost
   mqttClient.subscribe(MQTT_SET_RELAY_MODE,0);
   mqttClient.subscribe(MQTT_SET_TRIAC_MODE,0);
@@ -1750,11 +2246,33 @@ void onMqttConnect(bool sessionPresent)
                     "\"payload_off\":\"off\""));
   payload.replace(F("#CMDTOPIC#"), F(MQTT_SET_BOOST_MODE));
   mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
+
+  // MQTT_EVENT
+  topic = configTopicTemplate;
+  topic.replace(F("#COMPONENT#"), F("sensor"));
+  topic.replace(F("#SENSORID#"), F("Evenement"));
+
+  payload = configPayloadTemplate;
+  payload.replace(F("#SENSORID#"), F("Evenement"));
+  payload.replace(F("#SENSORNAME#"), F("Dernier événement"));
+  payload.replace(F("\"dev_cla\":\"#DEVICECLASS#\","), F(""));
+  payload.replace(F("\"stat_cla\":\"#STATECLASS#\","), F(""));
+  payload.replace(F("#STATETOPIC#"), F(MQTT_EVENT));
+  payload.replace(F("\"unit_of_meas\":\"#UNIT#\""),
+                  F("\"val_tpl\":\"{{ value_json.msg }}\","
+                    "\"json_attr_t\":\"" MQTT_EVENT "\""));
+  mqttClient.publish(topic.c_str(), 0, true, payload.c_str());
 }
 
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
+  // Appelé à chaque échec de reconnexion : on ne journalise que le passage à l'état déconnecté
+  if ( mqttLinkState != 2 ) {
+    logEvent ( EVT_MQTT_LOST, byte (reason), 0 );
+    mqttLinkState = 2;
+    mqttDownSince = uptimeSeconds();
+  }
   mqttClient.clearQueue();
   mqttReconnectTimer.once(RECONNECT_TIME, mqttConnect);
 }
@@ -1773,13 +2291,13 @@ void onMqttMessage(char* topic, char* payload, const AsyncMqttClientMessagePrope
     relaisPlusIndex = -1;
   }
   else if (String(topic).startsWith(F(MQTT_SET_TRIAC_MODE))) {
-    if ( String(payload).startsWith(F("stop")) )        SSRModeEcoPV ( STOP );
-    else if ( String(payload).startsWith(F("force")) )  SSRModeEcoPV ( FORCE );
-    else if ( String(payload).startsWith(F("auto")) )   SSRModeEcoPV ( AUTOM );
+    if ( String(payload).startsWith(F("stop")) )        SSRModeEcoPV ( STOP, EVT_SRC_MQTT );
+    else if ( String(payload).startsWith(F("force")) )  SSRModeEcoPV ( FORCE, EVT_SRC_MQTT );
+    else if ( String(payload).startsWith(F("auto")) )   SSRModeEcoPV ( AUTOM, EVT_SRC_MQTT );
   }
   else if (String(topic).startsWith(F(MQTT_SET_BOOST_MODE))) {
-    if ( String(payload).startsWith(F("on")) && ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) ) )          boostON ( );
-    else if ( String(payload).startsWith(F("off")) )    boostOFF ( );
+    if ( String(payload).startsWith(F("on")) )          boostON ( EVT_SRC_MQTT );
+    else if ( String(payload).startsWith(F("off")) )    boostOFF ( EVT_SRC_MQTT );
   }
 }
 
@@ -1879,6 +2397,7 @@ void watchDogWifi ( void )
 {
   if ( ( millis() - refTimePingWifi ) > PING_WIFI_TIMEOUT ) {    
     logMqtt ( F("[ESP]"), F("Watchdog Wifi activé") );
+    logEvent ( EVT_WIFI_WATCHDOG, 0, 0 );
     WiFi.mode(WIFI_OFF);
     delay(20);
     WiFi.mode(WIFI_STA);
@@ -1927,11 +2446,33 @@ void remoteRelay ( int state )
 // Fonctions de gestion du serveur Web                           //
 ///////////////////////////////////////////////////////////////////
 
-void startWeb (void) 
+///////////////////////////////////////////////////////////////////
+// Envoi d'un fichier du site Web intégré au firmware            //
+// Les fichiers sont stockés compressés en gzip                  //
+///////////////////////////////////////////////////////////////////
+
+const webFile* findWebFile (const char* path)
 {
-  AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
-  AsyncElegantOTA.begin(&webServer);
-  delay(100);
+  for (size_t i = 0; i < WEB_FILES_COUNT; i++)
+    if ( strcmp ( webFiles[i].path, path ) == 0 ) return &webFiles[i];
+  return nullptr;
+}
+
+
+void sendWebFile (AsyncWebServerRequest * request, const webFile* file)
+{
+  if ( file == nullptr ) {
+    request->send ( 404, "text/plain", F("Not found") );
+    return;
+  }
+  AsyncWebServerResponse *response = request->beginResponse_P ( 200, file->mime, file->data, file->len );
+  response->addHeader ( F("Content-Encoding"), F("gzip") );
+  request->send ( response );
+}
+
+
+void startWeb (void)
+{
   setWebHandlers();
   delay(100);
   webServer.begin();
@@ -1961,78 +2502,67 @@ void setWebHandlers (void) {
     request->redirect( F("/") );
   });
 
+  // Les pages du site Web sont intégrées au firmware (web_files.h)
+  // Le filesystem ne contient plus que la configuration de MaxPV!
   webServer.on("/", HTTP_ANY, [](AsyncWebServerRequest * request)
   {
-    String response = "";
-    if ( LittleFS.exists ( F("/main.html") ) ) {
-      request->send ( LittleFS, F("/main.html") );
+    sendWebFile ( request, findWebFile ( "/main.html" ) );
+  });
+
+  for (size_t i = 0; i < WEB_FILES_COUNT; i++) {
+    const webFile* file = &webFiles[i];
+    webServer.on(file->path, HTTP_ANY, [file](AsyncWebServerRequest * request)
+    {
+      sendWebFile ( request, file );
+    });
+  }
+
+  // ***********************************************************************
+  // ********          HANDLERS DE LA MISE A JOUR DU FIRMWARE       ********
+  // ***********************************************************************
+
+  // Seul le firmware peut être mis à jour : le filesystem, qui contient
+  // la configuration de MaxPV!, n'est jamais réécrit.
+  // Une image filesystem est refusée par Update qui vérifie l'en-tête du firmware
+  webServer.on("/update", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    sendWebFile ( request, findWebFile ( "/maj.html" ) );
+  });
+
+  webServer.on("/update", HTTP_POST, [](AsyncWebServerRequest * request)
+  {
+    // Appelé une fois l'envoi du fichier terminé
+    AsyncWebServerResponse *response;
+    if ( otaSuccess ) {
+      response = request->beginResponse ( 200, "text/plain", F("OK") );
+      logMqtt ( F("[ESP]"), F("Mise à jour du firmware réussie") );
+      rebootCause = EVT_BOOT_OTA;
+      shouldReboot = true;
     }
     else {
-      response = F("Site Web non trouvé. Filesystem non chargé. Allez à : http://");
-      response += WiFi.localIP().toString();
-      response += F("/update pour uploader le filesystem.");
-      request->send ( 200, "text/plain", response );
+      String msg = Update.hasError() ? Update.getErrorString() : String ( F("envoi incomplet") );
+      response = request->beginResponse ( 500, "text/plain", msg );
+      logMqtt ( F("[ESP]"), F("Echec de la mise à jour du firmware") );
     }
-  });
-
-  webServer.on("/index.html", HTTP_ANY, [](AsyncWebServerRequest * request)
+    response->addHeader ( F("Connection"), F("close") );
+    request->send ( response );
+  },
+  [](AsyncWebServerRequest * request, String filename, size_t index, uint8_t *data, size_t len, bool final)
   {
-    String response = "";
-    if ( LittleFS.exists ( F("/index.html") ) ) {
-      request->send ( LittleFS, F("/index.html") );
+    // Réception du firmware par morceaux
+    if ( index == 0 ) {
+      otaSuccess = false;
+      if ( Update.isRunning() ) Update.end();   // envoi précédent interrompu
+      Update.runAsync ( true );
+      uint32_t maxSketchSpace = ( ESP.getFreeSketchSpace() - 0x1000 ) & 0xFFFFF000;
+      if ( Update.begin ( maxSketchSpace, U_FLASH ) ) {
+        // Le MD5 doit être fourni après begin() qui le réinitialise
+        if ( request->hasParam ( F("MD5"), true ) ) Update.setMD5 ( request->getParam ( F("MD5"), true )->value().c_str() );
+        logMqtt ( F("[ESP]"), F("Mise à jour du firmware en cours") );
+      }
     }
-    else {
-      response = F("Site Web non trouvé. Filesystem non chargé. Allez à : http://");
-      response += WiFi.localIP().toString();
-      response += F("/update pour uploader le filesystem.");
-      request->send ( 200, "text/plain", response );
-    }
-  });
-
-  webServer.on("/configuration.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/configuration.html"));
-  });
-
-  webServer.on("/main.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/main.html"));
-  });
-
-  webServer.on("/admin.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/admin.html"));
-  });
-
-  webServer.on("/credits.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/credits.html"));
-  });
-
-  webServer.on("/wizard.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/wizard.html"));
-  });
-
-  webServer.on("/maj.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    //request->send ( LittleFS, F("/maj") );
-    request->redirect(F("/update"));
-  });
-
-  webServer.on("/graph.html", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/graph.html"));
-  });
-
-  webServer.on("/maxpv.css", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/maxpv.css"), "text/css");
-  });
-
-  webServer.on("/favicon.ico", HTTP_ANY, [](AsyncWebServerRequest * request)
-  {
-    request->send(LittleFS, F("/favicon.ico"), "image/png");
+    if ( Update.isRunning() && len ) Update.write ( data, len );
+    if ( final && Update.isRunning() ) otaSuccess = Update.end ( true );
   });
 
   // Download le fichier de configuration de MaxPV!
@@ -2064,12 +2594,12 @@ void setWebHandlers (void) {
       formatEepromEcoPV ( );
     else if ( request->hasParam ( F("eraseconfigesp") ) )
       LittleFS.remove ( F("/config.json") );
-    else if ( request->hasParam ( F("rebootesp") ) )
+    else if ( request->hasParam ( F("rebootesp") ) ) {
+      rebootCause = EVT_BOOT_WEB;
       shouldReboot = true;
-    else if ( request->hasParam ( F("booston") ) ) {
-      if ( ( tempLimitActive == OFF ) || ( ecoPVStats[TEMP_ECS].toInt() < maxTemp ) ) boostON ( );
     }
-    else if ( request->hasParam ( F("boostoff") ) ) boostOFF ( );
+    else if ( request->hasParam ( F("booston") ) )  boostON ( EVT_SRC_WEB );
+    else if ( request->hasParam ( F("boostoff") ) ) boostOFF ( EVT_SRC_WEB );
     else response = F("Unknown request");
     request->send ( 200, "text/plain", response );
   });
@@ -2080,7 +2610,7 @@ void setWebHandlers (void) {
     if ( request->hasParam ( F("configmaxpv") ) )
       request->send ( LittleFS, F("/config.json"), "text/plain" );
     else if ( request->hasParam ( F("versionweb") ) )
-      request->send ( LittleFS, F("/versionweb.txt"), "text/plain" );
+      request->send ( 200, "text/plain", F(WEB_VERSION) );
     else {
       if ( ( request->hasParam ( F("param") ) ) && ( request->getParam(F("param"))->value().toInt() > 0 ) && ( request->getParam(F("param"))->value().toInt() <= ( NB_PARAM - 1 ) ) )
         response = ecoPVConfig [ request->getParam(F("param"))->value().toInt() ];
@@ -2158,9 +2688,9 @@ void setWebHandlers (void) {
     else if ( ( request->hasParam ( F("ssrmode") ) ) && ( request->hasParam ( F("value") ) ) ) {
       mystring = request->getParam(F("value"))->value();
       mystring.trim();
-      if ( mystring == F("stop") )        SSRModeEcoPV ( STOP );
-      else if ( mystring == F("force") )  SSRModeEcoPV ( FORCE );
-      else if ( mystring == F("auto") )   SSRModeEcoPV ( AUTOM );
+      if ( mystring == F("stop") )        SSRModeEcoPV ( STOP, EVT_SRC_WEB );
+      else if ( mystring == F("force") )  SSRModeEcoPV ( FORCE, EVT_SRC_WEB );
+      else if ( mystring == F("auto") )   SSRModeEcoPV ( AUTOM, EVT_SRC_WEB );
       else response = F("Bad request");
     }
     else if ( ( request->hasParam ( F("configmaxpv") ) ) && ( request->hasParam ( F("value") ) ) ) {
@@ -2230,5 +2760,78 @@ void setWebHandlers (void) {
     {
       request->send ( 200, "text/plain", F("Unknown request") );
     }
+  });
+
+  // ***********************************************************************
+  // ********             HANDLER DU JOURNAL DES EVENEMENTS         ********
+  // ***********************************************************************
+
+  // Evénements du plus récent au plus ancien
+  // La réponse est générée par morceaux, un événement à la fois, pour ne pas
+  // construire tout le journal en mémoire
+  webServer.on("/api/events", HTTP_GET, [](AsyncWebServerRequest * request)
+  {
+    struct eventsStream
+    {
+      uint32_t lastId;    // id du plus récent événement au début de la requête
+      uint32_t count;     // nombre d'événements à transmettre
+      uint32_t next;      // nombre d'événements déjà traités
+      bool     first;     // aucun événement encore transmis
+      bool     done;      // fin du JSON transmise
+      String   pending;   // morceau en cours de transmission
+      size_t   offset;    // position dans le morceau en cours
+    };
+    std::shared_ptr<eventsStream> state = std::make_shared<eventsStream>();
+    time_t timestamp = time(NULL);
+
+    state->lastId = eventCounter;
+    state->count  = ( eventCounter < EVENT_LOG_SIZE ) ? eventCounter : EVENT_LOG_SIZE;
+    state->next   = 0;
+    state->first  = true;
+    state->done   = false;
+    state->offset = 0;
+    state->pending = F("{\"time\":");
+    state->pending += ( timestamp > TIME_REF ) ? uint32_t (timestamp) : 0;
+    state->pending += F(",\"uptime\":");
+    state->pending += uptimeSeconds();
+    state->pending += F(",\"total\":");
+    state->pending += eventCounter;
+    state->pending += F(",\"size\":");
+    state->pending += EVENT_LOG_SIZE;
+    state->pending += F(",\"events\":[");
+
+    AsyncWebServerResponse *response = request->beginChunkedResponse("application/json",
+      [state](uint8_t *buffer, size_t maxLen, size_t index) -> size_t
+    {
+      size_t written = 0;
+      while ( written < maxLen ) {
+        if ( state->offset >= state->pending.length() ) {
+          // Préparation du morceau suivant
+          state->pending = "";
+          state->offset = 0;
+          if ( state->next < state->count ) {
+            uint32_t id = state->lastId - state->next;
+            const eventRecord& e = eventLog[(id - 1) % EVENT_LOG_SIZE];
+            state->next++;
+            // un événement écrasé pendant la transmission est ignoré
+            if ( e.id != id ) continue;
+            if ( !state->first ) state->pending = F(",");
+            state->pending += eventToJson(e);
+            state->first = false;
+          }
+          else if ( !state->done ) {
+            state->pending = F("]}");
+            state->done = true;
+          }
+          else break;
+        }
+        size_t n = std::min ( maxLen - written, size_t ( state->pending.length() - state->offset ) );
+        memcpy ( buffer + written, state->pending.c_str() + state->offset, n );
+        written += n;
+        state->offset += n;
+      }
+      return written;
+    });
+    request->send(response);
   });
 }

@@ -59,11 +59,7 @@ Le fonctionnement de MaxPV! nécessite une connexion à votre réseau local en W
 * Ouvrez le programme *amorceESP.ino* et téléchargez le dans le Wemos.
 * A l'aide d'un ordinateur connectez-vous au réseau Wifi MaxPV créé par le Wemos et allez à la page http://192.168.4.1
 * Une page intitulée ElegantOTA s'ouvre à l'écran.
-* Téléchargez d'abord le **Filesystem** *MaxPV3_filesystem.bin* disponible dans le répertoire **"Binaires MaxPV"**.
-
-![OTA Filesystem](images/OTAFS.png)
-* Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
-* Téléchargez ensuite le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**.
+* Téléchargez le **Firmware** *MaxPV3_firmware.bin* disponible dans le répertoire **"Binaires MaxPV"**. Le site Web est intégré au firmware : il n'y a plus de filesystem à télécharger.
 
 ![OTA Firmware](images/OTAFW.png)
 * Le Wemos reboote, connectez-vous de nouveau au réseau Wifi MaxPv.
@@ -125,6 +121,11 @@ Utilisation typique : le relais secondaire pilote une pompe de piscine. On peut 
 
 
 
+## Mise à jour
+La mise à jour de MaxPV! se fait depuis la page *Update* (http://maxpv/update) en téléchargeant uniquement le **Firmware**. Le site Web est intégré au firmware et la configuration de MaxPV!, conservée dans le filesystem, n'est pas modifiée : il n'est pas nécessaire de la sauvegarder ni de la restaurer. La page *Update* n'accepte que des fichiers firmware : une image filesystem est refusée. La mise à jour apparaît dans le journal des événements.
+
+Pour les développeurs : les fichiers du site Web restent dans *MaxPV3/data*. À la compilation avec PlatformIO, *extra_script.py* les compresse et génère *MaxPV3/web_files.h*, qui est intégré au firmware. Avec l'IDE Arduino, *web_files.h* doit être régénéré (compilation PlatformIO) après toute modification du site Web.
+
 ## API
 L'API permet d'interfacer MaxPV! avec des systèmes externes comme un système de domotique. L'API a été revue en profondeur comparativement à la version précédente de EcoPV. L'API est décrite dans la [Documentation API](Documentation%20API/API_MaxPV.pdf).
 
@@ -136,6 +137,10 @@ En position ON, MaxPV! interrogera régulièrement le serveur DNS1 que vous avez
 
 ## MQTT
 Un broker MQTT est configurable dans l'administration du système. L'authentification est optionnelle, laisser les champs vides si le broker ne nécessite pas d'authentification. Les données sont transmises sur les canaux tels que 'maxpv/pact', 'maxpv/pimpulsion', 'maxpv/prouted' etc... Le service MQTT supporte l'autodiscovery au format Home Assistant. Des informations de fonctionnement du Wemos sont également fournies sur le canal 'maxpv/SYS'.
+
+## Journal des événements
+MaxPV! tient un journal des derniers événements de fonctionnement : démarrages et arrêts du boost (avec leur origine : web / API, MQTT ou programmation horaire, et la raison de l'arrêt : arrêt manuel, durée écoulée, température ECS atteinte, changement de mode SSR), boosts refusés car la température ECS est déjà atteinte, changements de mode du SSR, démarrages de MaxPV! avec leur cause (mise sous tension, watchdog, exception, redémarrage demandé...), pertes et reprises des connexions Wifi et MQTT.
+Le journal est conservé en mémoire dans un tampon circulaire (64 derniers événements) et repart à zéro à chaque redémarrage. Il est consultable dans la page *Journal* de l'interface Web et en JSON à l'adresse `http://maxpv/api/events` (du plus récent au plus ancien). Chaque événement est aussi publié en JSON sur le canal MQTT 'maxpv/event' ; les événements survenus pendant une coupure Wifi ou MQTT sont publiés à la reconnexion. Un capteur *Dernier événement* est déclaré dans l'autodiscovery Home Assistant.
 
 ## Relais distant en mode miroir
 Vous pouvez configurer un relais distant accessible sur votre réseau local via une requête HTTP GET. La configuration s'effectue dans l'onglet administration (adresse IP, port, chemins pour mettre le relais à ON et à OFF). Lorsqu'il est activé, l'état du relais physique de MaxPV! (relais secondaire de délestage situé sur le PCB) est recopié sur le relais distant. C'est un fonctionnement en miroir qui vous permet de bénéficier de la fonctionnalité "relais secondaire" à distance sans avoir à tirer de cable. Cela peut servir par exemple pour piloter une pompe de piscine dont l'alimentation est éloignée de MaxPV!. Note 1 : MaxPV! ne gère pas le retour d'état du relais distant, seules des commandes HTTP de pilotage sont émises. Note 2 : Veillez à ce que l'appel HTTP au relais distant ne génère pas en retour une réponse trop longue. Si la réponse contient quelques dizaines de caractères, ce qui est généralement le cas pour une API distante, il n'y a aucun souci. Si la réponse est une page WEB lourde de plusieurs kilo-octets, cela peut provoquer un dysfonctionnement du Wemos et son redémarrage. Note 3 : depuis la version 3.53, l'état du relais distant est mis à jour toutes les 20 secondes. Il peut donc s'écouler jusqu'à 20 secondes pour que l'état du relais physique soit recopié sur le relais distant.
@@ -154,6 +159,13 @@ Les pins d'entrée-sortie de l'Arduino Nano sont configurables dans le code EcoP
 La pin D9 est utilisé pour la sonde de température 1-Wire depuis la version 3.60.
 
 # Versions
+### **V 3.64** - 31/10/2026
+* Journal des événements : boosts avec origine et raison d'arrêt, changements de mode SSR, démarrages avec leur cause, pertes et reprises Wifi et MQTT. Page Journal, API JSON /api/events, publication MQTT sur 'maxpv/event' et capteur Home Assistant.
+* Site Web intégré au firmware : la mise à jour ne nécessite plus que le fichier firmware et conserve la configuration de MaxPV!.
+* Nouvelle page de mise à jour limitée au firmware, avec vérification MD5. Abandon de la librairie AsyncElegantOTA, qui n'est plus disponible.
+* Correction : un arrêt manuel du boost pouvait être suivi d'une fausse fin de boost.
+* Correction : le boost programmé pouvait être déclenché deux fois dans la même minute.
+* Versions : MaxPV! 3.64, site Web 3.64, EcoPV 3.60.
 ### **V 3.63** - 16/05/2026
 * Correction des sources script pour affichage des graphiques.
 * Versions : MaxPV! 3.61, site Web 3.63, EcoPV 3.60.

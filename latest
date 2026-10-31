@@ -1,6 +1,6 @@
 {
   "ecopvver" : "3.60",
-  "maxpvver" : "3.61",
-  "webver" : "3.63",
-  "whatsnew" : "Nouveautés : Correction des sources script pour affichage des graphiques.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
+  "maxpvver" : "3.64",
+  "webver" : "3.64",
+  "whatsnew" : "Nouveautés : Journal des événements, site Web intégré au firmware : la mise à jour ne nécessite plus que le fichier firmware et conserve la configuration.<br>Voir les informations sur GitHub.<br>Rendez-vous à <a href=\"https://github.com/Jetblack31/MaxPV\" target=\"_blank\">https://github.com/Jetblack31/MaxPV</a><br>"
 }

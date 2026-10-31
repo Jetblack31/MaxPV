@@ -13,7 +13,7 @@
     <link href="maxpv.css" rel="stylesheet">
 </head>
 
-<body>
+<body onload="fillVersion ( )">
 
     <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
         <div class="container-fluid">
@@ -29,6 +29,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="graph.html">Graphiques</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="events.html">Journal</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="wizard.html">Assistant de configuration</a>
@@ -51,11 +54,181 @@
     </nav>
 
     <main class="container-fluid">
-        <div class="embed-responsive">
-            <iframe class="embed-responsive-item" src="update">Update MaxPV!</iframe>
-        </div>
+        <div class="bg-light p-5 rounded">
+            <h1>Mise à jour du firmware</h1>
+            <p class="lead">
+                Version installée : MaxPV! <span id="maxpvver">---</span>, site Web <span id="webver">---</span>.<br>
+                Sélectionnez le fichier firmware de MaxPV! (<i>MaxPVx.xx_firmware.bin</i>). Le site Web est intégré
+                au firmware et la configuration de MaxPV! est conservée.
+            </p>
 
+            <div class="row g-2 mb-3 align-items-center">
+                <div class="col-md-6">
+                    <input class="form-control" type="file" id="firmware" accept=".bin" onchange="checkFirmware ( )">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-danger" type="button" id="updatebutton" disabled onclick="startUpdate ( ); this.blur ( )">Mettre à jour</button>
+                </div>
+            </div>
+
+            <div class="progress mb-3" style="height: 1.5rem;">
+                <div class="progress-bar" id="progress" role="progressbar" style="width: 0%;">0 %</div>
+            </div>
+
+            <div id="status"></div>
+        </div>
     </main>
+
+
+    <script>
+
+        var firmwareBytes = null;
+
+        function setStatus(message, type) {
+            var status = document.getElementById("status");
+            status.innerHTML = "";
+            if (message == "") return;
+            var div = document.createElement("div");
+            div.className = "alert alert-" + type;
+            div.textContent = message;
+            status.appendChild(div);
+        }
+
+        function setProgress(percent) {
+            var bar = document.getElementById("progress");
+            bar.style.width = percent + "%";
+            bar.textContent = percent + " %";
+        }
+
+        function fillVersion() {
+            var xhttp1 = new XMLHttpRequest();
+            var xhttp2 = new XMLHttpRequest();
+
+            xhttp1.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) document.getElementById("maxpvver").textContent = this.responseText;
+            };
+            xhttp1.open("GET", "api/get?versionmaxpv", true);
+            xhttp1.send();
+
+            xhttp2.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) document.getElementById("webver").textContent = this.responseText;
+            };
+            xhttp2.open("GET", "api/get?versionweb", true);
+            xhttp2.send();
+        }
+
+        // Lecture du fichier et vérification qu'il s'agit bien d'un firmware ESP8266 :
+        // une image firmware commence par l'octet 0xE9, une image filesystem non
+        function checkFirmware() {
+            var file = document.getElementById("firmware").files[0];
+            firmwareBytes = null;
+            document.getElementById("updatebutton").disabled = true;
+            setProgress(0);
+            setStatus("", "");
+            if (!file) return;
+
+            var reader = new FileReader();
+            reader.onload = function () {
+                var bytes = new Uint8Array(reader.result);
+                if ((bytes.length < 1024) || (bytes[0] != 0xE9)) {
+                    setStatus("Ce fichier n'est pas un firmware MaxPV!. Seul le fichier firmware (.bin) peut être chargé.", "danger");
+                    return;
+                }
+                firmwareBytes = bytes;
+                document.getElementById("updatebutton").disabled = false;
+                setStatus("Firmware de " + Math.round(bytes.length / 1024) + " ko prêt à être chargé.", "secondary");
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // MD5 (RFC 1321) d'un tableau d'octets, utilisé par l'ESP pour vérifier l'intégrité du firmware reçu
+        function md5(bytes) {
+            var S = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+            var K = [];
+            var i, n = bytes.length;
+            for (i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0;
+
+            var words = (((n + 8) >> 6) + 1) * 16;
+            var W = [];
+            for (i = 0; i < words; i++) W[i] = 0;
+            for (i = 0; i < n; i++) W[i >> 2] |= bytes[i] << ((i % 4) * 8);
+            W[n >> 2] |= 0x80 << ((n % 4) * 8);
+            W[words - 2] = (n * 8) | 0;
+            W[words - 1] = Math.floor(n / 536870912);
+
+            var a0 = 0x67452301, b0 = 0xefcdab89 | 0, c0 = 0x98badcfe | 0, d0 = 0x10325476;
+            for (var blk = 0; blk < words; blk += 16) {
+                var A = a0, B = b0, C = c0, D = d0, F, g, s;
+                for (i = 0; i < 64; i++) {
+                    if (i < 16)      { F = (B & C) | (~B & D); g = i; }
+                    else if (i < 32) { F = (D & B) | (~D & C); g = (5 * i + 1) % 16; }
+                    else if (i < 48) { F = B ^ C ^ D;          g = (3 * i + 5) % 16; }
+                    else             { F = C ^ (B | ~D);       g = (7 * i) % 16; }
+                    F = (F + A + K[i] + W[blk + g]) | 0;
+                    s = S[(i >> 4) * 4 + (i % 4)];
+                    A = D; D = C; C = B;
+                    B = (B + ((F << s) | (F >>> (32 - s)))) | 0;
+                }
+                a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0;
+            }
+
+            var hex = "", words4 = [a0, b0, c0, d0];
+            for (i = 0; i < 16; i++) hex += ("0" + ((words4[i >> 2] >>> ((i % 4) * 8)) & 0xff).toString(16)).slice(-2);
+            return hex;
+        }
+
+        function startUpdate() {
+            if (firmwareBytes == null) return;
+            document.getElementById("updatebutton").disabled = true;
+            document.getElementById("firmware").disabled = true;
+
+            // Le MD5 doit précéder le fichier dans le formulaire pour être connu dès le début de l'envoi
+            var form = new FormData();
+            form.append("MD5", md5(firmwareBytes));
+            form.append("firmware", new Blob([firmwareBytes]), "firmware.bin");
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.upload.onprogress = function (e) {
+                if (e.lengthComputable) setProgress(Math.round(100 * e.loaded / e.total));
+            };
+            xhttp.onreadystatechange = function () {
+                if (this.readyState != 4) return;
+                if (this.status == 200) {
+                    setProgress(100);
+                    setStatus("Mise à jour réussie, MaxPV! redémarre...", "success");
+                    waitRestart();
+                }
+                else {
+                    setStatus("Echec de la mise à jour : " + (this.responseText || "connexion perdue") + ". Le firmware actuel est conservé.", "danger");
+                    document.getElementById("firmware").disabled = false;
+                    document.getElementById("updatebutton").disabled = false;
+                }
+            };
+            setStatus("Envoi du firmware, ne pas couper l'alimentation...", "warning");
+            xhttp.open("POST", "update", true);
+            xhttp.send(form);
+        }
+
+        // Attente du redémarrage puis affichage de la nouvelle version
+        function waitRestart() {
+            setTimeout(function () {
+                var xhttp = new XMLHttpRequest();
+                xhttp.timeout = 2000;
+                xhttp.onreadystatechange = function () {
+                    if (this.readyState != 4) return;
+                    if (this.status == 200) {
+                        setStatus("MaxPV! a redémarré, version " + this.responseText + ".", "success");
+                        fillVersion();
+                        document.getElementById("firmware").disabled = false;
+                    }
+                    else waitRestart();
+                };
+                xhttp.open("GET", "api/get?versionmaxpv", true);
+                xhttp.send();
+            }, 3000);
+        }
+
+    </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
 

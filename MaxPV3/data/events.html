@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.8">
+  <meta name="description" content="">
+  <meta name="author" content="Bernard Legrand">
+  <title>MaxPv! Journal</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+
+  <link href="maxpv.css" rel="stylesheet">
+</head>
+
+<body onload="loadEvents ( )">
+
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">MaxPV!</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav me-auto mb-2 mb-md-0">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Moniteur</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="graph.html">Graphiques</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="events.html">Journal</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="wizard.html">Assistant de configuration</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="configuration.html">Paramétrage avancé</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="admin.html">Administration</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="maj.html">Update</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="credits.html">Credits</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container-fluid">
+    <div class="bg-light p-5 rounded">
+      <h1>Journal des événements</h1>
+      <p class="lead">
+        Derniers événements de MaxPV!, du plus récent au plus ancien. Le journal est conservé en mémoire
+        et repart à zéro à chaque redémarrage. Il est aussi disponible en <a href="api/events" target="_blank">JSON</a>
+        et publié sur le topic MQTT <code>maxpv/event</code>.
+      </p>
+
+      <div class="row g-2 mb-3 align-items-center">
+        <div class="col-auto">
+          <select class="form-select" id="filter" onchange="renderEvents ( )">
+            <option value="all" selected>Tous les événements</option>
+            <option value="boost">Boost</option>
+            <option value="ssr">Mode SSR</option>
+            <option value="boot">Démarrages</option>
+            <option value="network">Wifi et MQTT</option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-primary" type="button" onclick="loadEvents ( ); this.blur ( )">Actualiser</button>
+        </div>
+        <div class="col-auto">
+          <span class="text-muted" id="summary"></span>
+        </div>
+      </div>
+
+      <table class="table table-hover">
+        <thead>
+          <tr class="table-primary">
+            <th scope="col">Date</th>
+            <th scope="col">Catégorie</th>
+            <th scope="col">Evénement</th>
+          </tr>
+        </thead>
+        <tbody id="events">
+          <tr>
+            <td colspan="3" class="text-center">Chargement...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+
+  <script>
+
+    var journal = null;
+
+    // Catégorie, filtre et couleur du badge pour chaque type d'événement
+    var eventTypes = {
+      boot:          { label: "Démarrage", filter: "boot",    badge: "bg-dark" },
+      boost_on:      { label: "Boost",     filter: "boost",   badge: "bg-danger" },
+      boost_off:     { label: "Boost",     filter: "boost",   badge: "bg-secondary" },
+      boost_refused: { label: "Boost",     filter: "boost",   badge: "bg-warning text-dark" },
+      ssr_mode:      { label: "SSR",       filter: "ssr",     badge: "bg-primary" },
+      wifi_lost:     { label: "Wifi",      filter: "network", badge: "bg-warning text-dark" },
+      wifi_ok:       { label: "Wifi",      filter: "network", badge: "bg-success" },
+      wifi_watchdog: { label: "Wifi",      filter: "network", badge: "bg-warning text-dark" },
+      mqtt_lost:     { label: "MQTT",      filter: "network", badge: "bg-warning text-dark" },
+      mqtt_ok:       { label: "MQTT",      filter: "network", badge: "bg-success" }
+    };
+
+    function formatUptime(seconds) {
+      var d = Math.floor(seconds / 86400);
+      var h = Math.floor((seconds % 86400) / 3600);
+      var m = Math.floor((seconds % 3600) / 60);
+      var s = seconds % 60;
+      var text = (d > 0) ? d + " j " : "";
+      return text + String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+
+    function formatDate(event) {
+      // time = 0 : l'heure NTP n'est pas connue, on affiche le temps depuis le démarrage
+      if (event.time == 0) return "Démarrage + " + formatUptime(event.uptime);
+      return new Date(event.time * 1000).toLocaleString("fr-FR");
+    }
+
+    function renderEvents() {
+      var tbody = document.getElementById("events");
+      var filter = document.getElementById("filter").value;
+      tbody.innerHTML = "";
+      if (journal == null) return;
+
+      var shown = 0;
+      journal.events.forEach(function (event) {
+        var info = eventTypes[event.type] || { label: event.type, filter: "other", badge: "bg-secondary" };
+        if ((filter != "all") && (info.filter != filter)) return;
+
+        var row = tbody.insertRow();
+        var date = row.insertCell();
+        var category = row.insertCell();
+        var message = row.insertCell();
+        var badge = document.createElement("span");
+
+        date.className = "text-nowrap";
+        date.textContent = formatDate(event);
+        badge.className = "badge " + info.badge;
+        badge.textContent = info.label;
+        category.appendChild(badge);
+        message.textContent = event.msg;
+        shown++;
+      });
+
+      if (shown == 0) {
+        var cell = tbody.insertRow().insertCell();
+        cell.colSpan = 3;
+        cell.className = "text-center";
+        cell.textContent = "Aucun événement";
+      }
+    }
+
+    function loadEvents() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+          journal = JSON.parse(this.responseText);
+          var summary = journal.events.length + " événement(s) affiché(s) sur " + journal.total
+            + " depuis le démarrage (capacité " + journal.size + "), en fonctionnement depuis " + formatUptime(journal.uptime);
+          document.getElementById("summary").textContent = summary;
+          renderEvents();
+        }
+      };
+      xhttp.open("GET", "api/events", true);
+      xhttp.send();
+    }
+
+    setInterval(function () {
+      loadEvents();
+    }, 10000);
+
+  </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa" crossorigin="anonymous"></script>
+
+</body>
+
+</html>
