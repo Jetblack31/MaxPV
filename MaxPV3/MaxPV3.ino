@@ -1325,7 +1325,8 @@ void publishPendingEvents(void)
   for ( int n = 0; ( n < EVENT_MQTT_BURST ) && ( eventPublishedId < eventCounter ); n++ ) {
     // l'événement suivant (id = eventPublishedId + 1) est rangé à la position eventPublishedId % EVENT_LOG_SIZE
     const eventRecord& e = eventLog[eventPublishedId % EVENT_LOG_SIZE];
-    if ( mqttClient.publish(MQTT_EVENT, 0, true, eventToJson(e).c_str()) == 0 ) break;
+    // Non retenu (retain = false) : chaque événement est un message ponctuel, pas un état
+    if ( mqttClient.publish(MQTT_EVENT, 0, false, eventToJson(e).c_str()) == 0 ) break;
     eventPublishedId++;
     yield();
   }
