@@ -432,7 +432,7 @@
             else doc["temp_limit_active"] = "0";
 
             var value_param = JSON.stringify(doc);
-            args += value_param;
+            args += encodeURIComponent(value_param);
             xhttp.open("GET", args, true);
             xhttp.send();
         }
