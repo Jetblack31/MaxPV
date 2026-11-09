@@ -47,7 +47,7 @@
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    1100        // en caractères
+#define JSON_CONFIG_SIZE    1400        // en caractères
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
@@ -73,6 +73,8 @@
 #define DEFAULT_MQTT_SERVER     "192.168.1.100" // Serveur MQTT par défaut
 #define DEFAULT_MQTT_PORT       1883            // Port serveur MQTT
 #define RECONNECT_TIME          5               // Délai de reconnexion en secondes suite à perte de connexion du serveur mqtt
+#define ESP_INFOS_PERIOD        60              // Période de transmission MQTT des infos mémoire de l'ESP en secondes
+#define MQTT_REBOOT_TIMEOUT     900000UL        // Délai en ms sans connexion MQTT avant redémarrage de l'ESP (si l'option est active)
 
 #define DEFAULT_REMOTE_RELAY_SERVER     "192.168.1.200"   // Serveur du relais distant
 #define DEFAULT_REMOTE_RELAY_PORT       80                // Port serveur relais distant

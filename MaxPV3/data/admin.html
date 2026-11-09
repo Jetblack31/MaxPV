@@ -130,6 +130,14 @@
                     </div>
                 </div>    
                 <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="mqtt_reboot_active">
+                            <label class="form-check-label" for="mqtt_reboot_active">Redémarrage de l'ESP si MQTT perdu plus de 15 min (perte de l'historique)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
                     <div class="col-6">
                         <label for="mqtt_ip" class="form-label">IP du serveur MQTT</label>
                         <input type="text" class="form-control text-center" id="mqtt_ip" placeholder="xxx.xxx.xxx.xxx"
@@ -367,6 +375,8 @@
                     document.getElementById("mqtt_pass").value = doc["mqtt_pass"];
                     if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
                     else mqtt_active.checked = false;
+                    if (doc["mqtt_reboot_active"] == "1") mqtt_reboot_active.checked = true;
+                    else mqtt_reboot_active.checked = false;
                     document.getElementById("boost_timer_hour").value = doc["boost_timer_hour"];
                     document.getElementById("boost_timer_minute").value = doc["boost_timer_minute"];
                     if (doc["boost_timer_active"] == "1") boost_timer_active.checked = true;
@@ -412,6 +422,8 @@
             doc["mqtt_pass"] = document.getElementById("mqtt_pass").value;
             if(mqtt_active.checked == true) doc["mqtt_active"] = "1";
             else doc["mqtt_active"] = "0";
+            if(mqtt_reboot_active.checked == true) doc["mqtt_reboot_active"] = "1";
+            else doc["mqtt_reboot_active"] = "0";
             doc["boost_timer_hour"] = document.getElementById("boost_timer_hour").value;
             doc["boost_timer_minute"] = document.getElementById("boost_timer_minute").value;
             if(boost_timer_active.checked == true) doc["boost_timer_active"] = "1";
@@ -459,6 +471,8 @@
                 document.getElementById("mqtt_pass").value = doc["mqtt_pass"] ?? "";
                 if (doc["mqtt_active"] == "1") mqtt_active.checked = true;
                 else mqtt_active.checked = false;
+                if (doc["mqtt_reboot_active"] == "1") mqtt_reboot_active.checked = true;
+                else mqtt_reboot_active.checked = false;
                 document.getElementById("boost_timer_hour").value = doc["boost_timer_hour"] ?? "";
                 document.getElementById("boost_timer_minute").value = doc["boost_timer_minute"] ?? "";
                 if (doc["boost_timer_active"] == "1") boost_timer_active.checked = true;
