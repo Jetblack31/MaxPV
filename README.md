@@ -99,6 +99,10 @@ Pour les mises à jour, **l'ordre à suivre est** : mise à jour du firmware pui
 ## Installation avancée
 Si vous souhaitez compiler le firmware et le filesystem du Wemos pour réaliser une installation personnalisée, les codes sources sont disponibles dans le répertoire **"MaxPV3"**.
 
+MaxPV3 utilise la librairie **ElegantOTA** (version 3) en **mode asynchrone** :
+* Avec l'IDE Arduino, ouvrez le fichier *ElegantOTA.h* de la librairie (dossier *libraries/ElegantOTA/src*) et remplacez `#define ELEGANTOTA_USE_ASYNC_WEBSERVER 0` par `#define ELEGANTOTA_USE_ASYNC_WEBSERVER 1`. **Attention** : le programme *amorceESP.ino* utilise au contraire le mode synchrone (valeur 0).
+* Avec PlatformIO, ce réglage est fait automatiquement par l'option `-D ELEGANTOTA_USE_ASYNC_WEBSERVER=1` du fichier *platformio.ini*.
+
 
 # Tech zone
 ## Explication du mode de fonctionnement des sorties SSR et du relais secondaire
