@@ -147,6 +147,9 @@ int relayPlusActive = OFF;                           // RelayPlus actif (= ON) o
 int maxTemp         = DEFAULT_MAX_TEMP;
 int tempLimitActive = OFF;
 
+// Définition des paramètres d'affichage
+int pCompteur       = DEFAULT_P_COMPTEUR;            // Puissance du compteur en VA
+
 
 // ***********************************************************************************
 // *************** Déclaration des variables globales de fonctionnement **************
@@ -696,6 +699,7 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("RelayPlus_active"))   relayPlusActive = jsonConfig["RelayPlus_active"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("max_temp"))           maxTemp = jsonConfig["max_temp"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("temp_limit_active"))  tempLimitActive = jsonConfig["temp_limit_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("p_compteur"))         pCompteur = jsonConfig["p_compteur"]; else shouldSaveConfig = true;
 
         // traitement des durées min et max du mode RelayPlus
         if ( relayPlusMin <= 5)  relayPlusMin = 5;
@@ -748,6 +752,7 @@ void configWrite(void)
   jsonConfig["RelayPlus_active"] = relayPlusActive;
   jsonConfig["max_temp"] = maxTemp;
   jsonConfig["temp_limit_active"] = tempLimitActive;
+  jsonConfig["p_compteur"] = pCompteur;
 
 
   File configFile = LittleFS.open(F("/config.json"), "w");

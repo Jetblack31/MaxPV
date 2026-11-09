@@ -822,6 +822,34 @@
 
     }));
 
+    // Maximums des jauges : puissance du compteur (configuration MaxPV),
+    // puissances PV et résistance (paramètres EcoPV P_INSTALLPV et P_RESISTANCE)
+    function setGaugeMax(chart, value) {
+      // tickPositions imposées : sinon Highcharts arrondit le maximum (ex : 3000 -> 3200)
+      if (value > 0) chart.yAxis[0].update({ max: value, tickPositions: [0, value] });
+    }
+
+    var xhttpConfigMaxPV = new XMLHttpRequest();
+    xhttpConfigMaxPV.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        var doc = JSON.parse(this.responseText);
+        setGaugeMax(chartPact, parseInt(doc["p_compteur"]));
+      }
+    };
+    xhttpConfigMaxPV.open("GET", "api/get?configmaxpv", true);
+    xhttpConfigMaxPV.send();
+
+    var xhttpParamEcoPV = new XMLHttpRequest();
+    xhttpParamEcoPV.onreadystatechange = function () {
+      if (this.readyState == 4 && this.status == 200) {
+        var param = this.responseText.split(",");
+        setGaugeMax(chartPimpulsion, parseInt(param[15]));
+        setGaugeMax(chartProuted, parseInt(param[4]));
+      }
+    };
+    xhttpParamEcoPV.open("GET", "api/get?allparam", true);
+    xhttpParamEcoPV.send();
+
 
     setInterval(function () {
       var xhttp1 = new XMLHttpRequest();
