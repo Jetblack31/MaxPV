@@ -282,6 +282,17 @@
                     </div>
                 </div>
                 <br>
+
+                <h4>Graphiques</h4>
+                <br>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label for="p_compteur" class="form-label">Puissance du compteur (VA)</label>
+                        <input type="number" class="form-control text-center" id="p_compteur" placeholder="xxxxx"
+                            required min="1000" max="36000" step="1">
+                    </div>
+                </div>
+                <br>
                 
                 <div class="row mb-3">
                     <div class="col-12 d-grid gap-2">
@@ -385,6 +396,7 @@
                     document.getElementById("max_temp").value = doc["max_temp"];
                     if (doc["temp_limit_active"] == "1") temp_limit_active.checked = true;
                     else temp_limit_active.checked = false;
+                    document.getElementById("p_compteur").value = doc["p_compteur"];
                 }
             }
             xhttp1.open("GET", "api/get?configmaxpv", true); xhttp1.send();
@@ -430,6 +442,7 @@
             doc["max_temp"] = document.getElementById("max_temp").value;
             if (temp_limit_active.checked == true) doc["temp_limit_active"] = "1";
             else doc["temp_limit_active"] = "0";
+            doc["p_compteur"] = document.getElementById("p_compteur").value;
 
             var value_param = JSON.stringify(doc);
             args += value_param;
@@ -477,6 +490,7 @@
                 document.getElementById("max_temp").value = doc["max_temp"] ?? "";
                 if (doc["temp_limit_active"] == "1") temp_limit_active.checked = true;
                 else temp_limit_active.checked = false;
+                document.getElementById("p_compteur").value = doc["p_compteur"] ?? "12000";
                 
                 saveConfigMaxPV();
                 sendAction ( 'rebootesp' ); 

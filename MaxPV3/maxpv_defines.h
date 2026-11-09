@@ -47,7 +47,7 @@
 #define HTTP_PORT       80              // Port serveur web MaxPV!
 
 // Taille de la configuration JSON MaxPV! pour la manipulation
-#define JSON_CONFIG_SIZE    1100        // en caractères
+#define JSON_CONFIG_SIZE    1400        // en caractères
 
 // Valeurs par défaut de la configuration TCP MaxPV!
 #define DEFAULT_IP          "192.168.1.250"
@@ -99,6 +99,8 @@
 #define DEFAULT_RELAYPLUS_HOUR    21  // Heure de référence pour les calculs
 
 #define DEFAULT_MAX_TEMP          45
+
+#define DEFAULT_P_COMPTEUR        12000   // Puissance du compteur en VA (maximum de la jauge de puissance active)
 
 // Historisation des index
 #define HISTORY_INTERVAL  30  // Périodicité en minutes de l'enregistrement des index d'énergie pour l'historisation
