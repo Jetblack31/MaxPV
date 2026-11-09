@@ -54,8 +54,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ESPAsyncWiFiManager.h>
 #include <AsyncMqtt_Generic.h>
-#include <AsyncHTTPRequest_Generic.h> 
-#include <AsyncElegantOTA.h>
+#include <AsyncHTTPRequest_Generic.h>
+#include <ElegantOTA.h>
 #include <Ticker.h>
 #include <TickerScheduler.h>
 #include <ArduinoJson.h>
@@ -559,6 +559,10 @@ void loop()
 
   yield();
 
+  
+  ElegantOTA.loop();
+  
+  yield();
 #if defined (MAXPV_FTP_SERVER)
   ftpSrv.handleFTP();
   yield(); 
@@ -1929,8 +1933,8 @@ void remoteRelay ( int state )
 
 void startWeb (void) 
 {
-  AsyncElegantOTA.setID(MAXPV_VERSION_FULL);
-  AsyncElegantOTA.begin(&webServer);
+  //ElegantOTA.setID(MAXPV_VERSION_FULL); // Only available in ElegantOTA Pro
+  ElegantOTA.begin(&webServer);  
   delay(100);
   setWebHandlers();
   delay(100);
