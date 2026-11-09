@@ -129,6 +129,7 @@ String mqttPass;                                    // Mot de passe du serveur M
 uint16_t mqttPort   = DEFAULT_MQTT_PORT;            // Port du serveur MQTT
 int mqttPeriod      = DEFAULT_MQTT_PUBLISH_PERIOD;  // Période de transmission en secondes
 int mqttActive      = OFF;                          // MQTT actif (= ON) ou non (= OFF)
+int mqttRebootActive = OFF;                         // Redémarrage de l'ESP si MQTT perdu trop longtemps (= ON) ou non (= OFF)
 
 // Configuration du relais distant
 String relaisDistantIP;                                     // IP du relais distant       
@@ -160,7 +161,6 @@ String ecoPVStatsAll;
 
 // Définition des tâches de Ticker
 TickerScheduler ts(2);
-Ticker mqttReconnectTimer;
 Ticker safeBoostOffTimer;
 
 // Compteur général à la seconde
@@ -180,6 +180,7 @@ bool shouldExecuteEachSecondTasks = false;
 bool shouldExecuteTimeScheduler = false;
 
 unsigned long refTimePingWifi = millis();
+unsigned long mqttLastConnected = 0;    // Dernier instant (millis) où MQTT était connecté
 unsigned long refTimeContactEcoPV = millis();
 bool contactEcoPV = false;
 
@@ -682,6 +683,7 @@ bool configRead(const String& configString)
         if (jsonConfig.containsKey("mqtt_user"))          mqttUser = jsonConfig["mqtt_user"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_user"))          mqttPass = jsonConfig["mqtt_pass"].as<String>(); else shouldSaveConfig = true;
         if (jsonConfig.containsKey("mqtt_active"))        mqttActive = jsonConfig["mqtt_active"]; else shouldSaveConfig = true;
+        if (jsonConfig.containsKey("mqtt_reboot_active")) mqttRebootActive = jsonConfig["mqtt_reboot_active"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_timer_hour"))   boostTimerHour = jsonConfig["boost_timer_hour"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_timer_minute")) boostTimerMinute = jsonConfig["boost_timer_minute"]; else shouldSaveConfig = true;
         if (jsonConfig.containsKey("boost_timer_active")) boostTimerActive = jsonConfig["boost_timer_active"]; else shouldSaveConfig = true;
@@ -734,6 +736,7 @@ void configWrite(void)
   jsonConfig["mqtt_user"] = mqttUser;
   jsonConfig["mqtt_pass"] = mqttPass;
   jsonConfig["mqtt_active"] = mqttActive;
+  jsonConfig["mqtt_reboot_active"] = mqttRebootActive;
   jsonConfig["boost_timer_hour"] = boostTimerHour;
   jsonConfig["boost_timer_minute"] = boostTimerMinute;
   jsonConfig["boost_timer_active"] = boostTimerActive; 
@@ -825,10 +828,6 @@ void espTransmitInfos (void)
     mqttClient.publish(MQTT_SYS_FRAG,         0, true, (String (ESP.getHeapFragmentation()).c_str()));
     yield();
     mqttClient.publish(MQTT_SYS_MAX_FREE,     0, true, (String (ESP.getMaxFreeBlockSize()).c_str()));
-    yield();
-    mqttClient.publish(MQTT_SYS_CPU_FREQ,     0, true, (String (ESP.getCpuFreqMHz()).c_str()));
-    yield();
-    mqttClient.publish(MQTT_SYS_RESET_REASON, 0, true, ESP.getResetReason().c_str());
     yield();
   }
 }
@@ -1304,8 +1303,8 @@ void eachSecondTasks(void)
 
   yield();
 
-  // Transmission des infos ESP toutes les 2 secondes
-  if (generalCounterSecond % 2 == 1) espTransmitInfos();
+  // Transmission des infos mémoire de l'ESP toutes les ESP_INFOS_PERIOD secondes
+  if (generalCounterSecond % ESP_INFOS_PERIOD == 1) espTransmitInfos();
 
   yield();
 
@@ -1334,6 +1333,8 @@ void eachSecondTasks(void)
   if (generalCounterSecond % (HISTORY_INTERVAL * 60) == 0) recordHistoricData();;
 
   yield();
+
+  mqttSupervisor();
 
   // traitement MQTT
   if ((mqttActive == ON) && (generalCounterSecond % mqttPeriod == 0) ) mqttTransmit();
@@ -1422,8 +1423,11 @@ void startMqtt (void)
   }
   mqttClient.setServer(_ipmqtt, mqttPort);
   mqttClient.setWill(MQTT_STATE, 0, true, "disconnected");
-  mqttConnect();
-  delay(3000);  
+  mqttLastConnected = millis();
+  if (WiFi.isConnected()) {
+    mqttConnect();
+    delay(3000);
+  }
 }
 
 
@@ -1443,6 +1447,10 @@ void onMqttConnect(bool sessionPresent)
 
   // Publication du status
   mqttClient.publish(MQTT_STATE, 0, true, "connected");
+
+  // Publication des infos ESP qui ne changent pas en cours de fonctionnement
+  mqttClient.publish(MQTT_SYS_CPU_FREQ,     0, true, (String (ESP.getCpuFreqMHz()).c_str()));
+  mqttClient.publish(MQTT_SYS_RESET_REASON, 0, true, ESP.getResetReason().c_str());
 
   // On crée les informations pour le Discovery HomeAssistant
   // On crée un identifiant unique
@@ -1755,8 +1763,31 @@ void onMqttConnect(bool sessionPresent)
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
+  // La reconnexion est gérée par mqttSupervisor()
   mqttClient.clearQueue();
-  mqttReconnectTimer.once(RECONNECT_TIME, mqttConnect);
+}
+
+
+///////////////////////////////////////////////////////////////////
+// Supervision de la connexion MQTT                              //
+// Reconnexion uniquement si le WiFi est connecté : sinon        //
+// connect() échoue sans callback et le client reste bloqué      //
+///////////////////////////////////////////////////////////////////
+
+void mqttSupervisor(void)
+{
+  if (mqttActive != ON) return;
+
+  if (mqttClient.connected()) {
+    mqttLastConnected = millis();
+    return;
+  }
+
+  // connect() est ignoré par la librairie si une tentative est déjà en cours
+  if ( (WiFi.isConnected()) && (generalCounterSecond % RECONNECT_TIME == 0) ) mqttClient.connect();
+
+  // Option : redémarrage de l'ESP si MQTT est perdu depuis trop longtemps
+  if ( (mqttRebootActive == ON) && ( (millis() - mqttLastConnected) > MQTT_REBOOT_TIMEOUT ) ) shouldReboot = true;
 }
 
 
